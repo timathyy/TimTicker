@@ -1,5 +1,6 @@
-﻿using System.Text;
+using System.Text;
 using System.Windows;
+using TimeTicker.App.ViewModels;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
@@ -16,8 +17,9 @@ namespace TimeTicker.App;
 /// </summary>
 public partial class MainWindow : Window
 {
-    public MainWindow()
+    public MainWindow(MainWindowViewModel viewModel)
     {
         InitializeComponent();
+        DataContext = viewModel;
     }
 }

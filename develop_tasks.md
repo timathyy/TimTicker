@@ -253,11 +253,11 @@ TimeTicker.App ────────> TimeTicker.Application ─────�
 - [x] 固定 .NET 10 SDK，启用 nullable、隐式 using 和警告策略；
 - [x] 配置集中 NuGet 版本管理；
 - [ ] 建立 WPF 主窗口、应用图标和基本导航；
-- [ ] 建立 MVVM 基类、命令、导航服务和依赖注入；
+- [x] 建立 MVVM 基类、命令、导航服务和依赖注入；
 - [ ] 加入配置、结构化日志和全局未处理异常记录；
 - [ ] 确定应用数据目录、数据库目录与日志目录；
 - [ ] 建立 EF Core `DbContext`、首个 migration 和数据库自动初始化流程；
-- [ ] 加入浅色/深色主题资源骨架；
+- [x] 加入浅色/深色主题资源骨架；
 - [x] 建立测试项目和最小测试样例；
 - [ ] 建立 Windows CI：restore、build、test；
 - [x] 添加 `.editorconfig`、基础代码风格和仓库开发说明；

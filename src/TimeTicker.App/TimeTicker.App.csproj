@@ -7,6 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Debug" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\TimeTicker.Application\TimeTicker.Application.csproj" />
     <ProjectReference Include="..\TimeTicker.Infrastructure\TimeTicker.Infrastructure.csproj" />
   </ItemGroup>

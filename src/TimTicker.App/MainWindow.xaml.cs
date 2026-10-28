@@ -49,6 +49,10 @@ public partial class MainWindow : Window
     private void OnWindowStateChanged(object? sender, EventArgs e)
     {
         bool isMaximized = WindowState == System.Windows.WindowState.Maximized;
+        WindowRoot.Margin = isMaximized
+            ? SystemParameters.WindowResizeBorderThickness
+            : new Thickness(0);
+
         MaximizeIcon.Visibility = isMaximized ? Visibility.Collapsed : Visibility.Visible;
         RestoreIcon.Visibility = isMaximized ? Visibility.Visible : Visibility.Collapsed;
     }

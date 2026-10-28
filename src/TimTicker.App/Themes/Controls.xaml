@@ -9,18 +9,24 @@
         <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
 
-    <Style x:Key="PageTitleStyle" TargetType="TextBlock">
+    <Style x:Key="PageTitleStyle"
+           TargetType="TextBlock"
+           BasedOn="{StaticResource {x:Type TextBlock}}">
         <Setter Property="FontSize" Value="30" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="LineHeight" Value="38" />
     </Style>
 
-    <Style x:Key="SectionTitleStyle" TargetType="TextBlock">
+    <Style x:Key="SectionTitleStyle"
+           TargetType="TextBlock"
+           BasedOn="{StaticResource {x:Type TextBlock}}">
         <Setter Property="FontSize" Value="17" />
         <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
 
-    <Style x:Key="MutedTextStyle" TargetType="TextBlock">
+    <Style x:Key="MutedTextStyle"
+           TargetType="TextBlock"
+           BasedOn="{StaticResource {x:Type TextBlock}}">
         <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
     </Style>
 

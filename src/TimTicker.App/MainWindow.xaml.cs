@@ -48,8 +48,8 @@ public partial class MainWindow : Window
 
     private void OnWindowStateChanged(object? sender, EventArgs e)
     {
-        MaximizeIcon.Text = WindowState == System.Windows.WindowState.Maximized
-            ? "\uE923"
-            : "\uE922";
+        bool isMaximized = WindowState == System.Windows.WindowState.Maximized;
+        MaximizeIcon.Visibility = isMaximized ? Visibility.Collapsed : Visibility.Visible;
+        RestoreIcon.Visibility = isMaximized ? Visibility.Visible : Visibility.Collapsed;
     }
 }

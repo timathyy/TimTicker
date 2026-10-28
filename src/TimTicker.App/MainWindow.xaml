@@ -6,10 +6,10 @@
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         mc:Ignorable="d"
         Title="TimTicker"
-        Width="1180"
-        Height="760"
-        MinWidth="920"
-        MinHeight="600"
+        Width="1240"
+        Height="820"
+        MinWidth="1200"
+        MinHeight="800"
         WindowStyle="None"
         ResizeMode="CanResize"
         WindowStartupLocation="CenterScreen"
@@ -66,22 +66,62 @@
                     <Button AutomationProperties.Name="最小化"
                             shell:WindowChrome.IsHitTestVisibleInChrome="True"
                             Click="MinimizeButton_Click"
-                            Content="&#xE921;"
-                            Style="{StaticResource CaptionButtonStyle}" />
+                            Style="{StaticResource CaptionButtonStyle}">
+                        <Grid Width="12" Height="12">
+                            <Border Height="1.25"
+                                    Margin="1,0"
+                                    VerticalAlignment="Bottom"
+                                    Background="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                        </Grid>
+                    </Button>
                     <Button AutomationProperties.Name="最大化或还原"
                             shell:WindowChrome.IsHitTestVisibleInChrome="True"
                             Click="MaximizeButton_Click"
                             Style="{StaticResource CaptionButtonStyle}">
-                        <TextBlock x:Name="MaximizeIcon"
-                                   FontFamily="Segoe Fluent Icons"
-                                   FontSize="11"
-                                   Text="&#xE922;" />
+                        <Grid Width="12" Height="12">
+                            <Border x:Name="MaximizeIcon"
+                                    Width="9"
+                                    Height="9"
+                                    BorderBrush="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                    BorderThickness="1.25" />
+                            <Grid x:Name="RestoreIcon" Visibility="Collapsed">
+                                <Border Width="8"
+                                        Height="8"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Top"
+                                        BorderBrush="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                        BorderThickness="1.25" />
+                                <Border Width="8"
+                                        Height="8"
+                                        HorizontalAlignment="Left"
+                                        VerticalAlignment="Bottom"
+                                        Background="{DynamicResource SidebarBackgroundBrush}"
+                                        BorderBrush="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                        BorderThickness="1.25" />
+                            </Grid>
+                        </Grid>
                     </Button>
                     <Button AutomationProperties.Name="关闭"
                             shell:WindowChrome.IsHitTestVisibleInChrome="True"
                             Click="CloseButton_Click"
-                            Content="&#xE8BB;"
-                            Style="{StaticResource CloseCaptionButtonStyle}" />
+                            Style="{StaticResource CloseCaptionButtonStyle}">
+                        <Grid Width="12" Height="12">
+                            <Border Height="1.25"
+                                    Background="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                    RenderTransformOrigin="0.5,0.5">
+                                <Border.RenderTransform>
+                                    <RotateTransform Angle="45" />
+                                </Border.RenderTransform>
+                            </Border>
+                            <Border Height="1.25"
+                                    Background="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                    RenderTransformOrigin="0.5,0.5">
+                                <Border.RenderTransform>
+                                    <RotateTransform Angle="-45" />
+                                </Border.RenderTransform>
+                            </Border>
+                        </Grid>
+                    </Button>
                 </StackPanel>
             </Grid>
         </Border>

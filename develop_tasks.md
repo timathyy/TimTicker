@@ -1,4 +1,4 @@
-# TimeTicker 开发任务与版本规划
+# TimTicker 开发任务与版本规划
 
 > 状态：初稿，作为从项目初始化到 `v1.0.0` 的主路线图。  
 > 技术路线：VS Code + Codex + .NET 10 + WPF。  
@@ -6,7 +6,7 @@
 
 ## 1. 产品愿景
 
-TimeTicker 是一款面向个人的 Windows 本地日历与时间记录软件。它帮助用户形成一个完整的每日闭环：
+TimTicker 是一款面向个人的 Windows 本地日历与时间记录软件。它帮助用户形成一个完整的每日闭环：
 
 1. 随时记录未来需要完成的任务；
 2. 每天开始时，从任务池中选择今天要做的事情并形成当日计划；
@@ -125,16 +125,16 @@ TimeTicker 是一款面向个人的 Windows 本地日历与时间记录软件。
 ### 3.2 解决方案结构
 
 ```text
-TimeTicker.slnx
+TimTicker.slnx
 ├─ src/
-│  ├─ TimeTicker.App/              # WPF、视图、ViewModel、启动与组合根
-│  ├─ TimeTicker.Application/      # 用例、接口、DTO、业务编排
-│  ├─ TimeTicker.Domain/           # 实体、值对象、领域规则
-│  └─ TimeTicker.Infrastructure/   # EF Core、SQLite、日志、备份、系统服务
+│  ├─ TimTicker.App/              # WPF、视图、ViewModel、启动与组合根
+│  ├─ TimTicker.Application/      # 用例、接口、DTO、业务编排
+│  ├─ TimTicker.Domain/           # 实体、值对象、领域规则
+│  └─ TimTicker.Infrastructure/   # EF Core、SQLite、日志、备份、系统服务
 ├─ tests/
-│  ├─ TimeTicker.Domain.Tests/
-│  ├─ TimeTicker.Application.Tests/
-│  └─ TimeTicker.Infrastructure.Tests/
+│  ├─ TimTicker.Domain.Tests/
+│  ├─ TimTicker.Application.Tests/
+│  └─ TimTicker.Infrastructure.Tests/
 ├─ docs/                           # 设计记录、用户说明、截图
 ├─ scripts/                        # 构建与发布脚本
 ├─ Directory.Build.props
@@ -146,9 +146,9 @@ TimeTicker.slnx
 依赖方向：
 
 ```text
-TimeTicker.App ────────> TimeTicker.Application ────────> TimeTicker.Domain
+TimTicker.App ────────> TimTicker.Application ────────> TimTicker.Domain
       │                           ▲
-      └─> TimeTicker.Infrastructure ┘
+      └─> TimTicker.Infrastructure ┘
 ```
 
 `Domain` 不引用 UI、EF Core 或操作系统 API。`Infrastructure` 实现 `Application` 定义的接口，具体实现只在 `App` 的组合根中注册。
@@ -249,7 +249,7 @@ TimeTicker.App ────────> TimeTicker.Application ─────�
 
 目标：建立可持续开发、测试和发布的项目基础。
 
-- [x] 创建 `TimeTicker.slnx` 与建议的 `src/`、`tests/` 目录；
+- [x] 创建 `TimTicker.slnx` 与建议的 `src/`、`tests/` 目录；
 - [x] 固定 .NET 10 SDK，启用 nullable、隐式 using 和警告策略；
 - [x] 配置集中 NuGet 版本管理；
 - [ ] 建立 WPF 主窗口、应用图标和基本导航；
@@ -449,7 +449,7 @@ TimeTicker.App ────────> TimeTicker.Application ─────�
 
 ## `v1.0.0` — 首个正式版本
 
-目标：发布稳定、可恢复、可长期使用的 TimeTicker。
+目标：发布稳定、可恢复、可长期使用的 TimTicker。
 
 - [ ] 从 RC 对应提交创建正式版本；
 - [ ] 运行干净环境的最终 CI 和安装验证；

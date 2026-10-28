@@ -1,6 +1,6 @@
-# TimeTicker
+# TimTicker
 
-TimeTicker 是一款面向个人的 Windows 本地日历与时间记录应用。项目当前处于 `v0.1.0` 工程基础建设阶段。
+TimTicker 是一款面向个人的 Windows 本地日历与时间记录应用。项目当前处于 `v0.1.0` 工程基础建设阶段。
 
 当前界面提供“今天、任务、日历、设置”四个主入口，并内置浅色与深色主题。整体视觉采用低对比表面、圆角控件和紫色强调色。
 
@@ -15,40 +15,40 @@ TimeTicker 是一款面向个人的 Windows 本地日历与时间记录应用。
 在仓库根目录执行：
 
 ```powershell
-dotnet restore TimeTicker.slnx
-dotnet build TimeTicker.slnx --configuration Release --no-restore
-dotnet test TimeTicker.slnx --configuration Release --no-build --no-restore
+dotnet restore TimTicker.slnx
+dotnet build TimTicker.slnx --configuration Release --no-restore
+dotnet test TimTicker.slnx --configuration Release --no-build --no-restore
 ```
 
 启动桌面应用：
 
 ```powershell
-dotnet run --project src/TimeTicker.App/TimeTicker.App.csproj
+dotnet run --project src/TimTicker.App/TimTicker.App.csproj
 ```
 
 ## 解决方案结构
 
 ```text
-TimeTicker.slnx
+TimTicker.slnx
 ├─ src/
-│  ├─ TimeTicker.App/              WPF 界面与组合根
-│  ├─ TimeTicker.Application/      用例、接口与业务编排
-│  ├─ TimeTicker.Domain/           实体、值对象与领域规则
-│  └─ TimeTicker.Infrastructure/   持久化、日志与系统服务
+│  ├─ TimTicker.App/              WPF 界面与组合根
+│  ├─ TimTicker.Application/      用例、接口与业务编排
+│  ├─ TimTicker.Domain/           实体、值对象与领域规则
+│  └─ TimTicker.Infrastructure/   持久化、日志与系统服务
 └─ tests/
-   ├─ TimeTicker.Domain.Tests/
-   ├─ TimeTicker.Application.Tests/
-   └─ TimeTicker.Infrastructure.Tests/
+   ├─ TimTicker.Domain.Tests/
+   ├─ TimTicker.Application.Tests/
+   └─ TimTicker.Infrastructure.Tests/
 ```
 
 依赖方向固定为：
 
 ```text
-TimeTicker.App -> TimeTicker.Application -> TimeTicker.Domain
-TimeTicker.App -> TimeTicker.Infrastructure -> TimeTicker.Application
+TimTicker.App -> TimTicker.Application -> TimTicker.Domain
+TimTicker.App -> TimTicker.Infrastructure -> TimTicker.Application
 ```
 
-`TimeTicker.Domain` 不得引用 UI、数据库或操作系统相关项目。NuGet 版本统一在 `Directory.Packages.props` 中管理，公共编译设置统一在 `Directory.Build.props` 中管理。
+`TimTicker.Domain` 不得引用 UI、数据库或操作系统相关项目。NuGet 版本统一在 `Directory.Packages.props` 中管理，公共编译设置统一在 `Directory.Build.props` 中管理。
 
 ## 开发约定
 

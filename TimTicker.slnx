@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/TimTicker.App/TimTicker.App.csproj" />
+    <Project Path="src/TimTicker.Application/TimTicker.Application.csproj" />
+    <Project Path="src/TimTicker.Domain/TimTicker.Domain.csproj" />
+    <Project Path="src/TimTicker.Infrastructure/TimTicker.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/TimTicker.Application.Tests/TimTicker.Application.Tests.csproj" />
+    <Project Path="tests/TimTicker.Domain.Tests/TimTicker.Domain.Tests.csproj" />
+    <Project Path="tests/TimTicker.Infrastructure.Tests/TimTicker.Infrastructure.Tests.csproj" />
+  </Folder>
+</Solution>

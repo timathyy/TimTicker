@@ -1,12 +1,14 @@
-using System.Configuration;
-using System.Data;
 using System.Windows;
 using System.Windows.Threading;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using TimTicker.Application.Abstractions;
 using TimTicker.App.Services;
 using TimTicker.App.ViewModels;
+using TimTicker.Infrastructure.Logging;
+using TimTicker.Infrastructure.Storage;
 
 namespace TimTicker.App;
 
@@ -25,6 +27,9 @@ public partial class App : System.Windows.Application
         RegisterExceptionHandlers();
         await _host.StartAsync();
 
+        ILogger<App> logger = _host.Services.GetRequiredService<ILogger<App>>();
+        LogApplicationStarted(logger);
+
         _host.Services.GetRequiredService<IThemeService>().Apply(AppTheme.System);
 
         MainWindow = _host.Services.GetRequiredService<MainWindow>();
@@ -35,6 +40,12 @@ public partial class App : System.Windows.Application
     {
         if (_host is not null)
         {
+            ILogger<App>? logger = _host.Services.GetService<ILogger<App>>();
+            if (logger is not null)
+            {
+                LogApplicationStopping(logger);
+            }
+
             await _host.StopAsync(TimeSpan.FromSeconds(5));
             _host.Dispose();
         }
@@ -44,11 +55,20 @@ public partial class App : System.Windows.Application
 
     private static IHost CreateHost()
     {
-        HostApplicationBuilder builder = Host.CreateApplicationBuilder();
+        HostApplicationBuilder builder = Host.CreateApplicationBuilder(
+            new HostApplicationBuilderSettings
+            {
+                ContentRootPath = AppContext.BaseDirectory,
+            });
+        AppPaths appPaths = new();
+        appPaths.EnsureDirectoriesExist();
+        RollingFileLoggerOptions fileLoggerOptions = CreateFileLoggerOptions(builder.Configuration);
 
         builder.Logging.ClearProviders();
         builder.Logging.AddDebug();
+        builder.Logging.AddProvider(new RollingFileLoggerProvider(appPaths.LogsDirectory, fileLoggerOptions));
 
+        builder.Services.AddSingleton<IAppPaths>(appPaths);
         builder.Services.AddSingleton<IThemeService, ThemeService>();
         builder.Services.AddSingleton<INavigationService, NavigationService>();
 
@@ -60,6 +80,31 @@ public partial class App : System.Windows.Application
         builder.Services.AddSingleton<MainWindow>();
 
         return builder.Build();
+    }
+
+    private static RollingFileLoggerOptions CreateFileLoggerOptions(ConfigurationManager configuration)
+    {
+        long maxFileSizeBytes = RollingFileLoggerOptions.DefaultMaxFileSizeBytes;
+        if (long.TryParse(
+            configuration["FileLogging:MaxFileSizeBytes"],
+            out long configuredMaxFileSizeBytes))
+        {
+            maxFileSizeBytes = configuredMaxFileSizeBytes;
+        }
+
+        int retainedFileCountLimit = RollingFileLoggerOptions.DefaultRetainedFileCountLimit;
+        if (int.TryParse(
+            configuration["FileLogging:RetainedFileCountLimit"],
+            out int configuredRetainedFileCountLimit))
+        {
+            retainedFileCountLimit = configuredRetainedFileCountLimit;
+        }
+
+        return new RollingFileLoggerOptions
+        {
+            MaxFileSizeBytes = maxFileSizeBytes,
+            RetainedFileCountLimit = retainedFileCountLimit,
+        };
     }
 
     private void RegisterExceptionHandlers()
@@ -98,5 +143,11 @@ public partial class App : System.Windows.Application
 
     [LoggerMessage(EventId = 1, Level = LogLevel.Critical, Message = "{Message}")]
     private static partial void LogCritical(ILogger logger, Exception exception, string message);
+
+    [LoggerMessage(EventId = 2, Level = LogLevel.Information, Message = "TimTicker application started")]
+    private static partial void LogApplicationStarted(ILogger logger);
+
+    [LoggerMessage(EventId = 3, Level = LogLevel.Information, Message = "TimTicker application stopping")]
+    private static partial void LogApplicationStopping(ILogger logger);
 }
 

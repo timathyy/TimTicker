@@ -26,6 +26,20 @@ dotnet test TimTicker.slnx --configuration Release --no-build --no-restore
 dotnet run --project src/TimTicker.App/TimTicker.App.csproj
 ```
 
+## 本地数据目录
+
+TimTicker 将运行时数据统一保存在 `%LocalAppData%\TimTicker`，不会写入仓库或程序安装目录：
+
+```text
+%LocalAppData%\TimTicker\
+├─ Data\
+│  └─ timticker.db       SQLite 数据库（后续里程碑创建）
+└─ Logs\
+   └─ timticker-*.log    JSON Lines 结构化滚动日志
+```
+
+日志默认单文件上限为 5 MB，并保留最近 14 个文件；可在 `src/TimTicker.App/appsettings.json` 中调整。异常日志只记录异常类型、错误码和堆栈，不记录异常消息，以降低用户内容意外进入日志的风险。
+
 ## 解决方案结构
 
 ```text

@@ -17,4 +17,8 @@
     <ProjectReference Include="..\TimTicker.Infrastructure\TimTicker.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

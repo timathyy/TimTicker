@@ -29,6 +29,14 @@ dotnet test TimTicker.slnx --configuration Release --no-build --no-restore
 dotnet run --project src/TimTicker.App/TimTicker.App.csproj
 ```
 
+从项目内的透明 PNG 重新生成包含 16–256 像素规格的 Windows ICO：
+
+```powershell
+& ./scripts/Convert-PngToIco.ps1 `
+  -InputPath ./src/TimTicker.App/Assets/AppIcon.png `
+  -OutputPath ./src/TimTicker.App/Assets/AppIcon.ico
+```
+
 ## 本地数据目录
 
 TimTicker 将运行时数据统一保存在 `%LocalAppData%\TimTicker`，不会写入仓库或程序安装目录：

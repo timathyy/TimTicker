@@ -252,7 +252,7 @@ TimTicker.App ────────> TimTicker.Application ──────
 - [x] 创建 `TimTicker.slnx` 与建议的 `src/`、`tests/` 目录；
 - [x] 固定 .NET 10 SDK，启用 nullable、隐式 using 和警告策略；
 - [x] 配置集中 NuGet 版本管理；
-- [ ] 建立 WPF 主窗口、应用图标和基本导航；
+- [x] 建立 WPF 主窗口、应用图标和基本导航；
 - [x] 建立 MVVM 基类、命令、导航服务和依赖注入；
 - [x] 加入配置、结构化日志和全局未处理异常记录；
 - [x] 确定应用数据目录、数据库目录与日志目录；
@@ -265,10 +265,10 @@ TimTicker.App ────────> TimTicker.Application ──────
 
 验收标准：
 
-- [ ] 新克隆仓库后，可按 README 在 VS Code 中还原、构建、测试并运行；
-- [ ] 应用能启动、切换四个主页面并正常退出；
+- [x] 新克隆仓库后，可按 README 在 VS Code 中还原、构建、测试并运行；
+- [x] 应用能启动、切换四个主页面并正常退出；
 - [x] 首次启动能创建数据库，后续启动不会重复或破坏数据；
-- [ ] CI 在干净 Windows 环境通过。
+- [x] CI 在干净 Windows 环境通过。
 
 ## `v0.2.0` — 任务池 MVP
 

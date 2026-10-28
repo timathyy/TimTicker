@@ -6,6 +6,7 @@
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         mc:Ignorable="d"
         Title="TimTicker"
+        Icon="Assets/AppIcon.ico"
         Width="1240"
         Height="820"
         MinWidth="1200"
@@ -47,17 +48,11 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
-                    <Border Width="28"
-                            Height="28"
-                            Background="{DynamicResource AccentBrush}"
-                            CornerRadius="9">
-                        <TextBlock HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"
-                                   FontSize="14"
-                                   FontWeight="Bold"
-                                   Foreground="{DynamicResource AccentForegroundBrush}"
-                                   Text="T" />
-                    </Border>
+                    <Image Width="28"
+                           Height="28"
+                           SnapsToDevicePixels="True"
+                           Source="Assets/AppIcon.png"
+                           Stretch="Uniform" />
                     <TextBlock Margin="10,0,0,0"
                                VerticalAlignment="Center"
                                FontSize="14"

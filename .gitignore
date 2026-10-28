@@ -1,0 +1,33 @@
+## .NET build output
+[Bb]in/
+[Oo]bj/
+artifacts/
+
+## IDE and editor state
+.vs/
+.vscode/
+.dotnet-cli/
+.packages/
+*.user
+*.suo
+
+## Test output
+TestResults/
+*.coverage
+*.coveragexml
+
+## Local application data
+*.db
+*.db-shm
+*.db-wal
+*.log
+
+## Release artifacts
+publish/
+packages/
+*.msix
+*.msixbundle
+
+## Operating system files
+Thumbs.db
+.DS_Store

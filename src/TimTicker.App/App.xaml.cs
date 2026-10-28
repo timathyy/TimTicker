@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using TimTicker.Application.Abstractions;
 using TimTicker.App.Services;
 using TimTicker.App.ViewModels;
+using TimTicker.Infrastructure;
 using TimTicker.Infrastructure.Logging;
 using TimTicker.Infrastructure.Storage;
 
@@ -26,6 +27,9 @@ public partial class App : System.Windows.Application
         _host = CreateHost();
         RegisterExceptionHandlers();
         await _host.StartAsync();
+        await _host.Services
+            .GetRequiredService<IAppDatabaseInitializer>()
+            .InitializeAsync();
 
         ILogger<App> logger = _host.Services.GetRequiredService<ILogger<App>>();
         LogApplicationStarted(logger);
@@ -69,6 +73,7 @@ public partial class App : System.Windows.Application
         builder.Logging.AddProvider(new RollingFileLoggerProvider(appPaths.LogsDirectory, fileLoggerOptions));
 
         builder.Services.AddSingleton<IAppPaths>(appPaths);
+        builder.Services.AddTimTickerInfrastructure(appPaths.DatabasePath);
         builder.Services.AddSingleton<IThemeService, ThemeService>();
         builder.Services.AddSingleton<INavigationService, NavigationService>();
 

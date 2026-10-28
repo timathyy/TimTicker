@@ -23,5 +23,8 @@ dotnet_style_qualification_for_method = false:suggestion
 dotnet_style_qualification_for_event = false:suggestion
 dotnet_diagnostic.IDE0161.severity = warning
 
+[**/Persistence/Migrations/*.cs]
+generated_code = true
+
 [*.md]
 trim_trailing_whitespace = false

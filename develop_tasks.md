@@ -256,7 +256,7 @@ TimTicker.App ────────> TimTicker.Application ──────
 - [x] 建立 MVVM 基类、命令、导航服务和依赖注入；
 - [x] 加入配置、结构化日志和全局未处理异常记录；
 - [x] 确定应用数据目录、数据库目录与日志目录；
-- [ ] 建立 EF Core `DbContext`、首个 migration 和数据库自动初始化流程；
+- [x] 建立 EF Core `DbContext`、首个 migration 和数据库自动初始化流程；
 - [x] 加入浅色/深色主题资源骨架；
 - [x] 建立测试项目和最小测试样例；
 - [ ] 建立 Windows CI：restore、build、test；
@@ -267,7 +267,7 @@ TimTicker.App ────────> TimTicker.Application ──────
 
 - [ ] 新克隆仓库后，可按 README 在 VS Code 中还原、构建、测试并运行；
 - [ ] 应用能启动、切换四个主页面并正常退出；
-- [ ] 首次启动能创建数据库，后续启动不会重复或破坏数据；
+- [x] 首次启动能创建数据库，后续启动不会重复或破坏数据；
 - [ ] CI 在干净 Windows 环境通过。
 
 ## `v0.2.0` — 任务池 MVP

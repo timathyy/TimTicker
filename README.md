@@ -16,6 +16,7 @@ TimTicker 是一款面向个人的 Windows 本地日历与时间记录应用。�
 
 ```powershell
 dotnet restore TimTicker.slnx
+dotnet tool restore
 dotnet build TimTicker.slnx --configuration Release --no-restore
 dotnet test TimTicker.slnx --configuration Release --no-build --no-restore
 ```
@@ -39,6 +40,12 @@ TimTicker 将运行时数据统一保存在 `%LocalAppData%\TimTicker`，不会�
 ```
 
 日志默认单文件上限为 5 MB，并保留最近 14 个文件；可在 `src/TimTicker.App/appsettings.json` 中调整。异常日志只记录异常类型、错误码和堆栈，不记录异常消息，以降低用户内容意外进入日志的风险。
+
+应用启动时会自动创建 SQLite 数据库并应用尚未执行的 EF Core migration。新增 migration 时执行：
+
+```powershell
+dotnet ef migrations add <MigrationName> --project src/TimTicker.Infrastructure --output-dir Persistence/Migrations
+```
 
 ## 解决方案结构
 

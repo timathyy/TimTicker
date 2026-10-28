@@ -79,7 +79,7 @@ TimTicker.App -> TimTicker.Infrastructure -> TimTicker.Application
 - 保持 nullable 与隐式 using 开启；编译警告视为错误。
 - 不提交本地数据库、日志、测试输出、构建产物或发布包。
 - 数据模型变更必须通过 EF Core migration，并配套升级测试。
-- 影响架构或用户数据格式的决定记录到 `docs/adr/`。
 - GitHub Actions 会在 Windows runner 上执行还原、格式检查、Release 构建和全部测试。
+- 长期影响结构、数据兼容性或交付方式的决定记录在 [`docs/adr/`](docs/adr/)；已接受的决定如需改变，应通过新的 ADR 取代。
 
 完整产品范围、版本任务与完成定义见 [`develop_tasks.md`](develop_tasks.md)。

@@ -25,7 +25,7 @@ public partial class App : System.Windows.Application
         RegisterExceptionHandlers();
         await _host.StartAsync();
 
-        _host.Services.GetRequiredService<IThemeService>().Apply(AppTheme.Light);
+        _host.Services.GetRequiredService<IThemeService>().Apply(AppTheme.System);
 
         MainWindow = _host.Services.GetRequiredService<MainWindow>();
         MainWindow.Show();

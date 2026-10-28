@@ -30,20 +30,51 @@
                         <RowDefinition Height="24" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
-                    <StackPanel>
-                        <TextBlock Style="{StaticResource SectionTitleStyle}" Text="外观" />
-                        <TextBlock Margin="0,5,0,0"
-                                   Foreground="{DynamicResource TextSecondaryBrush}"
-                                   Text="选择适合当前环境的显示模式。主题切换会立即生效。" />
-                    </StackPanel>
+                    <Grid>
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SectionTitleStyle}" Text="外观" />
+                            <TextBlock Margin="0,5,0,0"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       Text="选择适合当前环境的显示模式。主题切换会立即生效。" />
+                        </StackPanel>
+                        <Border HorizontalAlignment="Right"
+                                VerticalAlignment="Center"
+                                Padding="10,6"
+                                Background="{DynamicResource AccentSoftBrush}"
+                                CornerRadius="8">
+                            <TextBlock FontSize="12"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource AccentBrush}"
+                                       Text="{Binding CurrentThemeName}" />
+                        </Border>
+                    </Grid>
 
                     <Grid Grid.Row="2">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="16" />
                             <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="16" />
+                            <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <Button Command="{Binding UseLightThemeCommand}"
+                        <Button Command="{Binding UseSystemThemeCommand}"
+                                Style="{StaticResource SecondaryButtonStyle}">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="28"
+                                        Height="28"
+                                        Background="{DynamicResource AccentSoftBrush}"
+                                        CornerRadius="8">
+                                    <TextBlock HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               FontFamily="Segoe Fluent Icons"
+                                               Foreground="{DynamicResource AccentBrush}"
+                                               Text="&#xE770;" />
+                                </Border>
+                                <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" Text="跟随系统" />
+                            </StackPanel>
+                        </Button>
+                        <Button Grid.Column="2"
+                                Command="{Binding UseLightThemeCommand}"
                                 Style="{StaticResource SecondaryButtonStyle}">
                             <StackPanel Orientation="Horizontal">
                                 <Border Width="28" Height="28" Background="#FFFFFFFF" BorderBrush="#FFE5E5E5" BorderThickness="1" CornerRadius="8">
@@ -52,7 +83,7 @@
                                 <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" Text="浅色" />
                             </StackPanel>
                         </Button>
-                        <Button Grid.Column="2"
+                        <Button Grid.Column="4"
                                 Command="{Binding UseDarkThemeCommand}"
                                 Style="{StaticResource SecondaryButtonStyle}">
                             <StackPanel Orientation="Horizontal">

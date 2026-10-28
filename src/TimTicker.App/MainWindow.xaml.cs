@@ -21,5 +21,35 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         DataContext = viewModel;
+        StateChanged += OnWindowStateChanged;
+    }
+
+    private void MinimizeButton_Click(object sender, RoutedEventArgs e)
+    {
+        SystemCommands.MinimizeWindow(this);
+    }
+
+    private void MaximizeButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (WindowState == System.Windows.WindowState.Maximized)
+        {
+            SystemCommands.RestoreWindow(this);
+        }
+        else
+        {
+            SystemCommands.MaximizeWindow(this);
+        }
+    }
+
+    private void CloseButton_Click(object sender, RoutedEventArgs e)
+    {
+        SystemCommands.CloseWindow(this);
+    }
+
+    private void OnWindowStateChanged(object? sender, EventArgs e)
+    {
+        MaximizeIcon.Text = WindowState == System.Windows.WindowState.Maximized
+            ? "\uE923"
+            : "\uE922";
     }
 }

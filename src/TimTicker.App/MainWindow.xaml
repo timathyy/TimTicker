@@ -3,18 +3,90 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         mc:Ignorable="d"
         Title="TimTicker"
         Width="1180"
         Height="760"
         MinWidth="920"
         MinHeight="600"
+        WindowStyle="None"
+        ResizeMode="CanResize"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource WindowBackgroundBrush}"
         FontFamily="{StaticResource AppFontFamily}"
         TextOptions.TextFormattingMode="Display"
+        SnapsToDevicePixels="True"
         UseLayoutRounding="True">
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="48"
+                            ResizeBorderThickness="6"
+                            GlassFrameThickness="0"
+                            CornerRadius="10"
+                            UseAeroCaptionButtons="False" />
+    </shell:WindowChrome.WindowChrome>
+
     <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="48" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0"
+                Background="{DynamicResource SidebarBackgroundBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1">
+            <Grid Margin="14,0,8,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                    <Border Width="28"
+                            Height="28"
+                            Background="{DynamicResource AccentBrush}"
+                            CornerRadius="9">
+                        <TextBlock HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   FontSize="14"
+                                   FontWeight="Bold"
+                                   Foreground="{DynamicResource AccentForegroundBrush}"
+                                   Text="T" />
+                    </Border>
+                    <TextBlock Margin="10,0,0,0"
+                               VerticalAlignment="Center"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               Text="TimTicker" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <Button AutomationProperties.Name="最小化"
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                            Click="MinimizeButton_Click"
+                            Content="&#xE921;"
+                            Style="{StaticResource CaptionButtonStyle}" />
+                    <Button AutomationProperties.Name="最大化或还原"
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                            Click="MaximizeButton_Click"
+                            Style="{StaticResource CaptionButtonStyle}">
+                        <TextBlock x:Name="MaximizeIcon"
+                                   FontFamily="Segoe Fluent Icons"
+                                   FontSize="11"
+                                   Text="&#xE922;" />
+                    </Button>
+                    <Button AutomationProperties.Name="关闭"
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                            Click="CloseButton_Click"
+                            Content="&#xE8BB;"
+                            Style="{StaticResource CloseCaptionButtonStyle}" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="236" />
             <ColumnDefinition Width="*" />
@@ -24,39 +96,13 @@
                 Background="{DynamicResource SidebarBackgroundBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,1,0">
-            <Grid Margin="14,18,14,14">
+            <Grid Margin="14,12,14,14">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="24" />
                     <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <Grid Margin="8,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="36" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <Border Width="32"
-                            Height="32"
-                            Background="{DynamicResource AccentBrush}"
-                            CornerRadius="10">
-                        <TextBlock HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"
-                                   FontSize="16"
-                                   FontWeight="Bold"
-                                   Foreground="{DynamicResource AccentForegroundBrush}"
-                                   Text="T" />
-                    </Border>
-                    <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
-                        <TextBlock FontSize="15" FontWeight="SemiBold" Text="TimTicker" />
-                        <TextBlock FontSize="11"
-                                   Foreground="{DynamicResource TextTertiaryBrush}"
-                                   Text="把每一天过清楚" />
-                    </StackPanel>
-                </Grid>
-
-                <ListBox Grid.Row="2"
+                <ListBox Grid.Row="0"
                          ItemsSource="{Binding NavigationItems}"
                          SelectedItem="{Binding SelectedNavigationItem}"
                          ItemContainerStyle="{StaticResource NavigationItemStyle}"
@@ -83,7 +129,7 @@
                     </ListBox.ItemTemplate>
                 </ListBox>
 
-                <Border Grid.Row="3"
+                <Border Grid.Row="1"
                         Padding="12"
                         Background="{DynamicResource SurfaceSecondaryBrush}"
                         CornerRadius="10">
@@ -107,6 +153,7 @@
             </Grid>
         </Border>
 
-        <ContentControl Grid.Column="1" Content="{Binding CurrentPage}" />
+            <ContentControl Grid.Column="1" Content="{Binding CurrentPage}" />
+        </Grid>
     </Grid>
 </Window>

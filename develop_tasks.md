@@ -259,7 +259,7 @@ TimTicker.App ────────> TimTicker.Application ──────
 - [x] 建立 EF Core `DbContext`、首个 migration 和数据库自动初始化流程；
 - [x] 加入浅色/深色主题资源骨架；
 - [x] 建立测试项目和最小测试样例；
-- [ ] 建立 Windows CI：restore、build、test；
+- [x] 建立 Windows CI：restore、build、test；
 - [x] 添加 `.editorconfig`、基础代码风格和仓库开发说明；
 - [ ] 添加架构决策记录：本地存储、MVVM 分层、日期时间策略、打包策略待选。
 

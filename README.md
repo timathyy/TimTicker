@@ -1,5 +1,7 @@
 # TimTicker
 
+[![Windows CI](https://github.com/timathyy/TimTicker/actions/workflows/windows-ci.yml/badge.svg)](https://github.com/timathyy/TimTicker/actions/workflows/windows-ci.yml)
+
 TimTicker 是一款面向个人的 Windows 本地日历与时间记录应用。项目当前处于 `v0.1.0` 工程基础建设阶段。
 
 当前界面提供“今天、任务、日历、设置”四个主入口，并内置浅色与深色主题。整体视觉采用低对比表面、圆角控件和紫色强调色。
@@ -78,5 +80,6 @@ TimTicker.App -> TimTicker.Infrastructure -> TimTicker.Application
 - 不提交本地数据库、日志、测试输出、构建产物或发布包。
 - 数据模型变更必须通过 EF Core migration，并配套升级测试。
 - 影响架构或用户数据格式的决定记录到 `docs/adr/`。
+- GitHub Actions 会在 Windows runner 上执行还原、格式检查、Release 构建和全部测试。
 
 完整产品范围、版本任务与完成定义见 [`develop_tasks.md`](develop_tasks.md)。

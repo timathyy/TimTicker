@@ -27,7 +27,7 @@ public partial class TaskEditorWindow : Window
         bool isEditing = _task is not null;
         WindowTitleText.Text = isEditing ? "编辑任务" : "新建任务";
         SaveButton.Content = isEditing ? "保存修改" : "创建任务";
-        CreatedDatePicker.SelectedDate = (_task?.CreatedDate ?? DateOnly.FromDateTime(DateTime.Today)).ToDateTime(TimeOnly.MinValue);
+        CreatedDateSelector.SelectedDate = (_task?.CreatedDate ?? DateOnly.FromDateTime(DateTime.Today)).ToDateTime(TimeOnly.MinValue);
 
         if (_task is null)
         {
@@ -37,13 +37,13 @@ public partial class TaskEditorWindow : Window
         TitleTextBox.Text = _task.Title;
         DescriptionTextBox.Text = _task.Description ?? string.Empty;
         HasDueDateCheckBox.IsChecked = _task.DueDate.HasValue;
-        DueDatePicker.SelectedDate = _task.DueDate?.ToDateTime(TimeOnly.MinValue);
+        DueDateSelector.SelectedDate = _task.DueDate?.ToDateTime(TimeOnly.MinValue);
         PriorityComboBox.SelectedValue = _task.Priority;
 
         if (_task.Status == DomainTaskStatus.Completed)
         {
             CompletedDateSection.Visibility = Visibility.Visible;
-            CompletedDatePicker.SelectedDate = _task.CompletedDate?.ToDateTime(TimeOnly.MinValue) ?? DateTime.Today;
+            CompletedDateSelector.SelectedDate = _task.CompletedDate?.ToDateTime(TimeOnly.MinValue) ?? DateTime.Today;
         }
     }
 
@@ -56,27 +56,27 @@ public partial class TaskEditorWindow : Window
             return;
         }
 
-        if (CreatedDatePicker.SelectedDate is not DateTime createdDateValue)
+        if (CreatedDateSelector.SelectedDate is not DateTime createdDateValue)
         {
-            ShowValidationError("请选择创建日期。", CreatedDatePicker);
+            ShowValidationError("请选择创建日期。", CreatedDateSelector);
             return;
         }
 
-        DateOnly? dueDate = HasDueDateCheckBox.IsChecked == true && DueDatePicker.SelectedDate is DateTime dueDateValue
+        DateOnly? dueDate = HasDueDateCheckBox.IsChecked == true && DueDateSelector.SelectedDate is DateTime dueDateValue
             ? DateOnly.FromDateTime(dueDateValue)
             : null;
         if (HasDueDateCheckBox.IsChecked == true && dueDate is null)
         {
-            ShowValidationError("请选择截止日期，或取消勾选“设置截止日期”。", DueDatePicker);
+            ShowValidationError("请选择截止日期，或取消勾选“设置截止日期”。", DueDateSelector);
             return;
         }
 
         DateOnly? completedDate = null;
         if (_task?.Status == DomainTaskStatus.Completed)
         {
-            if (CompletedDatePicker.SelectedDate is not DateTime completedDateValue)
+            if (CompletedDateSelector.SelectedDate is not DateTime completedDateValue)
             {
-                ShowValidationError("请选择完成日期。", CompletedDatePicker);
+                ShowValidationError("请选择完成日期。", CompletedDateSelector);
                 return;
             }
 
@@ -115,20 +115,20 @@ public partial class TaskEditorWindow : Window
 
     private void HasDueDateCheckBox_Changed(object sender, RoutedEventArgs e)
     {
-        if (DueDatePicker is null)
+        if (DueDateSelector is null)
         {
             return;
         }
 
         bool hasDueDate = HasDueDateCheckBox.IsChecked == true;
-        DueDatePicker.IsEnabled = hasDueDate;
-        if (hasDueDate && DueDatePicker.SelectedDate is null)
+        DueDateSelector.IsEnabled = hasDueDate;
+        if (hasDueDate && DueDateSelector.SelectedDate is null)
         {
-            DueDatePicker.SelectedDate = DateTime.Today;
+            DueDateSelector.SelectedDate = DateTime.Today;
         }
         else if (!hasDueDate)
         {
-            DueDatePicker.SelectedDate = null;
+            DueDateSelector.SelectedDate = null;
         }
     }
 

@@ -1,6 +1,7 @@
 <Window x:Class="TimTicker.App.Views.TaskEditorWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:TimTicker.App.Controls"
         xmlns:domain="clr-namespace:TimTicker.Domain.Tasks;assembly=TimTicker.Domain"
         Title="任务详情"
         Width="560"
@@ -67,17 +68,17 @@
                              TextWrapping="Wrap"
                              VerticalScrollBarVisibility="Auto" />
                     <TextBlock Margin="0,16,0,6" Text="创建日期" />
-                    <DatePicker x:Name="CreatedDatePicker" />
+                    <controls:TaskDateSelector x:Name="CreatedDateSelector" />
                     <CheckBox x:Name="HasDueDateCheckBox"
                               Margin="0,16,0,6"
                               Checked="HasDueDateCheckBox_Changed"
                               Content="设置截止日期"
                               Style="{StaticResource CircularCheckBoxStyle}"
                               Unchecked="HasDueDateCheckBox_Changed" />
-                    <DatePicker x:Name="DueDatePicker" IsEnabled="False" />
+                    <controls:TaskDateSelector x:Name="DueDateSelector" IsEnabled="False" />
                     <StackPanel x:Name="CompletedDateSection" Visibility="Collapsed">
                         <TextBlock Margin="0,16,0,6" Text="完成日期" />
-                        <DatePicker x:Name="CompletedDatePicker" />
+                        <controls:TaskDateSelector x:Name="CompletedDateSelector" />
                     </StackPanel>
                     <TextBlock Margin="0,16,0,6" Text="优先级" />
                     <ComboBox x:Name="PriorityComboBox" SelectedIndex="0" SelectedValuePath="Tag">

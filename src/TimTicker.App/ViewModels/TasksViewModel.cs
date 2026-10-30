@@ -20,7 +20,7 @@ public sealed partial class TasksViewModel(ITaskService taskService) : ViewModel
     private bool _hasTasks;
 
     [ObservableProperty]
-    private DomainTaskStatus _selectedStatus = DomainTaskStatus.Pending;
+    private DomainTaskStatus? _selectedStatus;
 
     [ObservableProperty]
     private TaskSortOrder _selectedSortOrder = TaskSortOrder.CreatedAtDescending;
@@ -56,6 +56,7 @@ public sealed partial class TasksViewModel(ITaskService taskService) : ViewModel
 
     public string EmptyStateTitle => SelectedStatus switch
     {
+        null => "还没有任何任务",
         DomainTaskStatus.Pending => "任务池还是空的",
         DomainTaskStatus.Completed => "还没有已完成任务",
         DomainTaskStatus.Archived => "还没有归档任务",
@@ -64,6 +65,7 @@ public sealed partial class TasksViewModel(ITaskService taskService) : ViewModel
 
     public string EmptyStateDescription => SelectedStatus switch
     {
+        null => "创建第一项任务，开始整理接下来要做的事情。",
         DomainTaskStatus.Pending => "随时记下接下来要做的事，不必依赖记忆。",
         DomainTaskStatus.Completed => "完成的任务会保留在这里，方便回顾。",
         DomainTaskStatus.Archived => "归档的任务会保留在这里，随时可以恢复。",
@@ -110,18 +112,11 @@ public sealed partial class TasksViewModel(ITaskService taskService) : ViewModel
         OnPropertyChanged(nameof(EmptyStateDescription));
     }
 
-    [RelayCommand]
-    private void NewTask()
+    public async Task CreateTaskAsync(CreateTaskRequest request)
     {
-        EditingTaskId = null;
-        Title = string.Empty;
-        Description = string.Empty;
-        DueDate = null;
-        Priority = TaskPriority.None;
-        EditorError = null;
-        IsEditorOpen = true;
-        OnPropertyChanged(nameof(IsEditing));
-        OnPropertyChanged(nameof(EditorTitle));
+        ArgumentNullException.ThrowIfNull(request);
+        await taskService.CreateAsync(request);
+        await LoadTasksAsync();
     }
 
     [RelayCommand]
@@ -225,7 +220,7 @@ public sealed partial class TasksViewModel(ITaskService taskService) : ViewModel
         }
     }
 
-    partial void OnSelectedStatusChanged(DomainTaskStatus value) => _ = LoadTasksAsync();
+    partial void OnSelectedStatusChanged(DomainTaskStatus? value) => _ = LoadTasksAsync();
 
     partial void OnSelectedSortOrderChanged(TaskSortOrder value) => _ = LoadTasksAsync();
 

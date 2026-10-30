@@ -53,6 +53,12 @@ public sealed class TaskPersistenceTests
                     null,
                     TaskSortOrder.CreatedAtDescending));
                 Assert.Equal(taskId, Assert.Single(completed).Id);
+
+                IReadOnlyList<TaskSummary> allTasks = await tasks.ListAsync(new TaskQuery(
+                    null,
+                    null,
+                    TaskSortOrder.CreatedAtDescending));
+                Assert.Equal(taskId, Assert.Single(allTasks).Id);
             }
         }
         finally

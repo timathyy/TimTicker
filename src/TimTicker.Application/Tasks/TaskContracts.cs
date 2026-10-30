@@ -18,7 +18,7 @@ public sealed record TaskSummary(
     DateTimeOffset UpdatedAtUtc,
     DateTimeOffset? CompletedAtUtc);
 
-public sealed record TaskQuery(DomainTaskStatus Status, string? SearchText, TaskSortOrder SortOrder);
+public sealed record TaskQuery(DomainTaskStatus? Status, string? SearchText, TaskSortOrder SortOrder);
 
 public enum TaskSortOrder
 {

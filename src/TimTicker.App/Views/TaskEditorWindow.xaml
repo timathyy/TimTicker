@@ -1,0 +1,106 @@
+<Window x:Class="TimTicker.App.Views.TaskEditorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:domain="clr-namespace:TimTicker.Domain.Tasks;assembly=TimTicker.Domain"
+        Title="新建任务"
+        Width="560"
+        Height="650"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        WindowStyle="None"
+        PreviewKeyDown="Window_PreviewKeyDown">
+    <Border Background="{DynamicResource WindowBackgroundBrush}"
+            BorderBrush="{DynamicResource BorderBrush}"
+            BorderThickness="1"
+            CornerRadius="14">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="52" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <Border Grid.Row="0"
+                    Background="{DynamicResource SidebarBackgroundBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="0,0,0,1"
+                    CornerRadius="14,14,0,0">
+                <Grid Margin="20,0,8,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0"
+                            Background="Transparent"
+                            MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                        <TextBlock VerticalAlignment="Center"
+                                   FontSize="15"
+                                   FontWeight="SemiBold"
+                                   Text="新建任务" />
+                    </Border>
+                    <Button Grid.Column="1"
+                            Width="38"
+                            Height="34"
+                            AutomationProperties.Name="关闭新建任务窗口"
+                            Click="CancelButton_Click"
+                            Content="&#xE8BB;"
+                            FontFamily="Segoe Fluent Icons"
+                            Style="{StaticResource CaptionButtonStyle}" />
+                </Grid>
+            </Border>
+
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="32,26,32,30">
+                    <TextBlock Style="{StaticResource SectionTitleStyle}" Text="任务详情" />
+                    <TextBlock Margin="0,18,0,6" Text="标题" />
+                    <TextBox x:Name="TitleTextBox"
+                             MaxLength="200"
+                             Style="{StaticResource TextBoxStyle}"
+                             ToolTip="必填，最多 200 个字符" />
+
+                    <TextBlock Margin="0,16,0,6" Text="描述" />
+                    <TextBox x:Name="DescriptionTextBox"
+                             Height="112"
+                             AcceptsReturn="True"
+                             MaxLength="4000"
+                             Style="{StaticResource TextBoxStyle}"
+                             TextWrapping="Wrap"
+                             VerticalScrollBarVisibility="Auto" />
+
+                    <TextBlock Margin="0,16,0,6" Text="截止日期" />
+                    <DatePicker x:Name="DueDatePicker" Height="42" />
+
+                    <TextBlock Margin="0,16,0,6" Text="优先级" />
+                    <ComboBox x:Name="PriorityComboBox"
+                              SelectedIndex="0"
+                              SelectedValuePath="Tag">
+                        <ComboBoxItem Tag="{x:Static domain:TaskPriority.None}">无优先级</ComboBoxItem>
+                        <ComboBoxItem Tag="{x:Static domain:TaskPriority.Low}">低优先级</ComboBoxItem>
+                        <ComboBoxItem Tag="{x:Static domain:TaskPriority.Medium}">中优先级</ComboBoxItem>
+                        <ComboBoxItem Tag="{x:Static domain:TaskPriority.High}">高优先级</ComboBoxItem>
+                    </ComboBox>
+
+                    <TextBlock x:Name="ValidationMessage"
+                               Margin="0,14,0,0"
+                               Foreground="{DynamicResource DangerBrush}"
+                               TextWrapping="Wrap" />
+
+                    <StackPanel Margin="0,24,0,0"
+                                HorizontalAlignment="Right"
+                                Orientation="Horizontal">
+                        <Button Click="CancelButton_Click"
+                                Content="取消"
+                                Style="{StaticResource SecondaryButtonStyle}" />
+                        <Button Margin="10,0,0,0"
+                                Click="SaveButton_Click"
+                                Content="创建任务"
+                                Style="{StaticResource PrimaryButtonStyle}"
+                                ToolTip="Ctrl+Enter" />
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Border>
+</Window>

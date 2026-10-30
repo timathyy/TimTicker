@@ -35,6 +35,22 @@ public sealed class TaskServiceTests
         Assert.Empty(tasks);
     }
 
+    [Fact]
+    public async Task ListWithNoStatusReturnsTasksFromEveryState()
+    {
+        InMemoryTaskRepository repository = new();
+        TaskService service = new(repository, new FixedTimeProvider(new DateTimeOffset(2026, 10, 29, 8, 0, 0, TimeSpan.Zero)));
+        TaskSummary pending = await service.CreateAsync(new CreateTaskRequest("Pending", null, null, TaskPriority.None));
+        TaskSummary completed = await service.CreateAsync(new CreateTaskRequest("Completed", null, null, TaskPriority.None));
+        await service.CompleteAsync(completed.Id);
+
+        IReadOnlyList<TaskSummary> tasks = await service.ListAsync(new TaskQuery(null, null, TaskSortOrder.CreatedAtDescending));
+
+        Assert.Equal(2, tasks.Count);
+        Assert.Contains(tasks, task => task.Id == pending.Id);
+        Assert.Contains(tasks, task => task.Id == completed.Id);
+    }
+
     private sealed class InMemoryTaskRepository : ITaskItemRepository
     {
         public List<TaskItem> Tasks { get; } = [];
@@ -50,7 +66,8 @@ public sealed class TaskServiceTests
 
         public Task<IReadOnlyList<TaskItem>> ListAsync(TaskQuery query, CancellationToken cancellationToken = default)
         {
-            IEnumerable<TaskItem> tasks = Tasks.Where(task => !task.IsDeleted && task.Status == query.Status);
+            IEnumerable<TaskItem> tasks = Tasks.Where(task => !task.IsDeleted &&
+                (!query.Status.HasValue || task.Status == query.Status.Value));
             return Task.FromResult<IReadOnlyList<TaskItem>>(tasks.ToArray());
         }
 

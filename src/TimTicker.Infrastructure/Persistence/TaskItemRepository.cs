@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TimTicker.Application.Tasks;
 using TimTicker.Domain.Tasks;
+using DomainTaskStatus = TimTicker.Domain.Tasks.TaskStatus;
 
 namespace TimTicker.Infrastructure.Persistence;
 
@@ -25,7 +26,12 @@ public sealed class TaskItemRepository(IDbContextFactory<TimTickerDbContext> con
         ArgumentNullException.ThrowIfNull(query);
         await using TimTickerDbContext context = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         IQueryable<TaskItem> tasks = context.Tasks.AsNoTracking()
-            .Where(task => !task.IsDeleted && task.Status == query.Status);
+            .Where(task => !task.IsDeleted);
+
+        if (query.Status is DomainTaskStatus status)
+        {
+            tasks = tasks.Where(task => task.Status == status);
+        }
 
         if (!string.IsNullOrWhiteSpace(query.SearchText))
         {

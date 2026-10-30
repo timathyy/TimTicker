@@ -10,7 +10,6 @@
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
     </UserControl.Resources>
     <UserControl.InputBindings>
-        <KeyBinding Key="N" Modifiers="Control" Command="{Binding NewTaskCommand}" />
         <KeyBinding Key="Enter" Modifiers="Control" Command="{Binding SaveCommand}" />
         <KeyBinding Key="Escape" Command="{Binding CancelEditCommand}" />
     </UserControl.InputBindings>
@@ -28,7 +27,7 @@
                     <TextBlock Style="{StaticResource PageTitleStyle}" Text="任务" />
                     <TextBlock Margin="0,4,0,0" Foreground="{DynamicResource TextSecondaryBrush}" Text="收集、整理并完成所有待办事项" />
                 </StackPanel>
-                <Button HorizontalAlignment="Right" VerticalAlignment="Top" Command="{Binding NewTaskCommand}" Content="＋ 新建任务" Style="{StaticResource PrimaryButtonStyle}" ToolTip="Ctrl+N" />
+                <Button HorizontalAlignment="Right" VerticalAlignment="Top" Click="NewTaskButton_Click" Content="＋ 新建任务" Style="{StaticResource PrimaryButtonStyle}" ToolTip="Ctrl+N" />
             </Grid>
             <Grid Grid.Row="2">
                 <Grid.ColumnDefinitions>
@@ -39,15 +38,16 @@
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
                 <TextBox x:Name="SearchBox" VerticalContentAlignment="Center" AutomationProperties.Name="搜索任务" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource TextBoxStyle}" ToolTip="搜索标题或描述（Ctrl+F）" />
-                <ComboBox Grid.Column="2" MinHeight="42" SelectedValue="{Binding SelectedStatus}" SelectedValuePath="Tag">
+                <ComboBox Grid.Column="2" MinHeight="42" SelectedIndex="0" SelectedValue="{Binding SelectedStatus}" SelectedValuePath="Tag">
+                    <ComboBoxItem Tag="{x:Null}">所有状态</ComboBoxItem>
                     <ComboBoxItem Tag="{x:Static domain:TaskStatus.Pending}">待完成</ComboBoxItem>
                     <ComboBoxItem Tag="{x:Static domain:TaskStatus.Completed}">已完成</ComboBoxItem>
                     <ComboBoxItem Tag="{x:Static domain:TaskStatus.Archived}">已归档</ComboBoxItem>
                 </ComboBox>
-                <ComboBox Grid.Column="4" MinHeight="42" SelectedValue="{Binding SelectedSortOrder}" SelectedValuePath="Tag">
-                    <ComboBoxItem Tag="{x:Static application:TaskSortOrder.CreatedAtDescending}">最近创建</ComboBoxItem>
-                    <ComboBoxItem Tag="{x:Static application:TaskSortOrder.DueDateAscending}">截止日期</ComboBoxItem>
-                    <ComboBoxItem Tag="{x:Static application:TaskSortOrder.PriorityDescending}">优先级</ComboBoxItem>
+                <ComboBox Grid.Column="4" MinHeight="42" SelectedIndex="0" SelectedValue="{Binding SelectedSortOrder}" SelectedValuePath="Tag">
+                    <ComboBoxItem Tag="{x:Static application:TaskSortOrder.CreatedAtDescending}">创建时间↓</ComboBoxItem>
+                    <ComboBoxItem Tag="{x:Static application:TaskSortOrder.DueDateAscending}">截止日期↑</ComboBoxItem>
+                    <ComboBoxItem Tag="{x:Static application:TaskSortOrder.PriorityDescending}">优先级↑</ComboBoxItem>
                 </ComboBox>
             </Grid>
             <Grid Grid.Row="4">
@@ -130,7 +130,7 @@
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="360">
                             <TextBlock HorizontalAlignment="Center" FontSize="17" FontWeight="SemiBold" Text="{Binding EmptyStateTitle}" />
                             <TextBlock Margin="0,7,0,0" HorizontalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding EmptyStateDescription}" TextAlignment="Center" />
-                            <Button Margin="0,20,0,0" Command="{Binding NewTaskCommand}" Content="新建任务" Style="{StaticResource PrimaryButtonStyle}" />
+                            <Button Margin="0,20,0,0" Click="NewTaskButton_Click" Content="新建任务" Style="{StaticResource PrimaryButtonStyle}" />
                         </StackPanel>
                     </Border>
                 </Grid>

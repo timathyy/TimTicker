@@ -13,6 +13,7 @@ public sealed class TaskItem
         Guid id,
         string title,
         string? description,
+        DateOnly createdDate,
         DateOnly? dueDate,
         TaskPriority priority,
         DateTimeOffset createdAtUtc)
@@ -23,7 +24,7 @@ public sealed class TaskItem
         }
 
         Id = id;
-        ApplyDetails(title, description, dueDate, priority);
+        ApplyDetails(title, description, createdDate, dueDate, priority);
         CreatedAtUtc = RequireUtc(createdAtUtc, nameof(createdAtUtc));
         UpdatedAtUtc = CreatedAtUtc;
         Status = TaskStatus.Pending;
@@ -34,6 +35,8 @@ public sealed class TaskItem
     public string Title { get; private set; } = string.Empty;
 
     public string? Description { get; private set; }
+
+    public DateOnly CreatedDate { get; private set; }
 
     public DateOnly? DueDate { get; private set; }
 
@@ -47,20 +50,33 @@ public sealed class TaskItem
 
     public DateTimeOffset? CompletedAtUtc { get; private set; }
 
+    public DateOnly? CompletedDate { get; private set; }
+
     public bool IsDeleted { get; private set; }
 
-    public void Update(string title, string? description, DateOnly? dueDate, TaskPriority priority, DateTimeOffset updatedAtUtc)
+    public void Update(
+        string title,
+        string? description,
+        DateOnly createdDate,
+        DateOnly? dueDate,
+        TaskPriority priority,
+        DateOnly? completedDate,
+        DateTimeOffset updatedAtUtc)
     {
         EnsureActive();
-        ApplyDetails(title, description, dueDate, priority);
+        ApplyDetails(title, description, createdDate, dueDate, priority);
+        CompletedDate = Status == TaskStatus.Completed
+            ? completedDate ?? throw new ArgumentException("A completed task must have a completion date.", nameof(completedDate))
+            : null;
         UpdatedAtUtc = RequireUtc(updatedAtUtc, nameof(updatedAtUtc));
     }
 
-    public void Complete(DateTimeOffset completedAtUtc)
+    public void Complete(DateTimeOffset completedAtUtc, DateOnly completedDate)
     {
         EnsureActive();
         EnsureStatus(TaskStatus.Pending, "Only pending tasks can be completed.");
         CompletedAtUtc = RequireUtc(completedAtUtc, nameof(completedAtUtc));
+        CompletedDate = RequireDate(completedDate, nameof(completedDate));
         UpdatedAtUtc = CompletedAtUtc.Value;
         Status = TaskStatus.Completed;
     }
@@ -71,27 +87,7 @@ public sealed class TaskItem
         EnsureStatus(TaskStatus.Completed, "Only completed tasks can be reopened.");
         UpdatedAtUtc = RequireUtc(reopenedAtUtc, nameof(reopenedAtUtc));
         CompletedAtUtc = null;
-        Status = TaskStatus.Pending;
-    }
-
-    public void Archive(DateTimeOffset archivedAtUtc)
-    {
-        EnsureActive();
-        if (Status == TaskStatus.Archived)
-        {
-            throw new InvalidOperationException("The task is already archived.");
-        }
-
-        UpdatedAtUtc = RequireUtc(archivedAtUtc, nameof(archivedAtUtc));
-        Status = TaskStatus.Archived;
-    }
-
-    public void Restore(DateTimeOffset restoredAtUtc)
-    {
-        EnsureActive();
-        EnsureStatus(TaskStatus.Archived, "Only archived tasks can be restored.");
-        UpdatedAtUtc = RequireUtc(restoredAtUtc, nameof(restoredAtUtc));
-        CompletedAtUtc = null;
+        CompletedDate = null;
         Status = TaskStatus.Pending;
     }
 
@@ -102,7 +98,7 @@ public sealed class TaskItem
         IsDeleted = true;
     }
 
-    private void ApplyDetails(string title, string? description, DateOnly? dueDate, TaskPriority priority)
+    private void ApplyDetails(string title, string? description, DateOnly createdDate, DateOnly? dueDate, TaskPriority priority)
     {
         ArgumentNullException.ThrowIfNull(title);
         string normalizedTitle = title.Trim();
@@ -129,6 +125,7 @@ public sealed class TaskItem
 
         Title = normalizedTitle;
         Description = normalizedDescription;
+        CreatedDate = RequireDate(createdDate, nameof(createdDate));
         DueDate = dueDate;
         Priority = priority;
     }
@@ -154,6 +151,16 @@ public sealed class TaskItem
         if (value.Offset != TimeSpan.Zero)
         {
             throw new ArgumentException("Task timestamps must use UTC.", parameterName);
+        }
+
+        return value;
+    }
+
+    private static DateOnly RequireDate(DateOnly value, string parameterName)
+    {
+        if (value == default)
+        {
+            throw new ArgumentException("The date must not be empty.", parameterName);
         }
 
         return value;

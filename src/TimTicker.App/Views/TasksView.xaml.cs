@@ -25,6 +25,14 @@ public partial class TasksView : UserControl
         await ShowCreateTaskWindowAsync();
     }
 
+    private async void EditTaskButton_Click(object sender, System.Windows.RoutedEventArgs e)
+    {
+        if (sender is Button { DataContext: TaskSummary task })
+        {
+            await ShowEditTaskWindowAsync(task);
+        }
+    }
+
     private async void TasksView_PreviewKeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.F && Keyboard.Modifiers == ModifierKeys.Control)
@@ -51,9 +59,27 @@ public partial class TasksView : UserControl
             Owner = System.Windows.Window.GetWindow(this),
         };
 
-        if (window.ShowDialog() == true && window.Request is CreateTaskRequest request)
+        if (window.ShowDialog() == true && window.CreateRequest is CreateTaskRequest request)
         {
             await viewModel.CreateTaskAsync(request);
+        }
+    }
+
+    private async Task ShowEditTaskWindowAsync(TaskSummary task)
+    {
+        if (DataContext is not TasksViewModel viewModel)
+        {
+            return;
+        }
+
+        TaskEditorWindow window = new(task)
+        {
+            Owner = System.Windows.Window.GetWindow(this),
+        };
+
+        if (window.ShowDialog() == true && window.UpdateRequest is UpdateTaskRequest request)
+        {
+            await viewModel.UpdateTaskAsync(request);
         }
     }
 }

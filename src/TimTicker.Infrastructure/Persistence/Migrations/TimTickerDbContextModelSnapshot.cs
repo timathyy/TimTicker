@@ -26,8 +26,14 @@ namespace TimTicker.Infrastructure.Persistence.Migrations
                     b.Property<long?>("CompletedAtUtc")
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateOnly?>("CompletedDate")
+                        .HasColumnType("TEXT");
+
                     b.Property<long>("CreatedAtUtc")
                         .HasColumnType("INTEGER");
+
+                    b.Property<DateOnly>("CreatedDate")
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Description")
                         .HasMaxLength(4000)

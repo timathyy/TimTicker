@@ -12,9 +12,5 @@ public interface ITaskService
 
     Task ReopenAsync(Guid id, CancellationToken cancellationToken = default);
 
-    Task ArchiveAsync(Guid id, CancellationToken cancellationToken = default);
-
-    Task RestoreAsync(Guid id, CancellationToken cancellationToken = default);
-
     Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 }

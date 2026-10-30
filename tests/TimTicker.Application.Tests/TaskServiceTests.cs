@@ -12,12 +12,40 @@ public sealed class TaskServiceTests
         InMemoryTaskRepository repository = new();
         TaskService service = new(repository, new FixedTimeProvider(new DateTimeOffset(2026, 10, 29, 8, 0, 0, TimeSpan.Zero)));
 
-        TaskSummary created = await service.CreateAsync(new CreateTaskRequest("Review tasks", null, null, TaskPriority.Medium));
+        TaskSummary created = await service.CreateAsync(CreateRequest("Review tasks", TaskPriority.Medium));
         await service.CompleteAsync(created.Id);
 
         TaskItem stored = Assert.Single(repository.Tasks);
         Assert.Equal(DomainTaskStatus.Completed, stored.Status);
         Assert.Equal(created.Id, stored.Id);
+        Assert.Equal(new DateOnly(2026, 10, 29), stored.CompletedDate);
+    }
+
+    [Fact]
+    public async Task CompletedDateCanBeEditedAndIsClearedWhenTaskReopens()
+    {
+        InMemoryTaskRepository repository = new();
+        TaskService service = new(repository, new FixedTimeProvider(new DateTimeOffset(2026, 10, 29, 8, 0, 0, TimeSpan.Zero)));
+        TaskSummary created = await service.CreateAsync(CreateRequest("Editable completion"));
+        await service.CompleteAsync(created.Id);
+
+        await service.UpdateAsync(new UpdateTaskRequest(
+            created.Id,
+            created.Title,
+            created.Description,
+            created.CreatedDate,
+            created.DueDate,
+            created.Priority,
+            new DateOnly(2026, 10, 28)));
+
+        TaskItem stored = Assert.Single(repository.Tasks);
+        Assert.Equal(new DateOnly(2026, 10, 28), stored.CompletedDate);
+
+        await service.ReopenAsync(created.Id);
+
+        Assert.Equal(DomainTaskStatus.Pending, stored.Status);
+        Assert.Null(stored.CompletedDate);
+        Assert.Null(stored.CompletedAtUtc);
     }
 
     [Fact]
@@ -25,8 +53,8 @@ public sealed class TaskServiceTests
     {
         InMemoryTaskRepository repository = new();
         TaskService service = new(repository, new FixedTimeProvider(new DateTimeOffset(2026, 10, 29, 8, 0, 0, TimeSpan.Zero)));
-        TaskSummary completed = await service.CreateAsync(new CreateTaskRequest("Done", null, null, TaskPriority.None));
-        TaskSummary deleted = await service.CreateAsync(new CreateTaskRequest("Remove", null, null, TaskPriority.None));
+        TaskSummary completed = await service.CreateAsync(CreateRequest("Done"));
+        TaskSummary deleted = await service.CreateAsync(CreateRequest("Remove"));
         await service.CompleteAsync(completed.Id);
         await service.DeleteAsync(deleted.Id);
 
@@ -40,8 +68,8 @@ public sealed class TaskServiceTests
     {
         InMemoryTaskRepository repository = new();
         TaskService service = new(repository, new FixedTimeProvider(new DateTimeOffset(2026, 10, 29, 8, 0, 0, TimeSpan.Zero)));
-        TaskSummary pending = await service.CreateAsync(new CreateTaskRequest("Pending", null, null, TaskPriority.None));
-        TaskSummary completed = await service.CreateAsync(new CreateTaskRequest("Completed", null, null, TaskPriority.None));
+        TaskSummary pending = await service.CreateAsync(CreateRequest("Pending"));
+        TaskSummary completed = await service.CreateAsync(CreateRequest("Completed"));
         await service.CompleteAsync(completed.Id);
 
         IReadOnlyList<TaskSummary> tasks = await service.ListAsync(new TaskQuery(null, null, TaskSortOrder.CreatedAtDescending));
@@ -73,6 +101,9 @@ public sealed class TaskServiceTests
 
         public Task UpdateAsync(TaskItem task, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
+
+    private static CreateTaskRequest CreateRequest(string title, TaskPriority priority = TaskPriority.None) =>
+        new(title, null, new DateOnly(2026, 10, 29), null, priority);
 
     private sealed class FixedTimeProvider(DateTimeOffset utcNow) : TimeProvider
     {

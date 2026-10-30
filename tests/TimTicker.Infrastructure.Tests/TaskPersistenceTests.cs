@@ -28,6 +28,7 @@ public sealed class TaskPersistenceTests
                 TaskSummary created = await tasks.CreateAsync(new CreateTaskRequest(
                     "Persist me",
                     "SQLite integration test",
+                    new DateOnly(2026, 10, 29),
                     new DateOnly(2026, 11, 1),
                     TaskPriority.High));
                 taskId = created.Id;
@@ -45,6 +46,7 @@ public sealed class TaskPersistenceTests
                 TaskSummary task = Assert.Single(pending);
                 Assert.Equal(taskId, task.Id);
                 Assert.Equal(new DateOnly(2026, 11, 1), task.DueDate);
+                Assert.Equal(new DateOnly(2026, 10, 29), task.CreatedDate);
                 Assert.Equal(TaskPriority.High, task.Priority);
 
                 await tasks.CompleteAsync(task.Id);
@@ -53,6 +55,7 @@ public sealed class TaskPersistenceTests
                     null,
                     TaskSortOrder.CreatedAtDescending));
                 Assert.Equal(taskId, Assert.Single(completed).Id);
+                Assert.Equal(DateOnly.FromDateTime(DateTime.Today), Assert.Single(completed).CompletedDate);
 
                 IReadOnlyList<TaskSummary> allTasks = await tasks.ListAsync(new TaskQuery(
                     null,

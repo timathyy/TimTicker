@@ -17,7 +17,12 @@ public sealed partial class TodayViewModel(ITaskService taskService) : ViewModel
     [RelayCommand(CanExecute = nameof(CanQuickAddTask))]
     private async Task QuickAddTaskAsync()
     {
-        await taskService.CreateAsync(new CreateTaskRequest(QuickTaskTitle, null, null, TaskPriority.None));
+        await taskService.CreateAsync(new CreateTaskRequest(
+            QuickTaskTitle,
+            null,
+            DateOnly.FromDateTime(DateTime.Today),
+            null,
+            TaskPriority.None));
         QuickTaskTitle = string.Empty;
     }
 

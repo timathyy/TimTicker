@@ -7,7 +7,7 @@ public sealed class TaskService(ITaskItemRepository repository, TimeProvider tim
     public async Task<TaskSummary> CreateAsync(CreateTaskRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        TaskItem task = new(Guid.NewGuid(), request.Title, request.Description, request.DueDate, request.Priority, UtcNow());
+        TaskItem task = new(Guid.NewGuid(), request.Title, request.Description, request.CreatedDate, request.DueDate, request.Priority, UtcNow());
         await repository.AddAsync(task, cancellationToken).ConfigureAwait(false);
         return ToSummary(task);
     }
@@ -16,7 +16,14 @@ public sealed class TaskService(ITaskItemRepository repository, TimeProvider tim
     {
         ArgumentNullException.ThrowIfNull(request);
         TaskItem task = await GetTaskAsync(request.Id, cancellationToken).ConfigureAwait(false);
-        task.Update(request.Title, request.Description, request.DueDate, request.Priority, UtcNow());
+        task.Update(
+            request.Title,
+            request.Description,
+            request.CreatedDate,
+            request.DueDate,
+            request.Priority,
+            request.CompletedDate,
+            UtcNow());
         await repository.UpdateAsync(task, cancellationToken).ConfigureAwait(false);
         return ToSummary(task);
     }
@@ -28,13 +35,10 @@ public sealed class TaskService(ITaskItemRepository repository, TimeProvider tim
         return tasks.Select(ToSummary).ToArray();
     }
 
-    public Task CompleteAsync(Guid id, CancellationToken cancellationToken = default) => ChangeAsync(id, task => task.Complete(UtcNow()), cancellationToken);
+    public Task CompleteAsync(Guid id, CancellationToken cancellationToken = default) =>
+        ChangeAsync(id, task => task.Complete(UtcNow(), LocalToday()), cancellationToken);
 
     public Task ReopenAsync(Guid id, CancellationToken cancellationToken = default) => ChangeAsync(id, task => task.Reopen(UtcNow()), cancellationToken);
-
-    public Task ArchiveAsync(Guid id, CancellationToken cancellationToken = default) => ChangeAsync(id, task => task.Archive(UtcNow()), cancellationToken);
-
-    public Task RestoreAsync(Guid id, CancellationToken cancellationToken = default) => ChangeAsync(id, task => task.Restore(UtcNow()), cancellationToken);
 
     public Task DeleteAsync(Guid id, CancellationToken cancellationToken = default) => ChangeAsync(id, task => task.Delete(UtcNow()), cancellationToken);
 
@@ -58,14 +62,18 @@ public sealed class TaskService(ITaskItemRepository repository, TimeProvider tim
 
     private DateTimeOffset UtcNow() => timeProvider.GetUtcNow();
 
+    private DateOnly LocalToday() => DateOnly.FromDateTime(timeProvider.GetLocalNow().DateTime);
+
     private static TaskSummary ToSummary(TaskItem task) => new(
         task.Id,
         task.Title,
         task.Description,
+        task.CreatedDate,
         task.DueDate,
         task.Priority,
         task.Status,
         task.CreatedAtUtc,
         task.UpdatedAtUtc,
-        task.CompletedAtUtc);
+        task.CompletedAtUtc,
+        task.CompletedDate);
 }

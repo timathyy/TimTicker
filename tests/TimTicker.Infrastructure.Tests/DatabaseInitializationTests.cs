@@ -39,9 +39,10 @@ public sealed class DatabaseInitializationTests
                         (await context.Database.GetPendingMigrationsAsync()).ToArray();
 
                     Assert.True(File.Exists(databasePath));
-                    Assert.Equal(2, appliedMigrations.Length);
+                    Assert.Equal(3, appliedMigrations.Length);
                     Assert.Contains(appliedMigrations, migration => migration.EndsWith("_InitialCreate", StringComparison.Ordinal));
                     Assert.Contains(appliedMigrations, migration => migration.EndsWith("_TaskPool", StringComparison.Ordinal));
+                    Assert.Contains(appliedMigrations, migration => migration.EndsWith("_TaskDates", StringComparison.Ordinal));
                     Assert.Empty(pendingMigrations);
                 }
             }

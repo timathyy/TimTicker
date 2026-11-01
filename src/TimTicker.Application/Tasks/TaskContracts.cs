@@ -34,4 +34,7 @@ public enum TaskSortOrder
     CreatedAtDescending = 0,
     DueDateAscending = 1,
     PriorityDescending = 2,
+    CreatedAtAscending = 3,
+    DueDateDescending = 4,
+    PriorityAscending = 5,
 }

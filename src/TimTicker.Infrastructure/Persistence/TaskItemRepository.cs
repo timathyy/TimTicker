@@ -43,8 +43,11 @@ public sealed class TaskItemRepository(IDbContextFactory<TimTickerDbContext> con
         tasks = query.SortOrder switch
         {
             TaskSortOrder.CreatedAtDescending => tasks.OrderByDescending(task => task.CreatedAtUtc),
+            TaskSortOrder.CreatedAtAscending => tasks.OrderBy(task => task.CreatedAtUtc),
             TaskSortOrder.DueDateAscending => tasks.OrderBy(task => task.DueDate == null).ThenBy(task => task.DueDate).ThenByDescending(task => task.CreatedAtUtc),
+            TaskSortOrder.DueDateDescending => tasks.OrderBy(task => task.DueDate == null).ThenByDescending(task => task.DueDate).ThenByDescending(task => task.CreatedAtUtc),
             TaskSortOrder.PriorityDescending => tasks.OrderByDescending(task => task.Priority).ThenByDescending(task => task.CreatedAtUtc),
+            TaskSortOrder.PriorityAscending => tasks.OrderBy(task => task.Priority).ThenByDescending(task => task.CreatedAtUtc),
             _ => throw new ArgumentOutOfRangeException(nameof(query), query.SortOrder, "Unknown task sort order."),
         };
 

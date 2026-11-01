@@ -33,6 +33,24 @@ public partial class TasksView : UserControl
         }
     }
 
+    private async void DeleteTaskButton_Click(object sender, System.Windows.RoutedEventArgs e)
+    {
+        if (sender is not Button { DataContext: TaskSummary task } || DataContext is not TasksViewModel viewModel)
+        {
+            return;
+        }
+
+        DeleteTaskConfirmationWindow window = new(task.Title)
+        {
+            Owner = System.Windows.Window.GetWindow(this),
+        };
+
+        if (window.ShowDialog() == true)
+        {
+            await viewModel.DeleteTaskAsync(task);
+        }
+    }
+
     private async void TasksView_PreviewKeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.F && Keyboard.Modifiers == ModifierKeys.Control)

@@ -88,14 +88,11 @@ public sealed partial class TasksViewModel(ITaskService taskService) : ViewModel
         }
     }
 
-    [RelayCommand]
-    private async Task DeleteAsync(TaskSummary? task)
+    public async Task DeleteTaskAsync(TaskSummary task)
     {
-        if (task is not null)
-        {
-            await taskService.DeleteAsync(task.Id);
-            await LoadTasksAsync();
-        }
+        ArgumentNullException.ThrowIfNull(task);
+        await taskService.DeleteAsync(task.Id);
+        await LoadTasksAsync();
     }
 
     partial void OnSelectedStatusChanged(DomainTaskStatus? value) => _ = LoadTasksAsync();

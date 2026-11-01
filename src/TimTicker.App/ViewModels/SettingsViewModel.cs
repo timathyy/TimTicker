@@ -23,6 +23,8 @@ public sealed partial class SettingsViewModel : ViewModelBase, IDisposable
         _themeService.ThemeChanged -= OnThemeChanged;
     }
 
+    public AppTheme SelectedTheme => _themeService.CurrentTheme;
+
     [RelayCommand]
     private void UseSystemTheme()
     {
@@ -44,6 +46,7 @@ public sealed partial class SettingsViewModel : ViewModelBase, IDisposable
     private void OnThemeChanged(object? sender, EventArgs e)
     {
         CurrentThemeName = GetThemeName();
+        OnPropertyChanged(nameof(SelectedTheme));
     }
 
     private string GetThemeName()

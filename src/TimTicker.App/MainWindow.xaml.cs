@@ -56,4 +56,34 @@ public partial class MainWindow : Window
         MaximizeIcon.Visibility = isMaximized ? Visibility.Collapsed : Visibility.Visible;
         RestoreIcon.Visibility = isMaximized ? Visibility.Visible : Visibility.Collapsed;
     }
+
+    private void MainWindow_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.OriginalSource is DependencyObject source &&
+            (FindVisualAncestor<TextBox>(source) is not null || FindVisualAncestor<ComboBox>(source) is not null))
+        {
+            return;
+        }
+
+        Keyboard.ClearFocus();
+        FocusManager.SetFocusedElement(FocusManager.GetFocusScope(this), null);
+    }
+
+    private static T? FindVisualAncestor<T>(DependencyObject? current)
+        where T : DependencyObject
+    {
+        while (current is not null)
+        {
+            if (current is T match)
+            {
+                return match;
+            }
+
+            current = current is Visual
+                ? VisualTreeHelper.GetParent(current)
+                : LogicalTreeHelper.GetParent(current);
+        }
+
+        return null;
+    }
 }

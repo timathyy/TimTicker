@@ -38,14 +38,15 @@
                     </Grid.ColumnDefinitions>
                     <TextBox VerticalContentAlignment="Center"
                              AutomationProperties.Name="快速添加任务"
+                             Text="{Binding QuickTaskTitle, UpdateSourceTrigger=PropertyChanged}"
                              Style="{StaticResource TextBoxStyle}"
                              ToolTip="输入任务标题" />
                     <Button Grid.Column="2"
                             MinWidth="104"
+                            Command="{Binding QuickAddTaskCommand}"
                             Content="添加任务"
-                            IsEnabled="False"
                             Style="{StaticResource PrimaryButtonStyle}"
-                            ToolTip="任务功能将在 v0.2.0 提供" />
+                            ToolTip="将任务加入任务池" />
                 </Grid>
             </Border>
 

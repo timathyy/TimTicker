@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using TimTicker.Application.Abstractions;
+using TimTicker.Application;
 using TimTicker.App.Services;
 using TimTicker.App.ViewModels;
 using TimTicker.Infrastructure;
@@ -73,6 +74,7 @@ public partial class App : System.Windows.Application
         builder.Logging.AddProvider(new RollingFileLoggerProvider(appPaths.LogsDirectory, fileLoggerOptions));
 
         builder.Services.AddSingleton<IAppPaths>(appPaths);
+        builder.Services.AddTimTickerApplication();
         builder.Services.AddTimTickerInfrastructure(appPaths.DatabasePath);
         builder.Services.AddSingleton<IThemeService, ThemeService>();
         builder.Services.AddSingleton<INavigationService, NavigationService>();

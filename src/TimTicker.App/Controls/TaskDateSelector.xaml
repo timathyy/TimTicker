@@ -1,0 +1,64 @@
+<UserControl x:Class="TimTicker.App.Controls.TaskDateSelector"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             MinHeight="42">
+    <UserControl.Style>
+        <Style TargetType="UserControl">
+            <Setter Property="Opacity" Value="1" />
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.45" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Style>
+    <Border Background="{DynamicResource SurfaceBrush}"
+            BorderBrush="{DynamicResource BorderBrush}"
+            BorderThickness="2"
+            CornerRadius="10">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="42" />
+            </Grid.ColumnDefinitions>
+            <TextBox x:Name="DisplayTextBox"
+                     Padding="13,0,4,0"
+                     VerticalContentAlignment="Center"
+                     Background="Transparent"
+                     BorderThickness="0"
+                     CaretBrush="Transparent"
+                     Focusable="False"
+                     FontFamily="{StaticResource AppFontFamily}"
+                     FontSize="14"
+                     Foreground="{DynamicResource TextPrimaryBrush}"
+                     IsReadOnly="True"
+                     IsReadOnlyCaretVisible="False"
+                     ToolTip="日期只能通过旁边的选择日期按钮修改" />
+            <Button Grid.Column="1"
+                    AutomationProperties.Name="选择日期"
+                    Click="SelectDateButton_Click"
+                    ToolTip="选择日期">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ButtonBorder" Background="Transparent" CornerRadius="0,8,8,0">
+                            <TextBlock HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       FontFamily="Segoe Fluent Icons"
+                                       FontSize="16"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       Text="&#xE787;" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource HoverBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.7" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
+        </Grid>
+    </Border>
+</UserControl>

@@ -18,6 +18,7 @@
         FontFamily="{StaticResource AppFontFamily}"
         TextOptions.TextFormattingMode="Display"
         SnapsToDevicePixels="True"
+        PreviewMouseDown="MainWindow_PreviewMouseDown"
         UseLayoutRounding="True">
     <shell:WindowChrome.WindowChrome>
         <shell:WindowChrome CaptionHeight="48"

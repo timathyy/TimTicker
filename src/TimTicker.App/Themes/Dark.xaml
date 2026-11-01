@@ -14,6 +14,7 @@
     <Color x:Key="AccentSoftColor">#FF352A4D</Color>
     <Color x:Key="AccentForegroundColor">#FF1E152F</Color>
     <Color x:Key="SuccessColor">#FF34D399</Color>
+    <Color x:Key="DangerColor">#FFFF7B72</Color>
 
     <SolidColorBrush x:Key="WindowBackgroundBrush" Color="{DynamicResource WindowBackgroundColor}" />
     <SolidColorBrush x:Key="SidebarBackgroundBrush" Color="{DynamicResource SidebarBackgroundColor}" />
@@ -29,4 +30,5 @@
     <SolidColorBrush x:Key="AccentSoftBrush" Color="{DynamicResource AccentSoftColor}" />
     <SolidColorBrush x:Key="AccentForegroundBrush" Color="{DynamicResource AccentForegroundColor}" />
     <SolidColorBrush x:Key="SuccessBrush" Color="{DynamicResource SuccessColor}" />
+    <SolidColorBrush x:Key="DangerBrush" Color="{DynamicResource DangerColor}" />
 </ResourceDictionary>

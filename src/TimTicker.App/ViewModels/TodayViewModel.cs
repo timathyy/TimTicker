@@ -321,7 +321,6 @@ public sealed class TodayTimelineItemViewModel
         Id = entry.Id;
         Title = entry.Title;
         Description = entry.Description;
-        CategoryText = entry.Category ?? string.Empty;
         StartTimeText = $"{FormatLocalTime(entry.StartLocal, entry.RecordDate)} -";
         EndTimeText = $"- {(entry.EndLocal.HasValue ? FormatLocalTime(entry.EndLocal.Value, entry.RecordDate) : "进行中")}";
         DurationText = entry.IsRunning ? "正在记录" : FormatDuration(entry.DayDuration);
@@ -344,8 +343,6 @@ public sealed class TodayTimelineItemViewModel
     public string Title { get; }
 
     public string? Description { get; }
-
-    public string CategoryText { get; }
 
     public string StartTimeText { get; }
 

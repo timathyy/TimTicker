@@ -4,7 +4,6 @@ public sealed class TimelineEntry
 {
     public const int MaximumTitleLength = 200;
     public const int MaximumDescriptionLength = 4_000;
-    public const int MaximumCategoryLength = 100;
 
     private readonly List<TimelineEntryTaskLink> _taskLinks = [];
 
@@ -16,7 +15,6 @@ public sealed class TimelineEntry
         Guid id,
         string title,
         string? description,
-        string? category,
         IEnumerable<Guid> taskItemIds,
         DateTimeOffset startAtUtc,
         DateTimeOffset? endAtUtc,
@@ -36,7 +34,7 @@ public sealed class TimelineEntry
         }
 
         DateTimeOffset normalizedCreatedAt = RequireUtc(createdAtUtc, nameof(createdAtUtc));
-        ApplyDetails(title, description, category, startAtUtc, endAtUtc);
+        ApplyDetails(title, description, startAtUtc, endAtUtc);
         SynchronizeTasks(taskItemIds, normalizedCreatedAt);
         Source = source;
         RecordDate = recordDate;
@@ -49,8 +47,6 @@ public sealed class TimelineEntry
     public string Title { get; private set; } = string.Empty;
 
     public string? Description { get; private set; }
-
-    public string? Category { get; private set; }
 
     public IReadOnlyList<TimelineEntryTaskLink> TaskLinks => _taskLinks;
 
@@ -75,7 +71,6 @@ public sealed class TimelineEntry
     public void Update(
         string title,
         string? description,
-        string? category,
         IEnumerable<Guid> taskItemIds,
         DateOnly recordDate,
         DateTimeOffset startAtUtc,
@@ -89,7 +84,7 @@ public sealed class TimelineEntry
         }
 
         DateTimeOffset normalizedUpdatedAt = RequireUtc(updatedAtUtc, nameof(updatedAtUtc));
-        ApplyDetails(title, description, category, startAtUtc, endAtUtc);
+        ApplyDetails(title, description, startAtUtc, endAtUtc);
         SynchronizeTasks(taskItemIds, normalizedUpdatedAt);
         RecordDate = recordDate;
         UpdatedAtUtc = normalizedUpdatedAt;
@@ -133,7 +128,6 @@ public sealed class TimelineEntry
     private void ApplyDetails(
         string title,
         string? description,
-        string? category,
         DateTimeOffset startAtUtc,
         DateTimeOffset? endAtUtc)
     {
@@ -145,7 +139,6 @@ public sealed class TimelineEntry
         }
 
         string? normalizedDescription = NormalizeOptional(description, MaximumDescriptionLength, nameof(description));
-        string? normalizedCategory = NormalizeOptional(category, MaximumCategoryLength, nameof(category));
         DateTimeOffset normalizedStart = RequireUtc(startAtUtc, nameof(startAtUtc));
         DateTimeOffset? normalizedEnd = endAtUtc.HasValue ? RequireUtc(endAtUtc.Value, nameof(endAtUtc)) : null;
         if (normalizedEnd <= normalizedStart)
@@ -155,7 +148,6 @@ public sealed class TimelineEntry
 
         Title = normalizedTitle;
         Description = normalizedDescription;
-        Category = normalizedCategory;
         StartAtUtc = normalizedStart;
         EndAtUtc = normalizedEnd;
     }

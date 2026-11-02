@@ -190,7 +190,6 @@ TimTicker.App ────────> TimTicker.Application ──────
 - `Title`、`Description`；
 - `StartAtUtc`、`EndAtUtc`；
 - `TaskItemId`：可空；
-- `Category`：首版使用简单字符串或预定义枚举；
 - `CreatedAtUtc`、`UpdatedAtUtc`、`IsDeleted`。
 
 #### `AppSetting`

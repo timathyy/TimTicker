@@ -55,7 +55,6 @@ public sealed class TimelineEntryDetailViewModel
     {
         Title = entry.Title;
         DescriptionText = string.IsNullOrWhiteSpace(entry.Description) ? "暂无说明" : entry.Description;
-        CategoryText = string.IsNullOrWhiteSpace(entry.Category) ? "未分类" : entry.Category;
         string end = entry.EndLocal.HasValue ? FormatTime(entry.EndLocal.Value, entry.RecordDate) : "进行中";
         TimeRangeText = $"{entry.RecordDate:yyyy-MM-dd} · {FormatTime(entry.StartLocal, entry.RecordDate)} — {end}";
         DurationText = FormatDuration(entry.DayDuration);
@@ -67,7 +66,6 @@ public sealed class TimelineEntryDetailViewModel
 
     public string Title { get; }
     public string DescriptionText { get; }
-    public string CategoryText { get; }
     public string TimeRangeText { get; }
     public string DurationText { get; }
     public bool IsTimerEntry { get; }

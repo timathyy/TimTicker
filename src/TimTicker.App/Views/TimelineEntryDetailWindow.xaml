@@ -61,8 +61,6 @@
                     </StackPanel>
                     <TextBlock Margin="0,14,0,0" FontSize="16" Text="{Binding TimeRangeText}" />
                     <TextBlock Margin="0,5,0,0" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding DurationText}" />
-                    <TextBlock Margin="0,20,0,0" Foreground="{DynamicResource TextTertiaryBrush}" Text="分类" />
-                    <TextBlock Margin="0,5,0,0" Text="{Binding CategoryText}" />
                     <TextBlock Margin="0,22,0,0" FontWeight="SemiBold" Text="记录说明" />
                     <TextBlock Margin="0,8,0,0" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding DescriptionText}" TextWrapping="Wrap" />
                     <TextBlock Margin="0,26,0,10" FontWeight="SemiBold" Text="关联任务" />

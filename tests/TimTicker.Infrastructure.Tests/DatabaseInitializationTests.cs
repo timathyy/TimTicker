@@ -43,7 +43,7 @@ public sealed class DatabaseInitializationTests
                         (await context.Database.GetPendingMigrationsAsync()).ToArray();
 
                     Assert.True(File.Exists(databasePath));
-                    Assert.Equal(9, appliedMigrations.Length);
+                    Assert.Equal(10, appliedMigrations.Length);
                     Assert.Contains(appliedMigrations, migration => migration.EndsWith("_InitialCreate", StringComparison.Ordinal));
                     Assert.Contains(appliedMigrations, migration => migration.EndsWith("_TaskPool", StringComparison.Ordinal));
                     Assert.Contains(appliedMigrations, migration => migration.EndsWith("_TaskDates", StringComparison.Ordinal));
@@ -53,6 +53,7 @@ public sealed class DatabaseInitializationTests
                     Assert.Contains(appliedMigrations, migration => migration.EndsWith("_TimelineEntryMultipleTasks", StringComparison.Ordinal));
                     Assert.Contains(appliedMigrations, migration => migration.EndsWith("_TimelineEntryRecordDate", StringComparison.Ordinal));
                     Assert.Contains(appliedMigrations, migration => migration.EndsWith("_DailyPlanCompletionSnapshot", StringComparison.Ordinal));
+                    Assert.Contains(appliedMigrations, migration => migration.EndsWith("_RemoveTimelineEntryCategory", StringComparison.Ordinal));
                     Assert.Empty(pendingMigrations);
                 }
             }

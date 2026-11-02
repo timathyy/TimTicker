@@ -568,10 +568,6 @@
                                                                    Text="计时" />
                                                     </Border>
                                                 </StackPanel>
-                                                <TextBlock Margin="0,3,0,0"
-                                                           Foreground="{DynamicResource TextTertiaryBrush}"
-                                                           FontSize="12"
-                                                           Text="{Binding CategoryText}" />
                                                 <ItemsControl Margin="0,8,0,0" ItemsSource="{Binding LinkedTasks}">
                                                     <ItemsControl.ItemTemplate>
                                                         <DataTemplate>

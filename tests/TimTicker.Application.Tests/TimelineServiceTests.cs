@@ -32,7 +32,6 @@ public sealed class TimelineServiceTests
             Guid.NewGuid(),
             "Overnight",
             null,
-            null,
             [],
             new DateTimeOffset(2026, 11, 2, 23, 0, 0, TimeSpan.Zero),
             new DateTimeOffset(2026, 11, 3, 1, 0, 0, TimeSpan.Zero),
@@ -57,7 +56,6 @@ public sealed class TimelineServiceTests
             Guid.NewGuid(),
             "Local midnight",
             null,
-            null,
             [],
             new DateTimeOffset(2026, 11, 2, 16, 0, 0, TimeSpan.Zero),
             new DateTimeOffset(2026, 11, 2, 18, 0, 0, TimeSpan.Zero),
@@ -76,7 +74,7 @@ public sealed class TimelineServiceTests
         InMemoryTimelineRepository timelines = new();
         MutableTimeProvider clock = new(new DateTimeOffset(2026, 11, 2, 8, 0, 0, TimeSpan.Zero));
         TimelineService firstService = CreateService(timelines, clock);
-        TimelineEntrySummary started = await firstService.StartAsync(new StartTimelineEntryRequest("Focus", null, null, []));
+        TimelineEntrySummary started = await firstService.StartAsync(new StartTimelineEntryRequest("Focus", null, []));
 
         clock.UtcNow = clock.UtcNow.AddHours(2);
         TimelineService restartedService = CreateService(timelines, clock);
@@ -122,7 +120,6 @@ public sealed class TimelineServiceTests
         TimelineEntrySummary created = await service.CreateAsync(new CreateTimelineEntryRequest(
             "Original",
             null,
-            "Work",
             [task.Id],
             new DateOnly(2026, 11, 2),
             new DateTime(2026, 11, 2, 8, 0, 0),
@@ -132,7 +129,6 @@ public sealed class TimelineServiceTests
             created.Id,
             "Updated",
             "Description",
-            "Focus",
             [task.Id],
             new DateOnly(2026, 11, 2),
             new DateTime(2026, 11, 2, 9, 0, 0),
@@ -165,7 +161,6 @@ public sealed class TimelineServiceTests
         TimelineEntrySummary created = await service.CreateAsync(new CreateTimelineEntryRequest(
             "Shared work",
             null,
-            null,
             [first.Id, second.Id],
             new DateOnly(2026, 11, 2),
             new DateTime(2026, 11, 2, 9, 0, 0),
@@ -189,7 +184,6 @@ public sealed class TimelineServiceTests
             new TestDayBoundarySettings(DayEndTime.SixAm));
         TimelineEntrySummary created = await service.CreateAsync(new CreateTimelineEntryRequest(
             "After midnight",
-            null,
             null,
             [],
             new DateOnly(2026, 11, 2),
@@ -216,7 +210,7 @@ public sealed class TimelineServiceTests
             clock,
             new TestDayBoundarySettings(DayEndTime.SixAm));
 
-        TimelineEntrySummary started = await service.StartAsync(new StartTimelineEntryRequest("Late work", null, null, []));
+        TimelineEntrySummary started = await service.StartAsync(new StartTimelineEntryRequest("Late work", null, []));
         TimelineDaySummary today = await service.GetTodayAsync();
 
         Assert.Equal(new DateOnly(2026, 11, 2), today.Date);
@@ -234,7 +228,6 @@ public sealed class TimelineServiceTests
         TimelineEntry entry = new(
             Guid.NewGuid(),
             "Early morning",
-            null,
             null,
             [],
             new DateTimeOffset(2026, 11, 3, 1, 0, 0, TimeSpan.Zero),
@@ -264,7 +257,6 @@ public sealed class TimelineServiceTests
             Guid.NewGuid(),
             "Read only",
             null,
-            null,
             [],
             now.AddHours(-2),
             now.AddHours(-1),
@@ -288,7 +280,6 @@ public sealed class TimelineServiceTests
 
     private static CreateTimelineEntryRequest CreateRequest(int startHour, int startMinute, int endHour, int endMinute) => new(
         "Manual entry",
-        null,
         null,
         [],
         new DateOnly(2026, 11, 2),

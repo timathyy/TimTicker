@@ -32,7 +32,6 @@ public sealed class TimelineEntryTests
             Guid.NewGuid(),
             "  Work  ",
             "  Details  ",
-            "  Focus  ",
             [],
             Start,
             Start.AddHours(1),
@@ -40,11 +39,9 @@ public sealed class TimelineEntryTests
 
         Assert.Equal("Work", entry.Title);
         Assert.Equal("Details", entry.Description);
-        Assert.Equal("Focus", entry.Category);
         Assert.Throws<ArgumentException>(() => new TimelineEntry(
             Guid.NewGuid(),
             "Invalid",
-            null,
             null,
             [],
             Start.ToOffset(TimeSpan.FromHours(8)),
@@ -62,7 +59,6 @@ public sealed class TimelineEntryTests
         Assert.Throws<InvalidOperationException>(() => entry.Update(
             "Changed",
             null,
-            null,
             [],
             new DateOnly(2026, 11, 2),
             Start,
@@ -79,7 +75,6 @@ public sealed class TimelineEntryTests
             Guid.NewGuid(),
             "Multiple tasks",
             null,
-            null,
             [firstTaskId, secondTaskId, firstTaskId],
             Start,
             Start.AddHours(1),
@@ -94,7 +89,6 @@ public sealed class TimelineEntryTests
     private static TimelineEntry Create(DateTimeOffset? endAtUtc) => new(
         Guid.NewGuid(),
         "Timeline entry",
-        null,
         null,
         [],
         Start,

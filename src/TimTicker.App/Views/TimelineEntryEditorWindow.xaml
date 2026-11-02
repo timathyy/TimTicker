@@ -142,12 +142,6 @@
                              Style="{StaticResource TextBoxStyle}"
                              TextWrapping="Wrap" />
 
-                    <TextBlock FontWeight="SemiBold" Text="分类（可选）" />
-                    <TextBox x:Name="CategoryTextBox"
-                             Margin="0,8,0,18"
-                             MaxLength="100"
-                             Style="{StaticResource TextBoxStyle}" />
-
                     <TextBlock FontWeight="SemiBold" Text="关联任务（可多选）" />
                     <Border Height="160"
                             Margin="0,8,0,18"

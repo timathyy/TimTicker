@@ -143,10 +143,6 @@ namespace TimTicker.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Category")
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
                     b.Property<long>("CreatedAtUtc")
                         .HasColumnType("INTEGER");
 

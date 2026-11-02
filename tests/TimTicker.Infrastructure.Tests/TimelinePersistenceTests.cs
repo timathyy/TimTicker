@@ -45,7 +45,6 @@ public sealed class TimelinePersistenceTests
                     new CreateTimelineEntryRequest(
                         "Shared record",
                         null,
-                        null,
                         [firstTaskId, secondTaskId],
                         new DateOnly(2026, 11, 2),
                         new DateTime(2026, 11, 2, 9, 0, 0),
@@ -90,7 +89,7 @@ public sealed class TimelinePersistenceTests
             {
                 await firstProvider.GetRequiredService<IAppDatabaseInitializer>().InitializeAsync();
                 TimelineEntrySummary started = await firstProvider.GetRequiredService<ITimelineService>()
-                    .StartAsync(new StartTimelineEntryRequest("Persist running entry", null, "Focus", []));
+                    .StartAsync(new StartTimelineEntryRequest("Persist running entry", null, []));
                 entryId = started.Id;
             }
 

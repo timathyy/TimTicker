@@ -66,7 +66,6 @@ public partial class TimelineEntryEditorWindow : Window
 
         TitleTextBox.Text = _entry?.Title ?? string.Empty;
         DescriptionTextBox.Text = _entry?.Description ?? string.Empty;
-        CategoryTextBox.Text = _entry?.Category ?? string.Empty;
         StartTimeTextBox.Text = start.ToString("HH:mm", CultureInfo.InvariantCulture);
         EndTimeTextBox.Text = end.ToString("HH:mm", CultureInfo.InvariantCulture);
         DayBoundaryHintText.Text = $"每日结束时间为 {DayBoundary.ToDisplayText(_dayEndTime)}，凌晨时刻会自动归入对应日期。";
@@ -87,7 +86,6 @@ public partial class TimelineEntryEditorWindow : Window
             StartRequest = new StartTimelineEntryRequest(
                 title,
                 DescriptionTextBox.Text,
-                CategoryTextBox.Text,
                 taskItemIds);
             DialogResult = true;
             return;
@@ -123,7 +121,6 @@ public partial class TimelineEntryEditorWindow : Window
             CreateRequest = new CreateTimelineEntryRequest(
                 title,
                 DescriptionTextBox.Text,
-                CategoryTextBox.Text,
                 taskItemIds,
                 _recordDate,
                 startLocal,
@@ -135,7 +132,6 @@ public partial class TimelineEntryEditorWindow : Window
                 _entry.Id,
                 title,
                 DescriptionTextBox.Text,
-                CategoryTextBox.Text,
                 taskItemIds,
                 _recordDate,
                 startLocal,

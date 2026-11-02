@@ -66,17 +66,23 @@
         <Style x:Key="RoundSelectionCheckBoxStyle" TargetType="CheckBox">
             <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
             <Setter Property="BorderBrush" Value="{DynamicResource TextTertiaryBrush}" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Padding" Value="0" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="CheckBox">
-                        <StackPanel Orientation="Horizontal">
-                            <Grid Width="18" Height="18" Margin="0,0,9,0" VerticalAlignment="Center">
-                                <Ellipse x:Name="SelectionBorder" Stroke="{TemplateBinding BorderBrush}" StrokeThickness="1.5" />
-                                <Ellipse x:Name="SelectionDot" Width="10" Height="10" Fill="{DynamicResource AccentBrush}" Visibility="Collapsed" />
-                            </Grid>
-                            <ContentPresenter VerticalAlignment="Center" />
-                        </StackPanel>
+                        <Border Padding="{TemplateBinding Padding}"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="8">
+                            <StackPanel Orientation="Horizontal">
+                                <Grid Width="18" Height="18" Margin="0,0,9,0" VerticalAlignment="Center" Background="Transparent">
+                                    <Ellipse x:Name="SelectionBorder" Stroke="{TemplateBinding BorderBrush}" StrokeThickness="1.5" />
+                                    <Ellipse x:Name="SelectionDot" Width="10" Height="10" Fill="{DynamicResource AccentBrush}" Visibility="Collapsed" />
+                                </Grid>
+                                <ContentPresenter VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
                                 <Setter TargetName="SelectionBorder" Property="Stroke" Value="{DynamicResource AccentBrush}" />
@@ -143,7 +149,7 @@
                              Style="{StaticResource TextBoxStyle}" />
 
                     <TextBlock FontWeight="SemiBold" Text="关联任务（可多选）" />
-                    <Border Height="110"
+                    <Border Height="160"
                             Margin="0,8,0,18"
                             Padding="6"
                             Background="{DynamicResource SurfaceSecondaryBrush}"
@@ -161,7 +167,7 @@
                             <ListBox.ItemContainerStyle>
                                 <Style TargetType="ListBoxItem">
                                     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                                    <Setter Property="Padding" Value="6,4" />
+                                    <Setter Property="Padding" Value="0" />
                                     <Setter Property="Background" Value="Transparent" />
                                     <Setter Property="BorderThickness" Value="0" />
                                     <Setter Property="Focusable" Value="False" />
@@ -177,6 +183,9 @@
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
                                     <CheckBox Content="{Binding Title}"
+                                              Margin="0,0,0,8"
+                                              Padding="12,10"
+                                              Background="{DynamicResource SurfaceBrush}"
                                               IsChecked="{Binding IsSelected, Mode=TwoWay}"
                                               Style="{StaticResource RoundSelectionCheckBoxStyle}"
                                               VerticalAlignment="Center" />

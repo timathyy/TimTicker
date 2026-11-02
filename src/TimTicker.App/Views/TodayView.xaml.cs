@@ -161,13 +161,11 @@ public partial class TodayView : UserControl
             return;
         }
 
-        System.Windows.MessageBoxResult result = System.Windows.MessageBox.Show(
-            System.Windows.Window.GetWindow(this),
-            "确定删除这条时间记录吗？此操作不会删除关联任务。",
-            "删除时间记录",
-            System.Windows.MessageBoxButton.YesNo,
-            System.Windows.MessageBoxImage.Warning);
-        if (result == System.Windows.MessageBoxResult.Yes)
+        DeleteTimelineEntryConfirmationWindow window = new(entry.Title)
+        {
+            Owner = System.Windows.Window.GetWindow(this),
+        };
+        if (window.ShowDialog() == true)
         {
             await RunTimelineActionAsync(() => viewModel.DeleteTimelineEntryAsync(entry.Id));
         }

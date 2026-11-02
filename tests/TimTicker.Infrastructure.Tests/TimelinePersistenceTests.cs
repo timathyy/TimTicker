@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using TimTicker.Application;
 using TimTicker.Application.Abstractions;
 using TimTicker.Application.Timeline;
+using TimTicker.Domain.Timeline;
 using TimTicker.Infrastructure;
 
 namespace TimTicker.Infrastructure.Tests;
@@ -38,6 +39,7 @@ public sealed class TimelinePersistenceTests
 
                 Assert.Equal(entryId, recovered.Id);
                 Assert.True(recovered.IsRunning);
+                Assert.Equal(TimelineEntrySource.Timer, recovered.Source);
                 Assert.Equal(entryId, stopped.Id);
                 Assert.False(stopped.IsRunning);
                 Assert.Equal(TimeSpan.FromHours(1), stopped.DayDuration);

@@ -1,5 +1,6 @@
 using System.Windows.Controls;
 using TimTicker.Application.Planning;
+using TimTicker.Application.Tasks;
 using TimTicker.Application.Timeline;
 using TimTicker.App.ViewModels;
 
@@ -46,6 +47,41 @@ public partial class TodayView : UserControl
         if (window.ShowDialog() == true)
         {
             await viewModel.AddSelectedTasksAsync(window.SelectedTaskIds);
+        }
+    }
+
+    private async void NewTaskAndAddButton_Click(object sender, System.Windows.RoutedEventArgs e)
+    {
+        if (DataContext is not TodayViewModel viewModel)
+        {
+            return;
+        }
+
+        TaskEditorWindow window = new()
+        {
+            Owner = System.Windows.Window.GetWindow(this),
+        };
+        if (window.ShowDialog() == true && window.CreateRequest is CreateTaskRequest request)
+        {
+            await viewModel.CreateTaskAndAddAsync(request);
+        }
+    }
+
+    private async void StartTimelineEntryButton_Click(object sender, System.Windows.RoutedEventArgs e)
+    {
+        if (DataContext is not TodayViewModel viewModel || viewModel.HasRunningTimeline)
+        {
+            return;
+        }
+
+        IReadOnlyList<TimelineTaskOption> taskOptions = await viewModel.GetTimelineTaskOptionsAsync();
+        TimelineEntryEditorWindow window = new(taskOptions, startMode: true)
+        {
+            Owner = System.Windows.Window.GetWindow(this),
+        };
+        if (window.ShowDialog() == true && window.StartRequest is StartTimelineEntryRequest request)
+        {
+            await RunTimelineActionAsync(() => viewModel.StartTimelineEntryAsync(request));
         }
     }
 

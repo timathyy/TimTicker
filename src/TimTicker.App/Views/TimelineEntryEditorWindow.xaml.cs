@@ -10,13 +10,20 @@ namespace TimTicker.App.Views;
 public partial class TimelineEntryEditorWindow : Window
 {
     private readonly TodayTimelineItemViewModel? _entry;
+    private readonly bool _startMode;
 
     public TimelineEntryEditorWindow(
         IReadOnlyList<TimelineTaskOption> taskOptions,
-        TodayTimelineItemViewModel? entry = null)
+        TodayTimelineItemViewModel? entry = null,
+        bool startMode = false)
     {
         ArgumentNullException.ThrowIfNull(taskOptions);
         _entry = entry;
+        _startMode = startMode;
+        if (entry is not null && startMode)
+        {
+            throw new ArgumentException("An existing entry cannot be opened in start mode.", nameof(startMode));
+        }
         TaskChoices = new ObservableCollection<TimelineTaskChoice>(
             new[] { new TimelineTaskChoice(null, "不关联任务") }
                 .Concat(taskOptions.Select(option => new TimelineTaskChoice(option.Id, option.Title))));
@@ -32,11 +39,15 @@ public partial class TimelineEntryEditorWindow : Window
 
     public UpdateTimelineEntryRequest? UpdateRequest { get; private set; }
 
+    public StartTimelineEntryRequest? StartRequest { get; private set; }
+
     private void InitializeFields()
     {
         bool isEditing = _entry is not null;
-        WindowTitleText.Text = isEditing ? "编辑时间记录" : "补录时间记录";
-        SaveButton.Content = isEditing ? "保存修改" : "添加记录";
+        WindowTitleText.Text = _startMode ? "开始记录" : isEditing ? "编辑时间记录" : "手动录入";
+        SaveButton.Content = _startMode ? "开始记录" : isEditing ? "保存修改" : "添加记录";
+        TimeFieldsPanel.Visibility = _startMode ? Visibility.Collapsed : Visibility.Visible;
+        Height = _startMode ? 520 : 690;
         DateTime end = _entry?.EndLocal ?? DateTime.Now;
         DateTime start = _entry?.StartLocal ?? end.AddHours(-1);
         TitleTextBox.Text = _entry?.Title ?? string.Empty;
@@ -55,6 +66,18 @@ public partial class TimelineEntryEditorWindow : Window
         if (title.Length == 0)
         {
             ShowValidationError("请输入记录标题。", TitleTextBox);
+            return;
+        }
+
+        Guid? taskItemId = (TaskComboBox.SelectedItem as TimelineTaskChoice)?.Id;
+        if (_startMode)
+        {
+            StartRequest = new StartTimelineEntryRequest(
+                title,
+                DescriptionTextBox.Text,
+                CategoryTextBox.Text,
+                taskItemId);
+            DialogResult = true;
             return;
         }
 
@@ -80,7 +103,6 @@ public partial class TimelineEntryEditorWindow : Window
             return;
         }
 
-        Guid? taskItemId = (TaskComboBox.SelectedItem as TimelineTaskChoice)?.Id;
         if (_entry is null)
         {
             CreateRequest = new CreateTimelineEntryRequest(

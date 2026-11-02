@@ -80,6 +80,7 @@ public sealed class TimTickerDbContext(DbContextOptions<TimTickerDbContext> opti
             entity.Property(entry => entry.Title).HasMaxLength(TimelineEntry.MaximumTitleLength).IsRequired();
             entity.Property(entry => entry.Description).HasMaxLength(TimelineEntry.MaximumDescriptionLength);
             entity.Property(entry => entry.Category).HasMaxLength(TimelineEntry.MaximumCategoryLength);
+            entity.Property(entry => entry.Source).HasConversion<int>();
             entity.Property(entry => entry.StartAtUtc).HasConversion(UtcTicksConverter);
             entity.Property(entry => entry.EndAtUtc).HasConversion(NullableUtcTicksConverter);
             entity.Property(entry => entry.CreatedAtUtc).HasConversion(UtcTicksConverter);

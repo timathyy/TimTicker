@@ -49,7 +49,8 @@ public sealed class TimelineService(
             request.TaskItemId,
             now,
             null,
-            now);
+            now,
+            TimelineEntrySource.Timer);
         await repository.AddAsync(entry, cancellationToken).ConfigureAwait(false);
         return await ToSummaryAsync(entry, LocalToday(), cancellationToken).ConfigureAwait(false);
     }
@@ -83,7 +84,8 @@ public sealed class TimelineService(
             request.TaskItemId,
             startAtUtc,
             endAtUtc,
-            now);
+            now,
+            TimelineEntrySource.Manual);
         await repository.AddAsync(entry, cancellationToken).ConfigureAwait(false);
         return await ToSummaryAsync(entry, LocalToday(), cancellationToken).ConfigureAwait(false);
     }
@@ -190,7 +192,8 @@ public sealed class TimelineService(
             ConvertUtcToLocal(entry.StartAtUtc),
             entry.EndAtUtc.HasValue ? ConvertUtcToLocal(entry.EndAtUtc.Value) : null,
             dayDuration,
-            entry.IsRunning);
+            entry.IsRunning,
+            entry.Source);
     }
 
     private (DateTimeOffset Start, DateTimeOffset End) GetUtcDayBounds(DateOnly localDate)

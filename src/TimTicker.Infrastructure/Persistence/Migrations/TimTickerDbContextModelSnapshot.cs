@@ -157,6 +157,9 @@ namespace TimTicker.Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("Source")
+                        .HasColumnType("INTEGER");
+
                     b.Property<long>("StartAtUtc")
                         .HasColumnType("INTEGER");
 

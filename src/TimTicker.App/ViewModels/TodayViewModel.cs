@@ -6,6 +6,7 @@ using TimTicker.Application.Planning;
 using TimTicker.Application.Tasks;
 using TimTicker.Application.Timeline;
 using TimTicker.Domain.Tasks;
+using TimTicker.Domain.Timeline;
 using DomainTaskStatus = TimTicker.Domain.Tasks.TaskStatus;
 
 namespace TimTicker.App.ViewModels;
@@ -24,24 +25,15 @@ public sealed partial class TodayViewModel(
     private string _dateText = string.Empty;
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(QuickAddTaskCommand))]
-    private string _quickTaskTitle = string.Empty;
-
-    [ObservableProperty]
     private bool _hasPlanItems;
 
     [ObservableProperty]
     private string _planItemCountText = "0 项";
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(StartTimelineCommand))]
-    private string _quickTimelineTitle = string.Empty;
-
-    [ObservableProperty]
     private bool _hasTimelineItems;
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(StartTimelineCommand))]
     [NotifyCanExecuteChangedFor(nameof(StopTimelineCommand))]
     private bool _hasRunningTimeline;
 
@@ -72,6 +64,16 @@ public sealed partial class TodayViewModel(
     public async Task AddSelectedTasksAsync(IEnumerable<Guid> taskIds) =>
         ApplyPlan(await planService.AddTasksToTodayAsync(taskIds));
 
+    public async Task CreateTaskAndAddAsync(CreateTaskRequest request) =>
+        ApplyPlan(await planService.CreateTaskAndAddToTodayAsync(request));
+
+    public async Task StartTimelineEntryAsync(StartTimelineEntryRequest request)
+    {
+        await timelineService.StartAsync(request);
+        TimelineErrorMessage = string.Empty;
+        ApplyTimeline(await timelineService.GetTodayAsync());
+    }
+
     public async Task CreateTimelineEntryAsync(CreateTimelineEntryRequest request)
     {
         await timelineService.CreateAsync(request);
@@ -88,19 +90,6 @@ public sealed partial class TodayViewModel(
     {
         await timelineService.DeleteAsync(id);
         ApplyTimeline(await timelineService.GetTodayAsync());
-    }
-
-    [RelayCommand(CanExecute = nameof(CanQuickAddTask))]
-    private async Task QuickAddTaskAsync()
-    {
-        DailyPlanSummary plan = await planService.CreateTaskAndAddToTodayAsync(new CreateTaskRequest(
-            QuickTaskTitle,
-            null,
-            LocalToday(),
-            null,
-            TaskPriority.None));
-        QuickTaskTitle = string.Empty;
-        ApplyPlan(plan);
     }
 
     [RelayCommand]
@@ -150,26 +139,6 @@ public sealed partial class TodayViewModel(
         }
     }
 
-    [RelayCommand(CanExecute = nameof(CanStartTimeline))]
-    private async Task StartTimelineAsync()
-    {
-        try
-        {
-            await timelineService.StartAsync(new StartTimelineEntryRequest(QuickTimelineTitle, null, null, null));
-            QuickTimelineTitle = string.Empty;
-            TimelineErrorMessage = string.Empty;
-            ApplyTimeline(await timelineService.GetTodayAsync());
-        }
-        catch (TimelineOverlapException)
-        {
-            TimelineErrorMessage = "当前时间与已有记录重叠，请先调整已有记录。";
-        }
-        catch (ArgumentException)
-        {
-            TimelineErrorMessage = "无法开始记录，请检查活动标题。";
-        }
-    }
-
     [RelayCommand(CanExecute = nameof(CanStopTimeline))]
     private async Task StopTimelineAsync()
     {
@@ -216,10 +185,6 @@ public sealed partial class TodayViewModel(
         TotalRecordedTimeText = $"已记录 {FormatDuration(timeline.TotalDuration)}";
     }
 
-    private bool CanQuickAddTask() => !string.IsNullOrWhiteSpace(QuickTaskTitle);
-
-    private bool CanStartTimeline() => !HasRunningTimeline && !string.IsNullOrWhiteSpace(QuickTimelineTitle);
-
     private bool CanStopTimeline() => HasRunningTimeline;
 
     private static string FormatDuration(TimeSpan duration)
@@ -245,6 +210,7 @@ public sealed class TodayTimelineItemViewModel
             (entry.EndLocal.HasValue ? FormatLocalTime(entry.EndLocal.Value, displayDate) : "进行中");
         DurationText = entry.IsRunning ? "正在记录" : FormatDuration(entry.DayDuration);
         IsRunning = entry.IsRunning;
+        IsTimerEntry = entry.Source == TimelineEntrySource.Timer;
         StartLocal = entry.StartLocal;
         EndLocal = entry.EndLocal;
         TaskItemId = entry.TaskItemId;
@@ -264,6 +230,8 @@ public sealed class TodayTimelineItemViewModel
     public string DurationText { get; }
 
     public bool IsRunning { get; }
+
+    public bool IsTimerEntry { get; }
 
     public DateTime StartLocal { get; }
 

@@ -92,11 +92,9 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="26" />
-                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
                 <RowDefinition Height="22" />
-                <RowDefinition Height="3*" />
-                <RowDefinition Height="22" />
-                <RowDefinition Height="2*" />
+                <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
             <Grid>
@@ -114,28 +112,7 @@
                         ToolTip="每日复盘将在 v0.5.0 提供" />
             </Grid>
 
-            <Border Grid.Row="2" Style="{StaticResource CardStyle}">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="12" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <TextBox VerticalContentAlignment="Center"
-                             AutomationProperties.Name="新建并加入今日计划"
-                             Text="{Binding QuickTaskTitle, UpdateSourceTrigger=PropertyChanged}"
-                             Style="{StaticResource TextBoxStyle}"
-                             ToolTip="输入任务标题" />
-                    <Button Grid.Column="2"
-                            MinWidth="128"
-                            Command="{Binding QuickAddTaskCommand}"
-                            Content="新建并加入"
-                            Style="{StaticResource PrimaryButtonStyle}"
-                            ToolTip="新建任务并直接加入今日计划" />
-                </Grid>
-            </Border>
-
-            <Grid Grid.Row="4">
+            <Grid Grid.Row="2">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="2*" />
                     <ColumnDefinition Width="22" />
@@ -159,10 +136,15 @@
                                            Foreground="{DynamicResource TextTertiaryBrush}"
                                            Text="{Binding PlanItemCountText}" />
                             </StackPanel>
-                            <Button HorizontalAlignment="Right"
-                                    Click="SelectFromTaskPoolButton_Click"
-                                    Content="从任务池选择"
-                                    Style="{StaticResource SecondaryButtonStyle}" />
+                            <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                                <Button Margin="0,0,8,0"
+                                        Click="NewTaskAndAddButton_Click"
+                                        Content="新建并加入"
+                                        Style="{StaticResource PrimaryButtonStyle}" />
+                                <Button Click="SelectFromTaskPoolButton_Click"
+                                        Content="从任务池选择"
+                                        Style="{StaticResource SecondaryButtonStyle}" />
+                            </StackPanel>
                         </Grid>
 
                         <StackPanel Grid.Row="2"
@@ -366,7 +348,7 @@
                 </Border>
             </Grid>
 
-            <Border Grid.Row="6" Style="{StaticResource CardStyle}">
+            <Border Grid.Row="4" Style="{StaticResource CardStyle}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -383,36 +365,24 @@
                                        Foreground="{DynamicResource TextTertiaryBrush}"
                                        Text="{Binding TotalRecordedTimeText}" />
                         </StackPanel>
-                        <Button HorizontalAlignment="Right"
-                                Click="AddTimelineEntryButton_Click"
-                                Content="手工补录"
-                                Style="{StaticResource SecondaryButtonStyle}" />
-                    </Grid>
-
-                    <Grid Grid.Row="2">
-                        <Grid.Style>
-                            <Style TargetType="Grid">
-                                <Setter Property="Visibility" Value="Visible" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding HasRunningTimeline}" Value="True">
-                                        <Setter Property="Visibility" Value="Collapsed" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Grid.Style>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="10" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <TextBox VerticalContentAlignment="Center"
-                                 Text="{Binding QuickTimelineTitle, UpdateSourceTrigger=PropertyChanged}"
-                                 Style="{StaticResource TextBoxStyle}"
-                                 ToolTip="输入当前活动标题" />
-                        <Button Grid.Column="2"
-                                Command="{Binding StartTimelineCommand}"
-                                Content="开始记录"
-                                Style="{StaticResource PrimaryButtonStyle}" />
+                        <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                            <Button Margin="0,0,8,0"
+                                    Click="StartTimelineEntryButton_Click"
+                                    Content="开始记录">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding HasRunningTimeline}" Value="True">
+                                                <Setter Property="IsEnabled" Value="False" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                            <Button Click="AddTimelineEntryButton_Click"
+                                    Content="手动录入"
+                                    Style="{StaticResource SecondaryButtonStyle}" />
+                        </StackPanel>
                     </Grid>
 
                     <Border Grid.Row="2"
@@ -501,7 +471,20 @@
                                                            Text="{Binding DurationText}" />
                                             </StackPanel>
                                             <StackPanel Grid.Column="1" Margin="12,0" VerticalAlignment="Center">
-                                                <TextBlock FontWeight="SemiBold" Text="{Binding Title}" />
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="{Binding Title}" />
+                                                    <Border Margin="8,0,0,0"
+                                                            Padding="7,2"
+                                                            VerticalAlignment="Center"
+                                                            Background="{DynamicResource AccentSoftBrush}"
+                                                            CornerRadius="8"
+                                                            Visibility="{Binding IsTimerEntry, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                        <TextBlock FontSize="11"
+                                                                   FontWeight="SemiBold"
+                                                                   Foreground="{DynamicResource AccentBrush}"
+                                                                   Text="计时" />
+                                                    </Border>
+                                                </StackPanel>
                                                 <TextBlock Margin="0,3,0,0"
                                                            Foreground="{DynamicResource TextTertiaryBrush}"
                                                            FontSize="12"

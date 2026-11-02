@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using TimTicker.Application.Abstractions;
 using TimTicker.Application.Tasks;
 using TimTicker.Domain.Tasks;
+using TimTicker.Domain.Timeline;
 using TimTicker.Infrastructure;
 using TimTicker.Infrastructure.Persistence;
 
@@ -42,15 +43,64 @@ public sealed class DatabaseInitializationTests
                         (await context.Database.GetPendingMigrationsAsync()).ToArray();
 
                     Assert.True(File.Exists(databasePath));
-                    Assert.Equal(5, appliedMigrations.Length);
+                    Assert.Equal(6, appliedMigrations.Length);
                     Assert.Contains(appliedMigrations, migration => migration.EndsWith("_InitialCreate", StringComparison.Ordinal));
                     Assert.Contains(appliedMigrations, migration => migration.EndsWith("_TaskPool", StringComparison.Ordinal));
                     Assert.Contains(appliedMigrations, migration => migration.EndsWith("_TaskDates", StringComparison.Ordinal));
                     Assert.Contains(appliedMigrations, migration => migration.EndsWith("_DailyPlanning", StringComparison.Ordinal));
                     Assert.Contains(appliedMigrations, migration => migration.EndsWith("_TimelineEntries", StringComparison.Ordinal));
+                    Assert.Contains(appliedMigrations, migration => migration.EndsWith("_TimelineEntrySource", StringComparison.Ordinal));
                     Assert.Empty(pendingMigrations);
                 }
             }
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            if (Directory.Exists(testRoot))
+            {
+                Directory.Delete(testRoot, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task InitializeAsyncAddsSourceToExistingTimelineEntries()
+    {
+        string testRoot = Path.Combine(Path.GetTempPath(), "TimTicker.Tests", Guid.NewGuid().ToString("N"));
+        string databasePath = Path.Combine(testRoot, "Data", "timticker.db");
+        Directory.CreateDirectory(Path.GetDirectoryName(databasePath)!);
+
+        try
+        {
+            ServiceCollection services = new();
+            services.AddLogging();
+            services.AddTimTickerInfrastructure(databasePath);
+
+            await using ServiceProvider serviceProvider = services.BuildServiceProvider();
+            IDbContextFactory<TimTickerDbContext> contextFactory =
+                serviceProvider.GetRequiredService<IDbContextFactory<TimTickerDbContext>>();
+            Guid entryId = Guid.NewGuid();
+            long startTicks = new DateTimeOffset(2026, 11, 2, 8, 0, 0, TimeSpan.Zero).UtcTicks;
+            long endTicks = new DateTimeOffset(2026, 11, 2, 9, 0, 0, TimeSpan.Zero).UtcTicks;
+            await using (TimTickerDbContext oldContext = await contextFactory.CreateDbContextAsync())
+            {
+                await oldContext.Database.MigrateAsync("20261102114842_TimelineEntries");
+                await oldContext.Database.ExecuteSqlInterpolatedAsync($"""
+                    INSERT INTO TimelineEntries
+                        (Id, Title, Description, Category, TaskItemId, StartAtUtc, EndAtUtc, CreatedAtUtc, UpdatedAtUtc, IsDeleted)
+                    VALUES
+                        ({entryId}, {"Existing manual record"}, {null}, {null}, {null}, {startTicks}, {endTicks}, {startTicks}, {startTicks}, {false})
+                    """);
+            }
+
+            await serviceProvider.GetRequiredService<IAppDatabaseInitializer>().InitializeAsync();
+
+            await using TimTickerDbContext upgradedContext = await contextFactory.CreateDbContextAsync();
+            TimelineEntry entry = Assert.Single(await upgradedContext.TimelineEntries.ToListAsync());
+            Assert.Equal(entryId, entry.Id);
+            Assert.Equal(TimelineEntrySource.Manual, entry.Source);
+            Assert.Empty(await upgradedContext.Database.GetPendingMigrationsAsync());
         }
         finally
         {

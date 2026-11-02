@@ -82,6 +82,7 @@ public sealed class TimelineServiceTests
 
         Assert.True(Assert.Single(recovered.Entries).IsRunning);
         Assert.Equal(started.Id, stopped.Id);
+        Assert.Equal(TimelineEntrySource.Timer, stopped.Source);
         Assert.False(stopped.IsRunning);
         Assert.Equal(TimeSpan.FromHours(2), stopped.DayDuration);
     }
@@ -135,6 +136,7 @@ public sealed class TimelineServiceTests
 
         Assert.Equal("Updated", updated.Title);
         Assert.Equal("Linked task", updated.TaskTitle);
+        Assert.Equal(TimelineEntrySource.Manual, updated.Source);
         Assert.True(Assert.Single(timelines.Entries).IsDeleted);
         Assert.Empty((await service.GetTodayAsync()).Entries);
     }

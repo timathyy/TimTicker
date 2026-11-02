@@ -18,7 +18,8 @@ public sealed class TimelineEntry
         Guid? taskItemId,
         DateTimeOffset startAtUtc,
         DateTimeOffset? endAtUtc,
-        DateTimeOffset createdAtUtc)
+        DateTimeOffset createdAtUtc,
+        TimelineEntrySource source = TimelineEntrySource.Manual)
     {
         if (id == Guid.Empty)
         {
@@ -26,7 +27,13 @@ public sealed class TimelineEntry
         }
 
         Id = id;
+        if (!Enum.IsDefined(source))
+        {
+            throw new ArgumentOutOfRangeException(nameof(source));
+        }
+
         ApplyDetails(title, description, category, taskItemId, startAtUtc, endAtUtc);
+        Source = source;
         CreatedAtUtc = RequireUtc(createdAtUtc, nameof(createdAtUtc));
         UpdatedAtUtc = CreatedAtUtc;
     }
@@ -50,6 +57,8 @@ public sealed class TimelineEntry
     public DateTimeOffset UpdatedAtUtc { get; private set; }
 
     public bool IsDeleted { get; private set; }
+
+    public TimelineEntrySource Source { get; private set; }
 
     public bool IsRunning => EndAtUtc is null;
 

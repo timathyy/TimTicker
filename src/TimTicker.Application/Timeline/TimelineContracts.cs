@@ -1,4 +1,5 @@
 using TimTicker.Application.Tasks;
+using TimTicker.Domain.Timeline;
 
 namespace TimTicker.Application.Timeline;
 
@@ -33,7 +34,8 @@ public sealed record TimelineEntrySummary(
     DateTime StartLocal,
     DateTime? EndLocal,
     TimeSpan DayDuration,
-    bool IsRunning);
+    bool IsRunning,
+    TimelineEntrySource Source);
 
 public sealed record TimelineDaySummary(DateOnly Date, IReadOnlyList<TimelineEntrySummary> Entries, TimeSpan TotalDuration);
 

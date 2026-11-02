@@ -54,7 +54,7 @@ public sealed class DetailNavigationService(
             return false;
         }
 
-        IReadOnlyList<TimelineTaskOption> options = await timelineService.ListTaskOptionsAsync();
+        IReadOnlyList<TimelineTaskOption> options = await timelineService.ListTaskOptionsAsync(entry.RecordDate);
         TimelineEntryEditorWindow editor = new(
             options,
             entry.RecordDate,

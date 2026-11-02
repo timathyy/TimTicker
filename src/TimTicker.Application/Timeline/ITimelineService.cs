@@ -8,7 +8,9 @@ public interface ITimelineService
 
     Task<IReadOnlyList<TimelineEntrySummary>> ListForTaskAsync(Guid taskId, CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<TimelineTaskOption>> ListTaskOptionsAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<TimelineTaskOption>> ListTaskOptionsAsync(
+        DateOnly planDate,
+        CancellationToken cancellationToken = default);
 
     Task<TimelineEntrySummary> StartAsync(StartTimelineEntryRequest request, CancellationToken cancellationToken = default);
 

@@ -1,6 +1,7 @@
 using TimTicker.Application.Tasks;
 using TimTicker.Application.Planning;
 using TimTicker.Application.Settings;
+using TimTicker.Domain.Planning;
 using TimTicker.Domain.Timeline;
 
 namespace TimTicker.Application.Timeline;
@@ -56,12 +57,32 @@ public sealed class TimelineService(
         return summaries;
     }
 
-    public async Task<IReadOnlyList<TimelineTaskOption>> ListTaskOptionsAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<TimelineTaskOption>> ListTaskOptionsAsync(
+        DateOnly planDate,
+        CancellationToken cancellationToken = default)
     {
-        IReadOnlyList<Domain.Tasks.TaskItem> tasks = await taskRepository.ListAsync(
-            new TaskQuery(null, null, TaskSortOrder.CreatedAtDescending),
-            cancellationToken).ConfigureAwait(false);
-        return tasks.Select(task => new TimelineTaskOption(task.Id, task.Title)).ToArray();
+        if (planDate == default)
+        {
+            throw new ArgumentException("The plan date must not be empty.", nameof(planDate));
+        }
+
+        DailyPlan? plan = await planRepository.FindAsync(planDate, cancellationToken).ConfigureAwait(false);
+        if (plan is null)
+        {
+            return [];
+        }
+
+        List<TimelineTaskOption> options = [];
+        foreach (DailyPlanItem item in plan.ActiveItems)
+        {
+            Domain.Tasks.TaskItem? task = await taskRepository.FindAsync(item.TaskItemId, cancellationToken).ConfigureAwait(false);
+            if (task is not null)
+            {
+                options.Add(new TimelineTaskOption(task.Id, task.Title));
+            }
+        }
+
+        return options;
     }
 
     public async Task<TimelineEntrySummary> StartAsync(
@@ -71,7 +92,7 @@ public sealed class TimelineService(
         ArgumentNullException.ThrowIfNull(request);
         DateOnly recordDate = LocalToday();
         await EnsureDayOpenAsync(recordDate, cancellationToken).ConfigureAwait(false);
-        await EnsureTasksExistAsync(request.TaskItemIds, cancellationToken).ConfigureAwait(false);
+        await EnsureTasksBelongToPlanAsync(request.TaskItemIds, recordDate, cancellationToken).ConfigureAwait(false);
         DateTimeOffset now = UtcNow();
         await EnsureNoOverlapAsync(now, DateTimeOffset.MaxValue, null, cancellationToken).ConfigureAwait(false);
         TimelineEntry entry = new(
@@ -108,7 +129,7 @@ public sealed class TimelineService(
         ArgumentNullException.ThrowIfNull(request);
         EnsureRecordDateMatchesBoundary(request.RecordDate, request.StartLocal);
         await EnsureDayOpenAsync(request.RecordDate, cancellationToken).ConfigureAwait(false);
-        await EnsureTasksExistAsync(request.TaskItemIds, cancellationToken).ConfigureAwait(false);
+        await EnsureTasksBelongToPlanAsync(request.TaskItemIds, request.RecordDate, cancellationToken).ConfigureAwait(false);
         DateTimeOffset startAtUtc = ConvertLocalToUtc(request.StartLocal, nameof(request.StartLocal));
         DateTimeOffset endAtUtc = ConvertLocalToUtc(request.EndLocal, nameof(request.EndLocal));
         await EnsureNoOverlapAsync(startAtUtc, endAtUtc, null, cancellationToken).ConfigureAwait(false);
@@ -136,7 +157,7 @@ public sealed class TimelineService(
         await EnsureDayOpenAsync(GetRecordDate(entry), cancellationToken).ConfigureAwait(false);
         EnsureRecordDateMatchesBoundary(request.RecordDate, request.StartLocal);
         await EnsureDayOpenAsync(request.RecordDate, cancellationToken).ConfigureAwait(false);
-        await EnsureTasksExistAsync(request.TaskItemIds, cancellationToken).ConfigureAwait(false);
+        await EnsureTasksBelongToPlanAsync(request.TaskItemIds, request.RecordDate, cancellationToken).ConfigureAwait(false);
         DateTimeOffset startAtUtc = ConvertLocalToUtc(request.StartLocal, nameof(request.StartLocal));
         DateTimeOffset endAtUtc = ConvertLocalToUtc(request.EndLocal, nameof(request.EndLocal));
         await EnsureNoOverlapAsync(startAtUtc, endAtUtc, entry.Id, cancellationToken).ConfigureAwait(false);
@@ -187,12 +208,33 @@ public sealed class TimelineService(
             ?? throw new KeyNotFoundException("The requested timeline entry was not found.");
     }
 
-    private async Task EnsureTasksExistAsync(IEnumerable<Guid> taskItemIds, CancellationToken cancellationToken)
+    private async Task EnsureTasksBelongToPlanAsync(
+        IEnumerable<Guid> taskItemIds,
+        DateOnly recordDate,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(taskItemIds);
-        foreach (Guid taskItemId in taskItemIds.Distinct())
+        Guid[] linkedTaskIds = taskItemIds.Distinct().ToArray();
+        if (linkedTaskIds.Length == 0)
         {
-            if (taskItemId == Guid.Empty || await taskRepository.FindAsync(taskItemId, cancellationToken).ConfigureAwait(false) is null)
+            return;
+        }
+
+        if (linkedTaskIds.Any(id => id == Guid.Empty))
+        {
+            throw new ArgumentException("Linked task identifiers must not be empty.", nameof(taskItemIds));
+        }
+
+        DailyPlan? plan = await planRepository.FindAsync(recordDate, cancellationToken).ConfigureAwait(false);
+        HashSet<Guid> plannedTaskIds = plan?.ActiveItems.Select(item => item.TaskItemId).ToHashSet() ?? [];
+        foreach (Guid taskItemId in linkedTaskIds)
+        {
+            if (!plannedTaskIds.Contains(taskItemId))
+            {
+                throw new InvalidOperationException("Timeline entries can only link tasks in the daily plan.");
+            }
+
+            if (await taskRepository.FindAsync(taskItemId, cancellationToken).ConfigureAwait(false) is null)
             {
                 throw new KeyNotFoundException("A linked task was not found.");
             }

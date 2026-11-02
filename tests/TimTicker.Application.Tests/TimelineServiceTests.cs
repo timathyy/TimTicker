@@ -116,7 +116,9 @@ public sealed class TimelineServiceTests
             new DateTimeOffset(2026, 11, 2, 7, 0, 0, TimeSpan.Zero));
         tasks.Tasks.Add(task);
         MutableTimeProvider clock = new(new DateTimeOffset(2026, 11, 2, 12, 0, 0, TimeSpan.Zero));
-        TimelineService service = new(timelines, tasks, new EmptyPlanRepository(), new TestDayBoundarySettings(), clock);
+        DailyPlan plan = new(Guid.NewGuid(), new DateOnly(2026, 11, 2), clock.GetUtcNow());
+        plan.AddTask(task.Id, clock.GetUtcNow());
+        TimelineService service = new(timelines, tasks, new EmptyPlanRepository(plan), new TestDayBoundarySettings(), clock);
         TimelineEntrySummary created = await service.CreateAsync(new CreateTimelineEntryRequest(
             "Original",
             null,
@@ -151,10 +153,13 @@ public sealed class TimelineServiceTests
         TaskItem first = new(Guid.NewGuid(), "First", null, new DateOnly(2026, 11, 2), null, TaskPriority.None, now);
         TaskItem second = new(Guid.NewGuid(), "Second", null, new DateOnly(2026, 11, 2), null, TaskPriority.None, now);
         tasks.Tasks.AddRange([first, second]);
+        DailyPlan plan = new(Guid.NewGuid(), new DateOnly(2026, 11, 2), now);
+        plan.AddTask(first.Id, now);
+        plan.AddTask(second.Id, now);
         TimelineService service = new(
             timelines,
             tasks,
-            new EmptyPlanRepository(),
+            new EmptyPlanRepository(plan),
             new TestDayBoundarySettings(),
             new MutableTimeProvider(now));
 
@@ -171,6 +176,57 @@ public sealed class TimelineServiceTests
         Assert.Equal([second.Id], updated.LinkedTasks.Select(task => task.Id));
         Assert.Empty(await service.ListForTaskAsync(first.Id));
         Assert.Equal(created.Id, Assert.Single(await service.ListForTaskAsync(second.Id)).Id);
+    }
+
+    [Fact]
+    public async Task TaskOptionsOnlyIncludeTasksInTodaysPlanInPlanOrder()
+    {
+        DateTimeOffset now = new(2026, 11, 2, 12, 0, 0, TimeSpan.Zero);
+        InMemoryTaskRepository tasks = new();
+        TaskItem first = new(Guid.NewGuid(), "First", null, new DateOnly(2026, 11, 2), null, TaskPriority.None, now);
+        TaskItem second = new(Guid.NewGuid(), "Second", null, new DateOnly(2026, 11, 2), null, TaskPriority.None, now);
+        TaskItem notPlanned = new(Guid.NewGuid(), "Not planned", null, new DateOnly(2026, 11, 2), null, TaskPriority.None, now);
+        tasks.Tasks.AddRange([first, second, notPlanned]);
+        DailyPlan plan = new(Guid.NewGuid(), new DateOnly(2026, 11, 2), now);
+        plan.AddTask(second.Id, now);
+        plan.AddTask(first.Id, now);
+        TimelineService service = new(
+            new InMemoryTimelineRepository(),
+            tasks,
+            new EmptyPlanRepository(plan),
+            new TestDayBoundarySettings(),
+            new MutableTimeProvider(now));
+
+        IReadOnlyList<TimelineTaskOption> options = await service.ListTaskOptionsAsync(new DateOnly(2026, 11, 2));
+
+        Assert.Equal([second.Id, first.Id], options.Select(option => option.Id));
+        Assert.DoesNotContain(options, option => option.Id == notPlanned.Id);
+    }
+
+    [Fact]
+    public async Task TimelineEntryRejectsTaskOutsideDailyPlan()
+    {
+        DateTimeOffset now = new(2026, 11, 2, 12, 0, 0, TimeSpan.Zero);
+        InMemoryTaskRepository tasks = new();
+        TaskItem task = new(Guid.NewGuid(), "Not planned", null, new DateOnly(2026, 11, 2), null, TaskPriority.None, now);
+        tasks.Tasks.Add(task);
+        TimelineService service = new(
+            new InMemoryTimelineRepository(),
+            tasks,
+            new EmptyPlanRepository(new DailyPlan(Guid.NewGuid(), new DateOnly(2026, 11, 2), now)),
+            new TestDayBoundarySettings(),
+            new MutableTimeProvider(now));
+
+        InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.CreateAsync(new CreateTimelineEntryRequest(
+                "Invalid link",
+                null,
+                [task.Id],
+                new DateOnly(2026, 11, 2),
+                new DateTime(2026, 11, 2, 9, 0, 0),
+                new DateTime(2026, 11, 2, 10, 0, 0))));
+
+        Assert.Contains("daily plan", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

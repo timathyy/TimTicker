@@ -90,7 +90,7 @@ public sealed partial class TodayViewModel(
         await planService.ListTodayCandidatesAsync();
 
     public Task<IReadOnlyList<TimelineTaskOption>> GetTimelineTaskOptionsAsync() =>
-        timelineService.ListTaskOptionsAsync();
+        timelineService.ListTaskOptionsAsync(CurrentDate);
 
     [RelayCommand]
     public async Task LoadTodayAsync()

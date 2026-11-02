@@ -4,6 +4,7 @@ using TimTicker.Application;
 using TimTicker.Application.Abstractions;
 using TimTicker.Application.Timeline;
 using TimTicker.Application.Tasks;
+using TimTicker.Application.Planning;
 using TimTicker.Domain.Tasks;
 using TimTicker.Domain.Timeline;
 using TimTicker.Infrastructure;
@@ -41,6 +42,8 @@ public sealed class TimelinePersistenceTests
                     new DateOnly(2026, 11, 2),
                     null,
                     TaskPriority.None))).Id;
+                await firstProvider.GetRequiredService<IDailyPlanService>()
+                    .AddTasksToTodayAsync([firstTaskId, secondTaskId]);
                 TimelineEntrySummary entry = await firstProvider.GetRequiredService<ITimelineService>().CreateAsync(
                     new CreateTimelineEntryRequest(
                         "Shared record",

@@ -11,6 +11,7 @@ public partial class TimelineEntryEditorWindow : Window
 {
     private readonly TimelineEntrySummary? _entry;
     private readonly bool _startMode;
+    private readonly DateOnly _recordDate;
 
     public TimelineEntryEditorWindow(
         IReadOnlyList<TimelineTaskOption> taskOptions,
@@ -20,6 +21,7 @@ public partial class TimelineEntryEditorWindow : Window
         ArgumentNullException.ThrowIfNull(taskOptions);
         _entry = entry;
         _startMode = startMode;
+        _recordDate = entry?.RecordDate ?? DateOnly.FromDateTime(DateTime.Today);
         if (entry is not null && startMode)
         {
             throw new ArgumentException("An existing entry cannot be opened in start mode.", nameof(startMode));
@@ -49,16 +51,21 @@ public partial class TimelineEntryEditorWindow : Window
         WindowTitleText.Text = _startMode ? "开始记录" : isEditing ? "编辑时间记录" : "手动录入";
         SaveButton.Content = _startMode ? "开始记录" : isEditing ? "保存修改" : "添加记录";
         TimeFieldsPanel.Visibility = _startMode ? Visibility.Collapsed : Visibility.Visible;
-        Height = _startMode ? 610 : 790;
+        Height = _startMode ? 610 : 720;
         DateTime end = _entry?.EndLocal ?? DateTime.Now;
         DateTime start = _entry?.StartLocal ?? end.AddHours(-1);
+        if (_entry is null && DateOnly.FromDateTime(start) < _recordDate)
+        {
+            start = _recordDate.ToDateTime(TimeOnly.MinValue);
+        }
+
         TitleTextBox.Text = _entry?.Title ?? string.Empty;
         DescriptionTextBox.Text = _entry?.Description ?? string.Empty;
         CategoryTextBox.Text = _entry?.Category ?? string.Empty;
-        StartDateSelector.SelectedDate = start.Date;
         StartTimeTextBox.Text = start.ToString("HH:mm", CultureInfo.InvariantCulture);
-        EndDateSelector.SelectedDate = end.Date;
         EndTimeTextBox.Text = end.ToString("HH:mm", CultureInfo.InvariantCulture);
+        StartNextDayCheckBox.IsChecked = DateOnly.FromDateTime(start).DayNumber > _recordDate.DayNumber;
+        EndNextDayCheckBox.IsChecked = DateOnly.FromDateTime(end).DayNumber > _recordDate.DayNumber;
     }
 
     private void SaveButton_Click(object sender, RoutedEventArgs e)
@@ -82,25 +89,27 @@ public partial class TimelineEntryEditorWindow : Window
             return;
         }
 
-        if (StartDateSelector.SelectedDate is not DateTime startDate ||
-            !TryParseTime(StartTimeTextBox.Text, out TimeOnly startTime))
+        if (!TryParseTime(StartTimeTextBox.Text, out TimeOnly startTime))
         {
-            ShowValidationError("请输入有效的开始日期和时间，例如 09:30。", StartTimeTextBox);
+            ShowValidationError("请输入有效的开始时间，例如 09:30。", StartTimeTextBox);
             return;
         }
 
-        if (EndDateSelector.SelectedDate is not DateTime endDate ||
-            !TryParseTime(EndTimeTextBox.Text, out TimeOnly endTime))
+        if (!TryParseTime(EndTimeTextBox.Text, out TimeOnly endTime))
         {
-            ShowValidationError("请输入有效的结束日期和时间，例如 10:30。", EndTimeTextBox);
+            ShowValidationError("请输入有效的结束时间，例如 10:30。", EndTimeTextBox);
             return;
         }
 
-        DateTime startLocal = startDate.Date + startTime.ToTimeSpan();
-        DateTime endLocal = endDate.Date + endTime.ToTimeSpan();
+        DateTime startLocal = _recordDate
+            .AddDays(StartNextDayCheckBox.IsChecked == true ? 1 : 0)
+            .ToDateTime(startTime);
+        DateTime endLocal = _recordDate
+            .AddDays(EndNextDayCheckBox.IsChecked == true ? 1 : 0)
+            .ToDateTime(endTime);
         if (endLocal <= startLocal)
         {
-            ShowValidationError("结束时间必须晚于开始时间；跨午夜记录请选择次日结束日期。", EndTimeTextBox);
+            ShowValidationError("结束时间必须晚于开始时间；跨越午夜时请勾选对应时刻的“日+1”。", EndTimeTextBox);
             return;
         }
 
@@ -111,6 +120,7 @@ public partial class TimelineEntryEditorWindow : Window
                 DescriptionTextBox.Text,
                 CategoryTextBox.Text,
                 taskItemIds,
+                _recordDate,
                 startLocal,
                 endLocal);
         }
@@ -122,6 +132,7 @@ public partial class TimelineEntryEditorWindow : Window
                 DescriptionTextBox.Text,
                 CategoryTextBox.Text,
                 taskItemIds,
+                _recordDate,
                 startLocal,
                 endLocal);
         }

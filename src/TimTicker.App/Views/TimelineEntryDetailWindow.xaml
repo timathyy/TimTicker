@@ -11,6 +11,27 @@
         WindowStyle="None">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <Style x:Key="DetailCardButtonStyle" TargetType="Button">
+            <Setter Property="Padding" Value="14,12" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceSecondaryBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Padding="{TemplateBinding Padding}"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="10">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
     <Border Background="{DynamicResource WindowBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="16">
         <Grid>
@@ -22,7 +43,12 @@
             <Border Padding="24,0" Background="{DynamicResource SurfaceSecondaryBrush}" CornerRadius="16,16,0,0" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                 <Grid>
                     <TextBlock VerticalAlignment="Center" FontSize="18" FontWeight="SemiBold" Text="记录详情" />
-                    <Button HorizontalAlignment="Right" Click="CloseButton_Click" Content="&#xE8BB;" FontFamily="Segoe Fluent Icons" Style="{StaticResource CloseCaptionButtonStyle}" ToolTip="关闭" />
+                    <Button HorizontalAlignment="Right" Click="CloseButton_Click" Style="{StaticResource CloseCaptionButtonStyle}" ToolTip="关闭">
+                        <Grid Width="12" Height="12">
+                            <Path Data="M 1 1 L 11 11" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeLineJoin="Round" StrokeThickness="1.5" />
+                            <Path Data="M 11 1 L 1 11" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeLineJoin="Round" StrokeThickness="1.5" />
+                        </Grid>
+                    </Button>
                 </Grid>
             </Border>
             <ScrollViewer Grid.Row="1" Padding="28,24" VerticalScrollBarVisibility="Auto">
@@ -55,7 +81,7 @@
                     <ItemsControl ItemsSource="{Binding LinkedTasks}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Button Margin="0,0,0,8" Padding="14,12" HorizontalContentAlignment="Stretch" Background="{DynamicResource SurfaceSecondaryBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Click="TaskCard_Click">
+                                <Button Margin="0,0,0,8" Click="TaskCard_Click" Style="{StaticResource DetailCardButtonStyle}">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
@@ -65,7 +91,17 @@
                                             <TextBlock FontWeight="SemiBold" Text="{Binding Title}" />
                                             <TextBlock Margin="0,5,0,0" Foreground="{DynamicResource TextTertiaryBrush}" Text="{Binding MetaText}" />
                                         </StackPanel>
-                                        <TextBlock Grid.Column="1" VerticalAlignment="Center" FontFamily="Segoe Fluent Icons" Text="&#xE72A;" />
+                                        <Path Grid.Column="1"
+                                              Width="7"
+                                              Height="12"
+                                              Margin="14,0,2,0"
+                                              VerticalAlignment="Center"
+                                              Data="M 1 1 L 6 6 L 1 11"
+                                              Fill="Transparent"
+                                              Stroke="{DynamicResource TextSecondaryBrush}"
+                                              StrokeEndLineCap="Round"
+                                              StrokeLineJoin="Round"
+                                              StrokeThickness="1.5" />
                                     </Grid>
                                 </Button>
                             </DataTemplate>

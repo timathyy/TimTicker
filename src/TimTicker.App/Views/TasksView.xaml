@@ -206,10 +206,18 @@
                                         <Button Margin="0,0,8,0"
                                                 AutomationProperties.Name="查看任务详情"
                                                 Click="TaskDetailButton_Click"
-                                                Content="&#xE946;"
-                                                FontFamily="Segoe Fluent Icons"
                                                 Style="{StaticResource TaskIconButtonStyle}"
-                                                ToolTip="查看详情" />
+                                                ToolTip="查看详情">
+                                            <Viewbox Width="18" Height="18">
+                                                <Canvas Width="18" Height="18">
+                                                    <Path Data="M 9 1.5 A 7.5 7.5 0 1 1 8.99 1.5 M 9 8 L 9 13 M 9 5 L 9 5.1"
+                                                          Fill="Transparent"
+                                                          Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                          StrokeEndLineCap="Round"
+                                                          StrokeThickness="1.7" />
+                                                </Canvas>
+                                            </Viewbox>
+                                        </Button>
                                         <Button Margin="0,0,8,0"
                                                 Command="{Binding DataContext.CompleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"

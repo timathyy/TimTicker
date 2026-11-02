@@ -243,10 +243,18 @@
                                             <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" Orientation="Horizontal">
                                                 <Button Margin="0,0,8,0"
                                                         Click="PlanTaskDetailButton_Click"
-                                                        Content="&#xE946;"
-                                                        FontFamily="Segoe Fluent Icons"
                                                         Style="{StaticResource TaskIconButtonStyle}"
-                                                        ToolTip="查看详情" />
+                                                        ToolTip="查看详情">
+                                                    <Viewbox Width="18" Height="18">
+                                                        <Canvas Width="18" Height="18">
+                                                            <Path Data="M 9 1.5 A 7.5 7.5 0 1 1 8.99 1.5 M 9 8 L 9 13 M 9 5 L 9 5.1"
+                                                                  Fill="Transparent"
+                                                                  Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                                  StrokeEndLineCap="Round"
+                                                                  StrokeThickness="1.7" />
+                                                        </Canvas>
+                                                    </Viewbox>
+                                                </Button>
                                                 <Button Margin="0,0,8,0"
                                                         Command="{Binding DataContext.CompleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                         CommandParameter="{Binding}"
@@ -318,9 +326,19 @@
                                                         ToolTip="下移" />
                                                 <Button Command="{Binding DataContext.RemoveFromPlanCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                         CommandParameter="{Binding}"
-                                                        Content="移出计划"
-                                                        Style="{StaticResource SecondaryButtonStyle}"
-                                                        ToolTip="仅移出今日计划，任务仍保留在任务池" />
+                                                        Style="{StaticResource TaskIconButtonStyle}"
+                                                        ToolTip="移出计划（任务仍保留在任务池）">
+                                                    <Viewbox Width="18" Height="18">
+                                                        <Canvas Width="18" Height="18">
+                                                            <Path Data="M 9 6 L 9 3 L 3 3 L 3 15 L 9 15 L 9 12 M 7 9 L 16 9 M 13 6 L 16 9 L 13 12"
+                                                                  Fill="Transparent"
+                                                                  Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                                  StrokeEndLineCap="Round"
+                                                                  StrokeLineJoin="Round"
+                                                                  StrokeThickness="1.7" />
+                                                        </Canvas>
+                                                    </Viewbox>
+                                                </Button>
                                             </StackPanel>
                                         </Grid>
                                     </Border>
@@ -519,17 +537,32 @@
                                                                         <Button Margin="0,0,6,0"
                                                                                 Command="{Binding DataContext.CompleteLinkedTaskCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                                                 CommandParameter="{Binding}"
-                                                                                Content="&#xE73E;"
-                                                                                FontFamily="Segoe Fluent Icons"
                                                                                 IsEnabled="{Binding CanComplete}"
                                                                                 Style="{StaticResource PlanIconButtonStyle}"
-                                                                                ToolTip="完成任务" />
+                                                                                ToolTip="完成任务">
+                                                                            <Viewbox Width="16" Height="16">
+                                                                                <Canvas Width="18" Height="18">
+                                                                                    <Path Data="M 3 9 L 7 13 L 15 5"
+                                                                                          Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                                                          StrokeEndLineCap="Round"
+                                                                                          StrokeLineJoin="Round"
+                                                                                          StrokeThickness="2" />
+                                                                                </Canvas>
+                                                                            </Viewbox>
+                                                                        </Button>
                                                                         <Button Command="{Binding DataContext.RemoveLinkedTaskCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                                                 CommandParameter="{Binding}"
-                                                                                Content="&#xE711;"
-                                                                                FontFamily="Segoe Fluent Icons"
                                                                                 Style="{StaticResource PlanIconButtonStyle}"
-                                                                                ToolTip="移出此记录" />
+                                                                                ToolTip="移出此记录">
+                                                                            <Viewbox Width="16" Height="16">
+                                                                                <Canvas Width="18" Height="18">
+                                                                                    <Path Data="M 4 4 L 14 14 M 14 4 L 4 14"
+                                                                                          Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                                                          StrokeEndLineCap="Round"
+                                                                                          StrokeThickness="1.8" />
+                                                                                </Canvas>
+                                                                            </Viewbox>
+                                                                        </Button>
                                                                     </StackPanel>
                                                                 </Grid>
                                                             </Border>
@@ -540,15 +573,23 @@
                                             <StackPanel Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal">
                                                 <Button Margin="0,0,6,0"
                                                         Click="TimelineEntryDetailButton_Click"
-                                                        Content="&#xE946;"
-                                                        FontFamily="Segoe Fluent Icons"
                                                         Style="{StaticResource PlanIconButtonStyle}"
-                                                        ToolTip="查看详情" />
+                                                        ToolTip="查看详情">
+                                                    <Viewbox Width="17" Height="17">
+                                                        <Canvas Width="18" Height="18">
+                                                            <Path Data="M 9 1.5 A 7.5 7.5 0 1 1 8.99 1.5 M 9 8 L 9 13 M 9 5 L 9 5.1"
+                                                                  Fill="Transparent"
+                                                                  Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                                  StrokeEndLineCap="Round"
+                                                                  StrokeThickness="1.7" />
+                                                        </Canvas>
+                                                    </Viewbox>
+                                                </Button>
                                                 <Button Margin="0,0,6,0"
                                                         Click="EditTimelineEntryButton_Click"
-                                                        Content="编辑">
+                                                        ToolTip="修改记录">
                                                     <Button.Style>
-                                                        <Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+                                                        <Style TargetType="Button" BasedOn="{StaticResource PlanIconButtonStyle}">
                                                             <Style.Triggers>
                                                                 <DataTrigger Binding="{Binding IsRunning}" Value="True">
                                                                     <Setter Property="Visibility" Value="Collapsed" />
@@ -556,10 +597,31 @@
                                                             </Style.Triggers>
                                                         </Style>
                                                     </Button.Style>
+                                                    <Viewbox Width="17" Height="17">
+                                                        <Canvas Width="18" Height="18">
+                                                            <Path Data="M 3 15 L 4 11 L 12 3 L 15 6 L 7 14 Z M 10.5 4.5 L 13.5 7.5"
+                                                                  Fill="Transparent"
+                                                                  Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                                  StrokeEndLineCap="Round"
+                                                                  StrokeLineJoin="Round"
+                                                                  StrokeThickness="1.7" />
+                                                        </Canvas>
+                                                    </Viewbox>
                                                 </Button>
                                                 <Button Click="DeleteTimelineEntryButton_Click"
-                                                        Content="删除"
-                                                        Style="{StaticResource SecondaryButtonStyle}" />
+                                                        Style="{StaticResource PlanIconButtonStyle}"
+                                                        ToolTip="删除记录">
+                                                    <Viewbox Width="17" Height="17">
+                                                        <Canvas Width="18" Height="18">
+                                                            <Path Data="M 4 5 L 14 5 M 7 5 L 7 3 L 11 3 L 11 5 M 5.5 7 L 6.2 15 L 11.8 15 L 12.5 7 M 8 8.5 L 8 13 M 10 8.5 L 10 13"
+                                                                  Fill="Transparent"
+                                                                  Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                                  StrokeEndLineCap="Round"
+                                                                  StrokeLineJoin="Round"
+                                                                  StrokeThickness="1.6" />
+                                                        </Canvas>
+                                                    </Viewbox>
+                                                </Button>
                                             </StackPanel>
                                         </Grid>
                                     </Border>

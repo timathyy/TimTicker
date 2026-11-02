@@ -47,6 +47,7 @@ public sealed class TimelinePersistenceTests
                         null,
                         null,
                         [firstTaskId, secondTaskId],
+                        new DateOnly(2026, 11, 2),
                         new DateTime(2026, 11, 2, 9, 0, 0),
                         new DateTime(2026, 11, 2, 10, 0, 0)));
                 entryId = entry.Id;
@@ -58,6 +59,7 @@ public sealed class TimelinePersistenceTests
                 ITimelineService timeline = secondProvider.GetRequiredService<ITimelineService>();
                 TimelineEntrySummary recovered = await timeline.GetAsync(entryId);
                 Assert.Equal(new[] { firstTaskId, secondTaskId }.Order(), recovered.LinkedTasks.Select(task => task.Id).Order());
+                Assert.Equal(new DateOnly(2026, 11, 2), recovered.RecordDate);
 
                 await timeline.RemoveTaskAsync(entryId, firstTaskId);
                 Assert.Equal(secondTaskId, Assert.Single((await timeline.GetAsync(entryId)).LinkedTasks).Id);

@@ -121,6 +121,7 @@ public sealed class TimelineServiceTests
             null,
             "Work",
             [task.Id],
+            new DateOnly(2026, 11, 2),
             new DateTime(2026, 11, 2, 8, 0, 0),
             new DateTime(2026, 11, 2, 9, 0, 0)));
 
@@ -130,6 +131,7 @@ public sealed class TimelineServiceTests
             "Description",
             "Focus",
             [task.Id],
+            new DateOnly(2026, 11, 2),
             new DateTime(2026, 11, 2, 9, 0, 0),
             new DateTime(2026, 11, 2, 10, 0, 0)));
         await service.DeleteAsync(created.Id);
@@ -157,6 +159,7 @@ public sealed class TimelineServiceTests
             null,
             null,
             [first.Id, second.Id],
+            new DateOnly(2026, 11, 2),
             new DateTime(2026, 11, 2, 9, 0, 0),
             new DateTime(2026, 11, 2, 10, 0, 0)));
         await service.RemoveTaskAsync(created.Id, first.Id);
@@ -167,11 +170,37 @@ public sealed class TimelineServiceTests
         Assert.Equal(created.Id, Assert.Single(await service.ListForTaskAsync(second.Id)).Id);
     }
 
+    [Fact]
+    public async Task NextDayTimesRemainOwnedByTheirRecordDate()
+    {
+        InMemoryTimelineRepository timelines = new();
+        MutableTimeProvider clock = new(new DateTimeOffset(2026, 11, 2, 12, 0, 0, TimeSpan.Zero));
+        TimelineService service = CreateService(timelines, clock);
+        TimelineEntrySummary created = await service.CreateAsync(new CreateTimelineEntryRequest(
+            "After midnight",
+            null,
+            null,
+            [],
+            new DateOnly(2026, 11, 2),
+            new DateTime(2026, 11, 3, 1, 1, 0),
+            new DateTime(2026, 11, 3, 2, 30, 0)));
+
+        TimelineEntrySummary ownedByToday = Assert.Single((await service.GetTodayAsync()).Entries);
+        clock.UtcNow = clock.UtcNow.AddDays(1);
+
+        Assert.Equal(new DateOnly(2026, 11, 2), ownedByToday.RecordDate);
+        Assert.Equal(TimeSpan.FromMinutes(89), created.DayDuration);
+        Assert.Equal(new DateTime(2026, 11, 3, 1, 1, 0), ownedByToday.StartLocal);
+        Assert.Equal(TimeSpan.FromMinutes(89), ownedByToday.DayDuration);
+        Assert.Empty((await service.GetTodayAsync()).Entries);
+    }
+
     private static CreateTimelineEntryRequest CreateRequest(int startHour, int startMinute, int endHour, int endMinute) => new(
         "Manual entry",
         null,
         null,
         [],
+        new DateOnly(2026, 11, 2),
         new DateTime(2026, 11, 2, startHour, startMinute, 0),
         new DateTime(2026, 11, 2, endHour, endMinute, 0));
 
@@ -205,6 +234,22 @@ public sealed class TimelineServiceTests
             TimelineEntry[] result = Entries
                 .Where(entry => !entry.IsDeleted && entry.StartAtUtc < endAtUtc &&
                                 (!entry.EndAtUtc.HasValue || entry.EndAtUtc > startAtUtc))
+                .OrderBy(entry => entry.StartAtUtc)
+                .ToArray();
+            return Task.FromResult<IReadOnlyList<TimelineEntry>>(result);
+        }
+
+        public Task<IReadOnlyList<TimelineEntry>> ListForDateAsync(
+            DateOnly recordDate,
+            DateTimeOffset dayStartUtc,
+            DateTimeOffset dayEndUtc,
+            CancellationToken cancellationToken = default)
+        {
+            TimelineEntry[] result = Entries
+                .Where(entry => !entry.IsDeleted &&
+                                (entry.RecordDate == recordDate ||
+                                 (entry.RecordDate is null && entry.StartAtUtc < dayEndUtc &&
+                                  (!entry.EndAtUtc.HasValue || entry.EndAtUtc > dayStartUtc))))
                 .OrderBy(entry => entry.StartAtUtc)
                 .ToArray();
             return Task.FromResult<IReadOnlyList<TimelineEntry>>(result);

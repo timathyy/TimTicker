@@ -56,8 +56,8 @@ public sealed class TimelineEntryDetailViewModel
         Title = entry.Title;
         DescriptionText = string.IsNullOrWhiteSpace(entry.Description) ? "暂无说明" : entry.Description;
         CategoryText = string.IsNullOrWhiteSpace(entry.Category) ? "未分类" : entry.Category;
-        string end = entry.EndLocal?.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) ?? "进行中";
-        TimeRangeText = $"{entry.StartLocal:yyyy-MM-dd HH:mm} — {end}";
+        string end = entry.EndLocal.HasValue ? FormatTime(entry.EndLocal.Value, entry.RecordDate) : "进行中";
+        TimeRangeText = $"{entry.RecordDate:yyyy-MM-dd} · {FormatTime(entry.StartLocal, entry.RecordDate)} — {end}";
         DurationText = FormatDuration(entry.DayDuration);
         IsTimerEntry = entry.Source == TimelineEntrySource.Timer;
         CanEdit = !entry.IsRunning;
@@ -80,6 +80,11 @@ public sealed class TimelineEntryDetailViewModel
         int minutes = Math.Max(0, (int)Math.Round(duration.TotalMinutes));
         return minutes >= 60 ? $"{minutes / 60} 小时 {minutes % 60} 分钟" : $"{minutes} 分钟";
     }
+
+    private static string FormatTime(DateTime value, DateOnly recordDate) =>
+        DateOnly.FromDateTime(value).DayNumber - recordDate.DayNumber == 1
+            ? $"{value:HH:mm}(+1)"
+            : value.ToString("HH:mm", CultureInfo.InvariantCulture);
 }
 
 public sealed class TimelineTaskCardViewModel

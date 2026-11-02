@@ -220,7 +220,7 @@ public sealed partial class TodayViewModel(
         TimelineItems.Clear();
         foreach (TimelineEntrySummary entry in timeline.Entries)
         {
-            TimelineItems.Add(new TodayTimelineItemViewModel(entry, timeline.Date));
+            TimelineItems.Add(new TodayTimelineItemViewModel(entry));
         }
 
         HasTimelineItems = TimelineItems.Count > 0;
@@ -245,15 +245,15 @@ public sealed partial class TodayViewModel(
 
 public sealed class TodayTimelineItemViewModel
 {
-    public TodayTimelineItemViewModel(TimelineEntrySummary entry, DateOnly displayDate)
+    public TodayTimelineItemViewModel(TimelineEntrySummary entry)
     {
         Summary = entry;
         Id = entry.Id;
         Title = entry.Title;
         Description = entry.Description;
         CategoryText = entry.Category ?? string.Empty;
-        TimeRangeText = $"{FormatLocalTime(entry.StartLocal, displayDate)} — " +
-            (entry.EndLocal.HasValue ? FormatLocalTime(entry.EndLocal.Value, displayDate) : "进行中");
+        TimeRangeText = $"{FormatLocalTime(entry.StartLocal, entry.RecordDate)} — " +
+            (entry.EndLocal.HasValue ? FormatLocalTime(entry.EndLocal.Value, entry.RecordDate) : "进行中");
         DurationText = entry.IsRunning ? "正在记录" : FormatDuration(entry.DayDuration);
         IsRunning = entry.IsRunning;
         IsTimerEntry = entry.Source == TimelineEntrySource.Timer;
@@ -290,10 +290,16 @@ public sealed class TodayTimelineItemViewModel
 
     public bool HasLinkedTasks { get; }
 
-    private static string FormatLocalTime(DateTime value, DateOnly displayDate) =>
-        DateOnly.FromDateTime(value) == displayDate
-            ? value.ToString("HH:mm", CultureInfo.InvariantCulture)
-            : value.ToString("MM-dd HH:mm", CultureInfo.InvariantCulture);
+    private static string FormatLocalTime(DateTime value, DateOnly recordDate)
+    {
+        int dayOffset = DateOnly.FromDateTime(value).DayNumber - recordDate.DayNumber;
+        return dayOffset switch
+        {
+            0 => value.ToString("HH:mm", CultureInfo.InvariantCulture),
+            1 => $"{value:HH:mm}(+1)",
+            _ => value.ToString("MM-dd HH:mm", CultureInfo.InvariantCulture),
+        };
+    }
 
     private static string FormatDuration(TimeSpan duration)
     {

@@ -21,7 +21,8 @@ public sealed class TimelineEntry
         DateTimeOffset startAtUtc,
         DateTimeOffset? endAtUtc,
         DateTimeOffset createdAtUtc,
-        TimelineEntrySource source = TimelineEntrySource.Manual)
+        TimelineEntrySource source = TimelineEntrySource.Manual,
+        DateOnly? recordDate = null)
     {
         if (id == Guid.Empty)
         {
@@ -38,6 +39,7 @@ public sealed class TimelineEntry
         ApplyDetails(title, description, category, startAtUtc, endAtUtc);
         SynchronizeTasks(taskItemIds, normalizedCreatedAt);
         Source = source;
+        RecordDate = recordDate;
         CreatedAtUtc = normalizedCreatedAt;
         UpdatedAtUtc = CreatedAtUtc;
     }
@@ -66,6 +68,8 @@ public sealed class TimelineEntry
 
     public TimelineEntrySource Source { get; private set; }
 
+    public DateOnly? RecordDate { get; private set; }
+
     public bool IsRunning => EndAtUtc is null;
 
     public void Update(
@@ -73,6 +77,7 @@ public sealed class TimelineEntry
         string? description,
         string? category,
         IEnumerable<Guid> taskItemIds,
+        DateOnly recordDate,
         DateTimeOffset startAtUtc,
         DateTimeOffset endAtUtc,
         DateTimeOffset updatedAtUtc)
@@ -86,6 +91,7 @@ public sealed class TimelineEntry
         DateTimeOffset normalizedUpdatedAt = RequireUtc(updatedAtUtc, nameof(updatedAtUtc));
         ApplyDetails(title, description, category, startAtUtc, endAtUtc);
         SynchronizeTasks(taskItemIds, normalizedUpdatedAt);
+        RecordDate = recordDate;
         UpdatedAtUtc = normalizedUpdatedAt;
     }
 

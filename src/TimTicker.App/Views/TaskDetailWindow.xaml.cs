@@ -88,11 +88,16 @@ public sealed class TaskTimelineCardViewModel
     {
         Id = entry.Id;
         Title = entry.Title;
-        string end = entry.EndLocal?.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) ?? "进行中";
-        TimeText = $"{entry.StartLocal:yyyy-MM-dd HH:mm} — {end}";
+        string end = entry.EndLocal.HasValue ? FormatTime(entry.EndLocal.Value, entry.RecordDate) : "进行中";
+        TimeText = $"{entry.RecordDate:yyyy-MM-dd} · {FormatTime(entry.StartLocal, entry.RecordDate)} — {end}";
     }
 
     public Guid Id { get; }
     public string Title { get; }
     public string TimeText { get; }
+
+    private static string FormatTime(DateTime value, DateOnly recordDate) =>
+        DateOnly.FromDateTime(value).DayNumber - recordDate.DayNumber == 1
+            ? $"{value:HH:mm}(+1)"
+            : value.ToString("HH:mm", CultureInfo.InvariantCulture);
 }

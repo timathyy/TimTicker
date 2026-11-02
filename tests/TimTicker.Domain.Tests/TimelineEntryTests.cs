@@ -64,6 +64,7 @@ public sealed class TimelineEntryTests
             null,
             null,
             [],
+            new DateOnly(2026, 11, 2),
             Start,
             Start.AddHours(1),
             Start.AddHours(3)));

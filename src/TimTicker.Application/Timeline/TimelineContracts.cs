@@ -10,6 +10,7 @@ public sealed record CreateTimelineEntryRequest(
     string? Description,
     string? Category,
     IReadOnlyList<Guid> TaskItemIds,
+    DateOnly RecordDate,
     DateTime StartLocal,
     DateTime EndLocal);
 
@@ -19,6 +20,7 @@ public sealed record UpdateTimelineEntryRequest(
     string? Description,
     string? Category,
     IReadOnlyList<Guid> TaskItemIds,
+    DateOnly RecordDate,
     DateTime StartLocal,
     DateTime EndLocal);
 
@@ -28,6 +30,7 @@ public sealed record TimelineEntrySummary(
     string? Description,
     string? Category,
     IReadOnlyList<TaskSummary> LinkedTasks,
+    DateOnly RecordDate,
     DateTimeOffset StartAtUtc,
     DateTimeOffset? EndAtUtc,
     DateTime StartLocal,

@@ -13,12 +13,16 @@ public sealed class TimelineService(
         DateOnly today = LocalToday();
         (DateTimeOffset dayStartUtc, DateTimeOffset dayEndUtc) = GetUtcDayBounds(today);
         IReadOnlyList<TimelineEntry> entries = await repository
-            .ListIntersectingAsync(dayStartUtc, dayEndUtc, cancellationToken)
+            .ListForDateAsync(today, dayStartUtc, dayEndUtc, cancellationToken)
             .ConfigureAwait(false);
         List<TimelineEntrySummary> summaries = [];
         foreach (TimelineEntry entry in entries.OrderBy(entry => entry.StartAtUtc))
         {
-            summaries.Add(await ToSummaryAsync(entry, today, cancellationToken).ConfigureAwait(false));
+            summaries.Add(await ToSummaryAsync(
+                entry,
+                today,
+                cancellationToken,
+                clipToDay: entry.RecordDate is null).ConfigureAwait(false));
         }
 
         TimeSpan totalDuration = summaries.Aggregate(TimeSpan.Zero, (total, entry) => total + entry.DayDuration);
@@ -77,9 +81,10 @@ public sealed class TimelineService(
             now,
             null,
             now,
-            TimelineEntrySource.Timer);
+            TimelineEntrySource.Timer,
+            LocalToday());
         await repository.AddAsync(entry, cancellationToken).ConfigureAwait(false);
-        return await ToSummaryAsync(entry, LocalToday(), cancellationToken).ConfigureAwait(false);
+        return await ToSummaryAsync(entry, entry.RecordDate!.Value, cancellationToken, clipToDay: false).ConfigureAwait(false);
     }
 
     public async Task<TimelineEntrySummary> StopCurrentAsync(CancellationToken cancellationToken = default)
@@ -90,7 +95,8 @@ public sealed class TimelineService(
         await EnsureNoOverlapAsync(entry.StartAtUtc, now, entry.Id, cancellationToken).ConfigureAwait(false);
         entry.Stop(now);
         await repository.UpdateAsync(entry, cancellationToken).ConfigureAwait(false);
-        return await ToSummaryAsync(entry, LocalToday(), cancellationToken).ConfigureAwait(false);
+        DateOnly displayDate = entry.RecordDate ?? LocalToday();
+        return await ToSummaryAsync(entry, displayDate, cancellationToken, clipToDay: entry.RecordDate is null).ConfigureAwait(false);
     }
 
     public async Task<TimelineEntrySummary> CreateAsync(
@@ -112,9 +118,10 @@ public sealed class TimelineService(
             startAtUtc,
             endAtUtc,
             now,
-            TimelineEntrySource.Manual);
+            TimelineEntrySource.Manual,
+            request.RecordDate);
         await repository.AddAsync(entry, cancellationToken).ConfigureAwait(false);
-        return await ToSummaryAsync(entry, LocalToday(), cancellationToken).ConfigureAwait(false);
+        return await ToSummaryAsync(entry, request.RecordDate, cancellationToken, clipToDay: false).ConfigureAwait(false);
     }
 
     public async Task<TimelineEntrySummary> UpdateAsync(
@@ -132,11 +139,12 @@ public sealed class TimelineService(
             request.Description,
             request.Category,
             request.TaskItemIds,
+            request.RecordDate,
             startAtUtc,
             endAtUtc,
             UtcNow());
         await repository.UpdateAsync(entry, cancellationToken).ConfigureAwait(false);
-        return await ToSummaryAsync(entry, LocalToday(), cancellationToken).ConfigureAwait(false);
+        return await ToSummaryAsync(entry, request.RecordDate, cancellationToken, clipToDay: false).ConfigureAwait(false);
     }
 
     public async Task RemoveTaskAsync(
@@ -238,6 +246,7 @@ public sealed class TimelineService(
             entry.Description,
             entry.Category,
             linkedTasks,
+            entry.RecordDate ?? DateOnly.FromDateTime(ConvertUtcToLocal(entry.StartAtUtc)),
             entry.StartAtUtc,
             entry.EndAtUtc,
             ConvertUtcToLocal(entry.StartAtUtc),

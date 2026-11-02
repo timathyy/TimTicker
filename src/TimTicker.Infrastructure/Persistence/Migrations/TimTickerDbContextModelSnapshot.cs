@@ -157,6 +157,9 @@ namespace TimTicker.Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateOnly?>("RecordDate")
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("Source")
                         .HasColumnType("INTEGER");
 

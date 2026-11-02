@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Windows;
+using System.Windows.Input;
 using TimTicker.Application.Planning;
 using TimTicker.App.ViewModels;
 
@@ -34,4 +35,12 @@ public partial class PlanTaskPickerWindow : Window
     }
 
     private void CancelButton_Click(object sender, RoutedEventArgs e) => DialogResult = false;
+
+    private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.LeftButton == MouseButtonState.Pressed)
+        {
+            DragMove();
+        }
+    }
 }

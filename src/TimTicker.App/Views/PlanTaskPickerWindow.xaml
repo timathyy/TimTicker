@@ -7,9 +7,17 @@
         MinWidth="560"
         MinHeight="480"
         WindowStartupLocation="CenterOwner"
-        Background="{DynamicResource WindowBackgroundBrush}"
-        FontFamily="{StaticResource AppFontFamily}">
-    <Grid Margin="28">
+        AllowsTransparency="True"
+        Background="Transparent"
+        FontFamily="{StaticResource AppFontFamily}"
+        ResizeMode="NoResize"
+        WindowStyle="None">
+    <Border Padding="28"
+            Background="{DynamicResource WindowBackgroundBrush}"
+            BorderBrush="{DynamicResource BorderBrush}"
+            BorderThickness="1"
+            CornerRadius="16">
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="18" />
@@ -18,7 +26,7 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <StackPanel>
+        <StackPanel MouseLeftButtonDown="Header_MouseLeftButtonDown">
             <TextBlock FontSize="24" FontWeight="SemiBold" Text="选择今天要做的任务" />
             <TextBlock Margin="0,6,0,0"
                        Foreground="{DynamicResource TextSecondaryBrush}"
@@ -29,6 +37,7 @@
             <ListBox ItemsSource="{Binding Candidates}"
                      Background="Transparent"
                      BorderThickness="0"
+                     SelectionMode="Multiple"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                 <ListBox.ItemContainerStyle>
                     <Style TargetType="ListBoxItem">
@@ -36,13 +45,37 @@
                         <Setter Property="Padding" Value="0" />
                         <Setter Property="Background" Value="Transparent" />
                         <Setter Property="BorderThickness" Value="0" />
-                        <Setter Property="Focusable" Value="False" />
+                        <Setter Property="Cursor" Value="Hand" />
+                        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                        <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListBoxItem">
+                                    <Border x:Name="ItemBorder"
+                                            Margin="0,2"
+                                            Padding="12"
+                                            Background="{TemplateBinding Background}"
+                                            CornerRadius="10">
+                                        <ContentPresenter HorizontalAlignment="Stretch" />
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource SurfaceSecondaryBrush}" />
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource HoverBrush}" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
                     </Style>
                 </ListBox.ItemContainerStyle>
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <CheckBox Padding="2,12"
-                                  IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                        <CheckBox Focusable="False"
+                                  IsChecked="{Binding IsSelected}"
+                                  IsHitTestVisible="False"
                                   Style="{StaticResource CircularCheckBoxStyle}">
                             <Grid>
                                 <Grid.RowDefinitions>
@@ -85,4 +118,5 @@
                     Style="{StaticResource PrimaryButtonStyle}" />
         </StackPanel>
     </Grid>
+    </Border>
 </Window>

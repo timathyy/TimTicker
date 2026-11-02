@@ -9,7 +9,10 @@ using DomainTaskStatus = TimTicker.Domain.Tasks.TaskStatus;
 
 namespace TimTicker.App.ViewModels;
 
-public sealed partial class TodayViewModel(IDailyPlanService planService, TimeProvider timeProvider) : ViewModelBase
+public sealed partial class TodayViewModel(
+    IDailyPlanService planService,
+    ITaskService taskService,
+    TimeProvider timeProvider) : ViewModelBase
 {
     public ObservableCollection<TodayPlanItemViewModel> PlanItems { get; } = [];
 
@@ -51,6 +54,26 @@ public sealed partial class TodayViewModel(IDailyPlanService planService, TimePr
             TaskPriority.None));
         QuickTaskTitle = string.Empty;
         ApplyPlan(plan);
+    }
+
+    [RelayCommand]
+    private async Task CompleteAsync(TodayPlanItemViewModel? item)
+    {
+        if (item?.Status == DomainTaskStatus.Pending)
+        {
+            await taskService.CompleteAsync(item.TaskId);
+            ApplyPlan(await planService.GetTodayAsync());
+        }
+    }
+
+    [RelayCommand]
+    private async Task ReopenAsync(TodayPlanItemViewModel? item)
+    {
+        if (item?.Status == DomainTaskStatus.Completed)
+        {
+            await taskService.ReopenAsync(item.TaskId);
+            ApplyPlan(await planService.GetTodayAsync());
+        }
     }
 
     [RelayCommand]
@@ -111,6 +134,7 @@ public sealed class TodayPlanItemViewModel
             TaskPriority.Low => "低优先级",
             _ => "无优先级",
         };
+        Status = item.Status;
         StatusText = item.Status == DomainTaskStatus.Completed ? "已完成" : "待完成";
         IsOverdue = item.IsOverdue && item.Status == DomainTaskStatus.Pending;
         CanMoveUp = index > 0;
@@ -124,6 +148,8 @@ public sealed class TodayPlanItemViewModel
     public string DueDateText { get; }
 
     public string PriorityText { get; }
+
+    public DomainTaskStatus Status { get; }
 
     public string StatusText { get; }
 

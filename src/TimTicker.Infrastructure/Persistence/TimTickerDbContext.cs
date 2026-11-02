@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TimTicker.Domain.Planning;
 using TimTicker.Domain.Tasks;
+using TimTicker.Domain.Timeline;
 
 namespace TimTicker.Infrastructure.Persistence;
 
@@ -20,6 +21,8 @@ public sealed class TimTickerDbContext(DbContextOptions<TimTickerDbContext> opti
     public DbSet<DailyPlan> DailyPlans => Set<DailyPlan>();
 
     public DbSet<DailyPlanItem> DailyPlanItems => Set<DailyPlanItem>();
+
+    public DbSet<TimelineEntry> TimelineEntries => Set<TimelineEntry>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -67,6 +70,26 @@ public sealed class TimTickerDbContext(DbContextOptions<TimTickerDbContext> opti
             entity.HasOne<TaskItem>()
                 .WithMany()
                 .HasForeignKey(item => item.TaskItemId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<TimelineEntry>(entity =>
+        {
+            entity.ToTable("TimelineEntries");
+            entity.HasKey(entry => entry.Id);
+            entity.Property(entry => entry.Title).HasMaxLength(TimelineEntry.MaximumTitleLength).IsRequired();
+            entity.Property(entry => entry.Description).HasMaxLength(TimelineEntry.MaximumDescriptionLength);
+            entity.Property(entry => entry.Category).HasMaxLength(TimelineEntry.MaximumCategoryLength);
+            entity.Property(entry => entry.StartAtUtc).HasConversion(UtcTicksConverter);
+            entity.Property(entry => entry.EndAtUtc).HasConversion(NullableUtcTicksConverter);
+            entity.Property(entry => entry.CreatedAtUtc).HasConversion(UtcTicksConverter);
+            entity.Property(entry => entry.UpdatedAtUtc).HasConversion(UtcTicksConverter);
+            entity.Ignore(entry => entry.IsRunning);
+            entity.HasIndex(entry => new { entry.IsDeleted, entry.StartAtUtc });
+            entity.HasIndex(entry => new { entry.IsDeleted, entry.EndAtUtc });
+            entity.HasOne<TaskItem>()
+                .WithMany()
+                .HasForeignKey(entry => entry.TaskItemId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
     }

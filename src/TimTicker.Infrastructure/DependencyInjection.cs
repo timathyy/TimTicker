@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using TimTicker.Application.Abstractions;
 using TimTicker.Application.Planning;
 using TimTicker.Application.Tasks;
+using TimTicker.Application.Timeline;
 using TimTicker.Infrastructure.Persistence;
 
 namespace TimTicker.Infrastructure;
@@ -31,6 +32,7 @@ public static class DependencyInjection
         services.AddSingleton<IAppDatabaseInitializer, AppDatabaseInitializer>();
         services.AddSingleton<ITaskItemRepository, TaskItemRepository>();
         services.AddSingleton<IDailyPlanRepository, DailyPlanRepository>();
+        services.AddSingleton<ITimelineEntryRepository, TimelineEntryRepository>();
 
         return services;
     }

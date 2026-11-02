@@ -42,11 +42,12 @@ public sealed class DatabaseInitializationTests
                         (await context.Database.GetPendingMigrationsAsync()).ToArray();
 
                     Assert.True(File.Exists(databasePath));
-                    Assert.Equal(4, appliedMigrations.Length);
+                    Assert.Equal(5, appliedMigrations.Length);
                     Assert.Contains(appliedMigrations, migration => migration.EndsWith("_InitialCreate", StringComparison.Ordinal));
                     Assert.Contains(appliedMigrations, migration => migration.EndsWith("_TaskPool", StringComparison.Ordinal));
                     Assert.Contains(appliedMigrations, migration => migration.EndsWith("_TaskDates", StringComparison.Ordinal));
                     Assert.Contains(appliedMigrations, migration => migration.EndsWith("_DailyPlanning", StringComparison.Ordinal));
+                    Assert.Contains(appliedMigrations, migration => migration.EndsWith("_TimelineEntries", StringComparison.Ordinal));
                     Assert.Empty(pendingMigrations);
                 }
             }
@@ -97,6 +98,7 @@ public sealed class DatabaseInitializationTests
             Assert.NotNull(await serviceProvider.GetRequiredService<ITaskItemRepository>().FindAsync(taskId));
             await using TimTickerDbContext upgradedContext = await contextFactory.CreateDbContextAsync();
             Assert.Empty(await upgradedContext.DailyPlans.ToListAsync());
+            Assert.Empty(await upgradedContext.TimelineEntries.ToListAsync());
             Assert.Empty(await upgradedContext.Database.GetPendingMigrationsAsync());
         }
         finally

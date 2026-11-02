@@ -1,0 +1,18 @@
+namespace TimTicker.Application.Timeline;
+
+public interface ITimelineService
+{
+    Task<TimelineDaySummary> GetTodayAsync(CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<TimelineTaskOption>> ListTaskOptionsAsync(CancellationToken cancellationToken = default);
+
+    Task<TimelineEntrySummary> StartAsync(StartTimelineEntryRequest request, CancellationToken cancellationToken = default);
+
+    Task<TimelineEntrySummary> StopCurrentAsync(CancellationToken cancellationToken = default);
+
+    Task<TimelineEntrySummary> CreateAsync(CreateTimelineEntryRequest request, CancellationToken cancellationToken = default);
+
+    Task<TimelineEntrySummary> UpdateAsync(UpdateTimelineEntryRequest request, CancellationToken cancellationToken = default);
+
+    Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
+}

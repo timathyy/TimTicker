@@ -134,6 +134,54 @@ namespace TimTicker.Infrastructure.Persistence.Migrations
                     b.ToTable("Tasks", (string)null);
                 });
 
+            modelBuilder.Entity("TimTicker.Domain.Timeline.TimelineEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Category")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CreatedAtUtc")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("EndAtUtc")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("StartAtUtc")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid?>("TaskItemId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("UpdatedAtUtc")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TaskItemId");
+
+                    b.HasIndex("IsDeleted", "EndAtUtc");
+
+                    b.HasIndex("IsDeleted", "StartAtUtc");
+
+                    b.ToTable("TimelineEntries", (string)null);
+                });
+
             modelBuilder.Entity("TimTicker.Domain.Planning.DailyPlanItem", b =>
                 {
                     b.HasOne("TimTicker.Domain.Planning.DailyPlan", null)
@@ -147,6 +195,14 @@ namespace TimTicker.Infrastructure.Persistence.Migrations
                         .HasForeignKey("TaskItemId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("TimTicker.Domain.Timeline.TimelineEntry", b =>
+                {
+                    b.HasOne("TimTicker.Domain.Tasks.TaskItem", null)
+                        .WithMany()
+                        .HasForeignKey("TaskItemId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("TimTicker.Domain.Planning.DailyPlan", b =>

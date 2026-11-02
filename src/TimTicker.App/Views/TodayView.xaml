@@ -370,24 +370,174 @@
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="10" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="8" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
                     <Grid>
-                        <TextBlock Style="{StaticResource SectionTitleStyle}" Text="今日时间轴" />
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock VerticalAlignment="Center" Style="{StaticResource SectionTitleStyle}" Text="今日时间轴" />
+                            <TextBlock Margin="12,2,0,0"
+                                       VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextTertiaryBrush}"
+                                       Text="{Binding TotalRecordedTimeText}" />
+                        </StackPanel>
                         <Button HorizontalAlignment="Right"
-                                Content="开始记录"
-                                IsEnabled="False"
-                                Style="{StaticResource SecondaryButtonStyle}"
-                                ToolTip="时间记录将在 v0.4.0 提供" />
+                                Click="AddTimelineEntryButton_Click"
+                                Content="手工补录"
+                                Style="{StaticResource SecondaryButtonStyle}" />
                     </Grid>
-                    <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <TextBlock HorizontalAlignment="Center"
-                                   Foreground="{DynamicResource TextSecondaryBrush}"
-                                   Text="还没有时间记录" />
-                        <TextBlock Margin="0,5,0,0"
-                                   Foreground="{DynamicResource TextTertiaryBrush}"
-                                   Text="记录实际做过的事情，让一天留下清晰轨迹。" />
-                    </StackPanel>
+
+                    <Grid Grid.Row="2">
+                        <Grid.Style>
+                            <Style TargetType="Grid">
+                                <Setter Property="Visibility" Value="Visible" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasRunningTimeline}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Grid.Style>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="10" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox VerticalContentAlignment="Center"
+                                 Text="{Binding QuickTimelineTitle, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource TextBoxStyle}"
+                                 ToolTip="输入当前活动标题" />
+                        <Button Grid.Column="2"
+                                Command="{Binding StartTimelineCommand}"
+                                Content="开始记录"
+                                Style="{StaticResource PrimaryButtonStyle}" />
+                    </Grid>
+
+                    <Border Grid.Row="2"
+                            Padding="12,8"
+                            Background="{DynamicResource AccentSoftBrush}"
+                            CornerRadius="10">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasRunningTimeline}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <Grid>
+                            <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                                <Ellipse Width="8" Height="8" Margin="0,0,10,0" Fill="{DynamicResource SuccessBrush}" />
+                                <TextBlock FontWeight="SemiBold" Text="{Binding RunningTimelineTitle}" />
+                                <TextBlock Margin="10,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" Text="正在记录" />
+                            </StackPanel>
+                            <Button HorizontalAlignment="Right"
+                                    Command="{Binding StopTimelineCommand}"
+                                    Content="停止记录"
+                                    Style="{StaticResource PrimaryButtonStyle}" />
+                        </Grid>
+                    </Border>
+
+                    <Grid Grid.Row="4">
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasTimelineItems}" Value="False">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                            <TextBlock HorizontalAlignment="Center"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       Text="还没有时间记录" />
+                            <TextBlock Margin="0,4,0,0"
+                                       Foreground="{DynamicResource TextTertiaryBrush}"
+                                       Text="开始记录当前活动，或手工补录已经完成的事情。" />
+                        </StackPanel>
+
+                        <ListBox ItemsSource="{Binding TimelineItems}"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                 Visibility="{Binding HasTimelineItems, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <ListBox.Resources>
+                                <Style TargetType="ScrollBar" BasedOn="{StaticResource TaskScrollBarStyle}" />
+                            </ListBox.Resources>
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                    <Setter Property="Focusable" Value="False" />
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="ListBoxItem">
+                                                <ContentPresenter HorizontalAlignment="Stretch" />
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Padding="2,8" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="105" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock FontWeight="SemiBold" Text="{Binding TimeRangeText}" />
+                                                <TextBlock Margin="0,3,0,0"
+                                                           Foreground="{DynamicResource TextTertiaryBrush}"
+                                                           FontSize="12"
+                                                           Text="{Binding DurationText}" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Margin="12,0" VerticalAlignment="Center">
+                                                <TextBlock FontWeight="SemiBold" Text="{Binding Title}" />
+                                                <TextBlock Margin="0,3,0,0"
+                                                           Foreground="{DynamicResource TextTertiaryBrush}"
+                                                           FontSize="12"
+                                                           Text="{Binding CategoryAndTaskText}" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal">
+                                                <Button Margin="0,0,6,0"
+                                                        Click="EditTimelineEntryButton_Click"
+                                                        Content="编辑">
+                                                    <Button.Style>
+                                                        <Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Button.Style>
+                                                </Button>
+                                                <Button Click="DeleteTimelineEntryButton_Click"
+                                                        Content="删除"
+                                                        Style="{StaticResource SecondaryButtonStyle}" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
+
+                    <TextBlock Grid.Row="4"
+                               Margin="0,0,0,2"
+                               VerticalAlignment="Bottom"
+                               Foreground="{DynamicResource DangerBrush}"
+                               IsHitTestVisible="False"
+                               Text="{Binding TimelineErrorMessage}" />
                 </Grid>
             </Border>
         </Grid>

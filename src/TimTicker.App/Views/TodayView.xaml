@@ -11,18 +11,79 @@
             <Setter Property="MinHeight" Value="36" />
             <Setter Property="Padding" Value="0" />
         </Style>
+        <Style x:Key="TaskScrollThumbStyle" TargetType="Thumb">
+            <Setter Property="MinHeight" Value="28" />
+            <Setter Property="Background" Value="{DynamicResource TextTertiaryBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Thumb">
+                        <Border x:Name="ThumbBorder"
+                                Margin="1,0"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="3"
+                                Opacity="0.55" />
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ThumbBorder" Property="Background" Value="{DynamicResource AccentBrush}" />
+                                <Setter TargetName="ThumbBorder" Property="Opacity" Value="0.8" />
+                            </Trigger>
+                            <Trigger Property="IsDragging" Value="True">
+                                <Setter TargetName="ThumbBorder" Property="Background" Value="{DynamicResource AccentBrush}" />
+                                <Setter TargetName="ThumbBorder" Property="Opacity" Value="1" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="TaskScrollBarStyle" TargetType="ScrollBar">
+            <Setter Property="Width" Value="8" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollBar">
+                        <Grid Width="8" Background="Transparent">
+                            <Track x:Name="PART_Track" Margin="0,2" IsDirectionReversed="True">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="{x:Static ScrollBar.PageUpCommand}" Focusable="False">
+                                        <RepeatButton.Template>
+                                            <ControlTemplate TargetType="RepeatButton">
+                                                <Border Background="Transparent" />
+                                            </ControlTemplate>
+                                        </RepeatButton.Template>
+                                    </RepeatButton>
+                                </Track.DecreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb Style="{StaticResource TaskScrollThumbStyle}" />
+                                </Track.Thumb>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="{x:Static ScrollBar.PageDownCommand}" Focusable="False">
+                                        <RepeatButton.Template>
+                                            <ControlTemplate TargetType="RepeatButton">
+                                                <Border Background="Transparent" />
+                                            </ControlTemplate>
+                                        </RepeatButton.Template>
+                                    </RepeatButton>
+                                </Track.IncreaseRepeatButton>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <Grid>
         <Grid Margin="42,34,42,42">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="26" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="22" />
-                <RowDefinition Height="Auto" />
+                <RowDefinition Height="3*" />
                 <RowDefinition Height="22" />
-                <RowDefinition Height="Auto" />
+                <RowDefinition Height="2*" />
             </Grid.RowDefinitions>
 
             <Grid>
@@ -68,7 +129,7 @@
                     <ColumnDefinition Width="*" MinWidth="210" />
                 </Grid.ColumnDefinitions>
 
-                <Border MinHeight="300" Style="{StaticResource CardStyle}">
+                <Border Style="{StaticResource CardStyle}">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -133,7 +194,11 @@
                                  Background="Transparent"
                                  BorderThickness="0"
                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto"
                                  Visibility="{Binding HasPlanItems, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <ListBox.Resources>
+                                <Style TargetType="ScrollBar" BasedOn="{StaticResource TaskScrollBarStyle}" />
+                            </ListBox.Resources>
                             <ListBox.ItemContainerStyle>
                                 <Style TargetType="ListBoxItem">
                                     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
@@ -207,7 +272,7 @@
                     </Grid>
                 </Border>
 
-                <Border Grid.Column="2" MinHeight="300" Style="{StaticResource CardStyle}">
+                <Border Grid.Column="2" Style="{StaticResource CardStyle}">
                     <StackPanel>
                         <TextBlock Style="{StaticResource SectionTitleStyle}" Text="完成度" />
                         <Grid Width="116" Height="116" Margin="0,28,0,20" HorizontalAlignment="Center">
@@ -226,7 +291,7 @@
                 </Border>
             </Grid>
 
-            <Border Grid.Row="6" MinHeight="170" Style="{StaticResource CardStyle}">
+            <Border Grid.Row="6" Style="{StaticResource CardStyle}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -251,5 +316,5 @@
                 </Grid>
             </Border>
         </Grid>
-    </ScrollViewer>
+    </Grid>
 </UserControl>

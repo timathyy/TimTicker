@@ -37,7 +37,8 @@ public sealed record TimelineEntrySummary(
     DateTime? EndLocal,
     TimeSpan DayDuration,
     bool IsRunning,
-    TimelineEntrySource Source);
+    TimelineEntrySource Source,
+    bool IsReadOnly);
 
 public sealed record TimelineDaySummary(DateOnly Date, IReadOnlyList<TimelineEntrySummary> Entries, TimeSpan TotalDuration);
 

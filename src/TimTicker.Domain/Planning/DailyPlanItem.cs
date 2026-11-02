@@ -42,6 +42,8 @@ public sealed class DailyPlanItem
 
     public DateTimeOffset? RemovedAtUtc { get; private set; }
 
+    public bool? WasCompletedAtClose { get; private set; }
+
     public bool IsActive => RemovedAtUtc is null;
 
     internal void Remove(DateTimeOffset removedAtUtc)
@@ -67,6 +69,10 @@ public sealed class DailyPlanItem
     }
 
     internal void SetSortOrder(int sortOrder) => SortOrder = sortOrder;
+
+    internal void CaptureCompletion(bool wasCompleted) => WasCompletedAtClose = wasCompleted;
+
+    internal void ClearCompletionSnapshot() => WasCompletedAtClose = null;
 
     private static DateTimeOffset RequireUtc(DateTimeOffset value, string parameterName)
     {

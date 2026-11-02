@@ -47,7 +47,7 @@ public sealed class DetailNavigationService(
             return await ShowTaskAsync(taskId, owner);
         }
 
-        if (!window.EditRequested || entry.IsRunning)
+        if (!window.EditRequested || entry.IsRunning || entry.IsReadOnly)
         {
             return false;
         }

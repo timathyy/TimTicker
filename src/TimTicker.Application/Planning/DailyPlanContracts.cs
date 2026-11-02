@@ -11,7 +11,16 @@ public sealed record DailyPlanItemSummary(
     int SortOrder,
     bool IsOverdue);
 
-public sealed record DailyPlanSummary(Guid Id, DateOnly Date, IReadOnlyList<DailyPlanItemSummary> Items);
+public sealed record DailyPlanSummary(
+    Guid Id,
+    DateOnly Date,
+    IReadOnlyList<DailyPlanItemSummary> Items,
+    int CompletedCount,
+    int TotalCount,
+    decimal? CompletionRate,
+    bool IsClosed,
+    DateTimeOffset? ClosedAtUtc,
+    string? ReviewText);
 
 public sealed record DailyPlanTaskCandidate(TaskSummary Task, bool IsOverdue);
 

@@ -35,6 +35,9 @@ public sealed class DailyPlanPersistenceTests
                 await planService.AddTasksToTodayAsync([firstTaskId, secondTaskId]);
                 await planService.MoveTodayTaskAsync(secondTaskId, PlanMoveDirection.Up);
                 await planService.RemoveTaskFromTodayAsync(firstTaskId);
+                await taskService.CompleteAsync(secondTaskId);
+                await planService.CloseTodayAsync("Persisted review");
+                await taskService.ReopenAsync(secondTaskId);
             }
 
             await using (ServiceProvider secondProvider = CreateProvider(databasePath, clock))
@@ -45,9 +48,14 @@ public sealed class DailyPlanPersistenceTests
                 DailyPlanItemSummary item = Assert.Single(plan.Items);
                 Assert.Equal(secondTaskId, item.TaskId);
                 Assert.Equal(0, item.SortOrder);
+                Assert.Equal(TimTicker.Domain.Tasks.TaskStatus.Completed, item.Status);
+                Assert.True(plan.IsClosed);
+                Assert.Equal(1m, plan.CompletionRate);
+                Assert.Equal("Persisted review", plan.ReviewText);
                 IReadOnlyList<TaskSummary> pendingTasks = await secondProvider.GetRequiredService<ITaskService>().ListAsync(
                     new TaskQuery(TimTicker.Domain.Tasks.TaskStatus.Pending, null, TaskSortOrder.CreatedAtDescending));
                 Assert.Contains(pendingTasks, task => task.Id == firstTaskId);
+                Assert.Contains(pendingTasks, task => task.Id == secondTaskId);
             }
         }
         finally

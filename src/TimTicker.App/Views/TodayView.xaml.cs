@@ -24,7 +24,7 @@ public partial class TodayView : UserControl
 
     private async void SelectFromTaskPoolButton_Click(object sender, System.Windows.RoutedEventArgs e)
     {
-        if (DataContext is not TodayViewModel viewModel)
+        if (DataContext is not TodayViewModel { IsDayOpen: true } viewModel)
         {
             return;
         }
@@ -53,7 +53,7 @@ public partial class TodayView : UserControl
 
     private async void NewTaskAndAddButton_Click(object sender, System.Windows.RoutedEventArgs e)
     {
-        if (DataContext is not TodayViewModel viewModel)
+        if (DataContext is not TodayViewModel { IsDayOpen: true } viewModel)
         {
             return;
         }
@@ -70,7 +70,7 @@ public partial class TodayView : UserControl
 
     private async void StartTimelineEntryButton_Click(object sender, System.Windows.RoutedEventArgs e)
     {
-        if (DataContext is not TodayViewModel viewModel || viewModel.HasRunningTimeline)
+        if (DataContext is not TodayViewModel { IsDayOpen: true } viewModel || viewModel.HasRunningTimeline)
         {
             return;
         }
@@ -88,7 +88,7 @@ public partial class TodayView : UserControl
 
     private async void AddTimelineEntryButton_Click(object sender, System.Windows.RoutedEventArgs e)
     {
-        if (DataContext is not TodayViewModel viewModel)
+        if (DataContext is not TodayViewModel { IsDayOpen: true } viewModel)
         {
             return;
         }
@@ -108,7 +108,8 @@ public partial class TodayView : UserControl
     {
         if (sender is not Button { DataContext: TodayTimelineItemViewModel entry } ||
             DataContext is not TodayViewModel viewModel ||
-            entry.IsRunning)
+            entry.IsRunning ||
+            entry.IsReadOnly)
         {
             return;
         }
@@ -156,7 +157,8 @@ public partial class TodayView : UserControl
     private async void DeleteTimelineEntryButton_Click(object sender, System.Windows.RoutedEventArgs e)
     {
         if (sender is not Button { DataContext: TodayTimelineItemViewModel entry } ||
-            DataContext is not TodayViewModel viewModel)
+            DataContext is not TodayViewModel viewModel ||
+            entry.IsReadOnly)
         {
             return;
         }
@@ -169,6 +171,56 @@ public partial class TodayView : UserControl
         {
             await RunTimelineActionAsync(() => viewModel.DeleteTimelineEntryAsync(entry.Id));
         }
+    }
+
+    private async void EndDayButton_Click(object sender, System.Windows.RoutedEventArgs e)
+    {
+        if (DataContext is not TodayViewModel { CanEndDay: true } viewModel)
+        {
+            return;
+        }
+
+        EndDayReviewWindow window = new(
+            viewModel.CompletedPlanItemCount,
+            viewModel.TotalPlanItemCount,
+            viewModel.TimelineEntryCount,
+            viewModel.TotalRecordedTimeText,
+            viewModel.CurrentReviewText)
+        {
+            Owner = System.Windows.Window.GetWindow(this),
+        };
+        if (window.ShowDialog() == true)
+        {
+            await viewModel.CloseTodayAsync(window.ReviewText);
+        }
+    }
+
+    private async void ReopenDayButton_Click(object sender, System.Windows.RoutedEventArgs e)
+    {
+        if (DataContext is TodayViewModel { IsDayClosed: true } viewModel)
+        {
+            await viewModel.ReopenTodayAsync();
+        }
+    }
+
+    private void ViewDaySummaryButton_Click(object sender, System.Windows.RoutedEventArgs e)
+    {
+        if (DataContext is not TodayViewModel { IsDayClosed: true } viewModel)
+        {
+            return;
+        }
+
+        EndDayReviewWindow window = new(
+            viewModel.CompletedPlanItemCount,
+            viewModel.TotalPlanItemCount,
+            viewModel.TimelineEntryCount,
+            viewModel.TotalRecordedTimeText,
+            viewModel.CurrentReviewText,
+            readOnly: true)
+        {
+            Owner = System.Windows.Window.GetWindow(this),
+        };
+        window.ShowDialog();
     }
 
     private async Task RunTimelineActionAsync(Func<Task> action)

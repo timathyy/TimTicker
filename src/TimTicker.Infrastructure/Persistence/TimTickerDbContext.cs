@@ -51,8 +51,9 @@ public sealed class TimTickerDbContext(DbContextOptions<TimTickerDbContext> opti
             entity.Property(plan => plan.CreatedAtUtc).HasConversion(UtcTicksConverter);
             entity.Property(plan => plan.UpdatedAtUtc).HasConversion(UtcTicksConverter);
             entity.Property(plan => plan.ClosedAtUtc).HasConversion(NullableUtcTicksConverter);
-            entity.Property(plan => plan.ReviewText).HasMaxLength(4_000);
+            entity.Property(plan => plan.ReviewText).HasMaxLength(DailyPlan.MaximumReviewLength);
             entity.Ignore(plan => plan.ActiveItems);
+            entity.Ignore(plan => plan.IsClosed);
             entity.Navigation(plan => plan.Items).UsePropertyAccessMode(PropertyAccessMode.Field);
             entity.HasMany(plan => plan.Items)
                 .WithOne()

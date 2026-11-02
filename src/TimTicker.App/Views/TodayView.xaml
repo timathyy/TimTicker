@@ -104,12 +104,37 @@
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                Text="{Binding DateText}" />
                 </StackPanel>
-                <Button HorizontalAlignment="Right"
-                        VerticalAlignment="Top"
-                        Content="结束今天"
-                        IsEnabled="False"
-                        Style="{StaticResource SecondaryButtonStyle}"
-                        ToolTip="每日复盘将在 v0.5.0 提供" />
+                <StackPanel HorizontalAlignment="Right" VerticalAlignment="Top" Orientation="Horizontal">
+                    <Border Margin="0,0,10,0" Padding="10,6" VerticalAlignment="Center" Background="{DynamicResource AccentSoftBrush}" CornerRadius="8" Visibility="{Binding IsDayClosed, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <TextBlock Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold" Text="今日已结束" />
+                    </Border>
+                    <Button Click="EndDayButton_Click"
+                            Content="结束今天"
+                            IsEnabled="{Binding CanEndDay}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
+                                <Setter Property="Visibility" Value="Visible" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsDayClosed}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <Button Click="ReopenDayButton_Click" Content="重新打开今天">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsDayClosed}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </StackPanel>
             </Grid>
 
             <Grid Grid.Row="2">
@@ -140,9 +165,11 @@
                                 <Button Margin="0,0,8,0"
                                         Click="NewTaskAndAddButton_Click"
                                         Content="新建并加入"
+                                        IsEnabled="{Binding IsDayOpen}"
                                         Style="{StaticResource PrimaryButtonStyle}" />
                                 <Button Click="SelectFromTaskPoolButton_Click"
                                         Content="从任务池选择"
+                                        IsEnabled="{Binding IsDayOpen}"
                                         Style="{StaticResource SecondaryButtonStyle}" />
                             </StackPanel>
                         </Grid>
@@ -258,6 +285,7 @@
                                                 <Button Margin="0,0,8,0"
                                                         Command="{Binding DataContext.CompleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                         CommandParameter="{Binding}"
+                                                        IsEnabled="{Binding CanComplete}"
                                                         ToolTip="完成任务">
                                                     <Button.Style>
                                                         <Style TargetType="Button" BasedOn="{StaticResource TaskAccentIconButtonStyle}">
@@ -283,6 +311,7 @@
                                                 <Button Margin="0,0,8,0"
                                                         Command="{Binding DataContext.ReopenCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                         CommandParameter="{Binding}"
+                                                        IsEnabled="{Binding CanReopen}"
                                                         ToolTip="重新打开任务">
                                                     <Button.Style>
                                                         <Style TargetType="Button" BasedOn="{StaticResource TaskIconButtonStyle}">
@@ -326,6 +355,7 @@
                                                         ToolTip="下移" />
                                                 <Button Command="{Binding DataContext.RemoveFromPlanCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                         CommandParameter="{Binding}"
+                                                        IsEnabled="{Binding CanRemove}"
                                                         Style="{StaticResource TaskIconButtonStyle}"
                                                         ToolTip="移出计划（任务仍保留在任务池）">
                                                     <Viewbox Width="18" Height="18">
@@ -355,19 +385,48 @@
 
                 <Border Grid.Column="2" Style="{StaticResource CardStyle}">
                     <StackPanel>
-                        <TextBlock Style="{StaticResource SectionTitleStyle}" Text="完成度" />
-                        <Grid Width="116" Height="116" Margin="0,28,0,20" HorizontalAlignment="Center">
+                        <Grid>
+                            <TextBlock Style="{StaticResource SectionTitleStyle}" Text="完成度" />
+                            <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="{DynamicResource TextTertiaryBrush}" Text="{Binding CompletionStateText}" />
+                        </Grid>
+                        <Grid Width="116" Height="116" Margin="0,22,0,14" HorizontalAlignment="Center">
                             <Ellipse Stroke="{DynamicResource SurfaceSecondaryBrush}" StrokeThickness="10" />
+                            <Ellipse Stroke="{DynamicResource AccentBrush}" StrokeThickness="7" Opacity="0.85" />
                             <TextBlock HorizontalAlignment="Center"
                                        VerticalAlignment="Center"
-                                       FontSize="15"
+                                       FontSize="27"
                                        FontWeight="SemiBold"
-                                       Foreground="{DynamicResource TextSecondaryBrush}"
-                                       Text="v0.5.0" />
+                                       Foreground="{DynamicResource AccentBrush}"
+                                       Text="{Binding CompletionPercentageText}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding HasPlanItems}" Value="False">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" Text="未制定计划">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding HasPlanItems}" Value="False">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
                         </Grid>
-                        <TextBlock HorizontalAlignment="Center"
-                                   Foreground="{DynamicResource TextTertiaryBrush}"
-                                   Text="完成度与每日复盘将在后续版本提供" />
+                        <TextBlock HorizontalAlignment="Center" FontWeight="SemiBold" Text="{Binding CompletionCountText}" />
+                        <Border Margin="0,16,0,0" Padding="12,9" Background="{DynamicResource SurfaceSecondaryBrush}" CornerRadius="8">
+                            <TextBlock MaxHeight="52" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding ReviewSummaryText}" TextTrimming="CharacterEllipsis" TextWrapping="Wrap" />
+                        </Border>
+                        <Button Margin="0,12,0,0" Click="ViewDaySummaryButton_Click" Content="查看今日总结" Style="{StaticResource SecondaryButtonStyle}" Visibility="{Binding IsDayClosed, Converter={StaticResource BooleanToVisibilityConverter}}" />
                     </StackPanel>
                 </Border>
             </Grid>
@@ -392,19 +451,12 @@
                         <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
                             <Button Margin="0,0,8,0"
                                     Click="StartTimelineEntryButton_Click"
-                                    Content="开始记录">
-                                <Button.Style>
-                                    <Style TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding HasRunningTimeline}" Value="True">
-                                                <Setter Property="IsEnabled" Value="False" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Button.Style>
-                            </Button>
+                                    Content="开始记录"
+                                    IsEnabled="{Binding CanEndDay}"
+                                    Style="{StaticResource PrimaryButtonStyle}" />
                             <Button Click="AddTimelineEntryButton_Click"
                                     Content="手动录入"
+                                    IsEnabled="{Binding IsDayOpen}"
                                     Style="{StaticResource SecondaryButtonStyle}" />
                         </StackPanel>
                     </Grid>
@@ -552,6 +604,7 @@
                                                                         </Button>
                                                                         <Button Command="{Binding DataContext.RemoveLinkedTaskCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                                                 CommandParameter="{Binding}"
+                                                                                IsEnabled="{Binding CanRemove}"
                                                                                 Style="{StaticResource PlanIconButtonStyle}"
                                                                                 ToolTip="移出此记录">
                                                                             <Viewbox Width="16" Height="16">
@@ -587,6 +640,7 @@
                                                 </Button>
                                                 <Button Margin="0,0,6,0"
                                                         Click="EditTimelineEntryButton_Click"
+                                                        IsEnabled="{Binding CanEdit}"
                                                         ToolTip="修改记录">
                                                     <Button.Style>
                                                         <Style TargetType="Button" BasedOn="{StaticResource PlanIconButtonStyle}">
@@ -609,6 +663,7 @@
                                                     </Viewbox>
                                                 </Button>
                                                 <Button Click="DeleteTimelineEntryButton_Click"
+                                                        IsEnabled="{Binding CanDelete}"
                                                         Style="{StaticResource PlanIconButtonStyle}"
                                                         ToolTip="删除记录">
                                                     <Viewbox Width="17" Height="17">

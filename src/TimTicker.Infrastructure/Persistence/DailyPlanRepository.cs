@@ -6,17 +6,23 @@ namespace TimTicker.Infrastructure.Persistence;
 
 public sealed class DailyPlanRepository(IDbContextFactory<TimTickerDbContext> contextFactory) : IDailyPlanRepository
 {
+    public async Task<DailyPlan?> FindAsync(DateOnly planDate, CancellationToken cancellationToken = default)
+    {
+        await using TimTickerDbContext context = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        return await context.DailyPlans
+            .AsNoTracking()
+            .Include(plan => plan.Items)
+            .SingleOrDefaultAsync(plan => plan.Date == planDate, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
     public async Task<DailyPlan> GetOrCreateAsync(
         DateOnly planDate,
         DateTimeOffset createdAtUtc,
         CancellationToken cancellationToken = default)
     {
         await using TimTickerDbContext context = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
-        DailyPlan? existing = await context.DailyPlans
-            .AsNoTracking()
-            .Include(plan => plan.Items)
-            .SingleOrDefaultAsync(plan => plan.Date == planDate, cancellationToken)
-            .ConfigureAwait(false);
+        DailyPlan? existing = await FindAsync(planDate, cancellationToken).ConfigureAwait(false);
         if (existing is not null)
         {
             return existing;

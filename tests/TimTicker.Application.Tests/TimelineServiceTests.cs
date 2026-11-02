@@ -1,5 +1,7 @@
 using TimTicker.Application.Tasks;
 using TimTicker.Application.Timeline;
+using TimTicker.Application.Planning;
+using TimTicker.Domain.Planning;
 using TimTicker.Domain.Tasks;
 using TimTicker.Domain.Timeline;
 
@@ -115,7 +117,7 @@ public sealed class TimelineServiceTests
             new DateTimeOffset(2026, 11, 2, 7, 0, 0, TimeSpan.Zero));
         tasks.Tasks.Add(task);
         MutableTimeProvider clock = new(new DateTimeOffset(2026, 11, 2, 12, 0, 0, TimeSpan.Zero));
-        TimelineService service = new(timelines, tasks, clock);
+        TimelineService service = new(timelines, tasks, new EmptyPlanRepository(), clock);
         TimelineEntrySummary created = await service.CreateAsync(new CreateTimelineEntryRequest(
             "Original",
             null,
@@ -152,7 +154,7 @@ public sealed class TimelineServiceTests
         TaskItem first = new(Guid.NewGuid(), "First", null, new DateOnly(2026, 11, 2), null, TaskPriority.None, now);
         TaskItem second = new(Guid.NewGuid(), "Second", null, new DateOnly(2026, 11, 2), null, TaskPriority.None, now);
         tasks.Tasks.AddRange([first, second]);
-        TimelineService service = new(timelines, tasks, new MutableTimeProvider(now));
+        TimelineService service = new(timelines, tasks, new EmptyPlanRepository(), new MutableTimeProvider(now));
 
         TimelineEntrySummary created = await service.CreateAsync(new CreateTimelineEntryRequest(
             "Shared work",
@@ -195,6 +197,39 @@ public sealed class TimelineServiceTests
         Assert.Empty((await service.GetTodayAsync()).Entries);
     }
 
+    [Fact]
+    public async Task ClosedDayMakesTimelineEntriesReadOnly()
+    {
+        DateOnly planDate = new(2026, 11, 2);
+        DateTimeOffset now = new(2026, 11, 2, 12, 0, 0, TimeSpan.Zero);
+        DailyPlan plan = new(Guid.NewGuid(), planDate, now);
+        plan.Close(null, new HashSet<Guid>(), now);
+        InMemoryTimelineRepository timelines = new();
+        TimelineEntry entry = new(
+            Guid.NewGuid(),
+            "Read only",
+            null,
+            null,
+            [],
+            now.AddHours(-2),
+            now.AddHours(-1),
+            now,
+            TimelineEntrySource.Manual,
+            planDate);
+        timelines.Entries.Add(entry);
+        TimelineService service = new(
+            timelines,
+            new EmptyTaskRepository(),
+            new EmptyPlanRepository(plan),
+            new MutableTimeProvider(now));
+
+        TimelineEntrySummary summary = await service.GetAsync(entry.Id);
+
+        Assert.True(summary.IsReadOnly);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.DeleteAsync(entry.Id));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(CreateRequest(13, 0, 14, 0)));
+    }
+
     private static CreateTimelineEntryRequest CreateRequest(int startHour, int startMinute, int endHour, int endMinute) => new(
         "Manual entry",
         null,
@@ -208,7 +243,21 @@ public sealed class TimelineServiceTests
         CreateService(timelines, new MutableTimeProvider(utcNow));
 
     private static TimelineService CreateService(InMemoryTimelineRepository timelines, MutableTimeProvider clock) =>
-        new(timelines, new EmptyTaskRepository(), clock);
+        new(timelines, new EmptyTaskRepository(), new EmptyPlanRepository(), clock);
+
+    private sealed class EmptyPlanRepository(DailyPlan? plan = null) : IDailyPlanRepository
+    {
+        public Task<DailyPlan?> FindAsync(DateOnly planDate, CancellationToken cancellationToken = default) =>
+            Task.FromResult(plan?.Date == planDate ? plan : null);
+
+        public Task<DailyPlan> GetOrCreateAsync(
+            DateOnly planDate,
+            DateTimeOffset createdAtUtc,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(plan?.Date == planDate ? plan : new DailyPlan(Guid.NewGuid(), planDate, createdAtUtc));
+
+        public Task UpdateAsync(DailyPlan plan, CancellationToken cancellationToken = default) => Task.CompletedTask;
+    }
 
     private sealed class InMemoryTimelineRepository : ITimelineEntryRepository
     {

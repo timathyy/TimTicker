@@ -71,6 +71,9 @@ namespace TimTicker.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("TaskItemId")
                         .HasColumnType("TEXT");
 
+                    b.Property<bool?>("WasCompletedAtClose")
+                        .HasColumnType("INTEGER");
+
                     b.HasKey("Id");
 
                     b.HasIndex("TaskItemId");

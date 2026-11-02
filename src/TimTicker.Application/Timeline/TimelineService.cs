@@ -1,4 +1,5 @@
 using TimTicker.Application.Tasks;
+using TimTicker.Application.Planning;
 using TimTicker.Domain.Timeline;
 
 namespace TimTicker.Application.Timeline;
@@ -6,6 +7,7 @@ namespace TimTicker.Application.Timeline;
 public sealed class TimelineService(
     ITimelineEntryRepository repository,
     ITaskItemRepository taskRepository,
+    IDailyPlanRepository planRepository,
     TimeProvider timeProvider) : ITimelineService
 {
     public async Task<TimelineDaySummary> GetTodayAsync(CancellationToken cancellationToken = default)
@@ -69,6 +71,8 @@ public sealed class TimelineService(
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
+        DateOnly recordDate = LocalToday();
+        await EnsureDayOpenAsync(recordDate, cancellationToken).ConfigureAwait(false);
         await EnsureTasksExistAsync(request.TaskItemIds, cancellationToken).ConfigureAwait(false);
         DateTimeOffset now = UtcNow();
         await EnsureNoOverlapAsync(now, DateTimeOffset.MaxValue, null, cancellationToken).ConfigureAwait(false);
@@ -82,7 +86,7 @@ public sealed class TimelineService(
             null,
             now,
             TimelineEntrySource.Timer,
-            LocalToday());
+            recordDate);
         await repository.AddAsync(entry, cancellationToken).ConfigureAwait(false);
         return await ToSummaryAsync(entry, entry.RecordDate!.Value, cancellationToken, clipToDay: false).ConfigureAwait(false);
     }
@@ -91,6 +95,7 @@ public sealed class TimelineService(
     {
         TimelineEntry entry = await repository.FindRunningAsync(cancellationToken).ConfigureAwait(false)
             ?? throw new InvalidOperationException("There is no running timeline entry.");
+        await EnsureDayOpenAsync(GetRecordDate(entry), cancellationToken).ConfigureAwait(false);
         DateTimeOffset now = UtcNow();
         await EnsureNoOverlapAsync(entry.StartAtUtc, now, entry.Id, cancellationToken).ConfigureAwait(false);
         entry.Stop(now);
@@ -104,6 +109,7 @@ public sealed class TimelineService(
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
+        await EnsureDayOpenAsync(request.RecordDate, cancellationToken).ConfigureAwait(false);
         await EnsureTasksExistAsync(request.TaskItemIds, cancellationToken).ConfigureAwait(false);
         DateTimeOffset startAtUtc = ConvertLocalToUtc(request.StartLocal, nameof(request.StartLocal));
         DateTimeOffset endAtUtc = ConvertLocalToUtc(request.EndLocal, nameof(request.EndLocal));
@@ -130,6 +136,7 @@ public sealed class TimelineService(
     {
         ArgumentNullException.ThrowIfNull(request);
         TimelineEntry entry = await GetEntryAsync(request.Id, cancellationToken).ConfigureAwait(false);
+        await EnsureDayOpenAsync(GetRecordDate(entry), cancellationToken).ConfigureAwait(false);
         await EnsureTasksExistAsync(request.TaskItemIds, cancellationToken).ConfigureAwait(false);
         DateTimeOffset startAtUtc = ConvertLocalToUtc(request.StartLocal, nameof(request.StartLocal));
         DateTimeOffset endAtUtc = ConvertLocalToUtc(request.EndLocal, nameof(request.EndLocal));
@@ -158,6 +165,7 @@ public sealed class TimelineService(
         }
 
         TimelineEntry entry = await GetEntryAsync(entryId, cancellationToken).ConfigureAwait(false);
+        await EnsureDayOpenAsync(GetRecordDate(entry), cancellationToken).ConfigureAwait(false);
         entry.RemoveTask(taskId, UtcNow());
         await repository.UpdateAsync(entry, cancellationToken).ConfigureAwait(false);
     }
@@ -165,6 +173,7 @@ public sealed class TimelineService(
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         TimelineEntry entry = await GetEntryAsync(id, cancellationToken).ConfigureAwait(false);
+        await EnsureDayOpenAsync(GetRecordDate(entry), cancellationToken).ConfigureAwait(false);
         entry.Delete(UtcNow());
         await repository.UpdateAsync(entry, cancellationToken).ConfigureAwait(false);
     }
@@ -240,20 +249,23 @@ public sealed class TimelineService(
 
         TimeSpan dayDuration = segmentEnd > segmentStart ? segmentEnd - segmentStart : TimeSpan.Zero;
 
+        DateOnly recordDate = GetRecordDate(entry);
+        bool isReadOnly = (await planRepository.FindAsync(recordDate, cancellationToken).ConfigureAwait(false))?.IsClosed == true;
         return new TimelineEntrySummary(
             entry.Id,
             entry.Title,
             entry.Description,
             entry.Category,
             linkedTasks,
-            entry.RecordDate ?? DateOnly.FromDateTime(ConvertUtcToLocal(entry.StartAtUtc)),
+            recordDate,
             entry.StartAtUtc,
             entry.EndAtUtc,
             ConvertUtcToLocal(entry.StartAtUtc),
             entry.EndAtUtc.HasValue ? ConvertUtcToLocal(entry.EndAtUtc.Value) : null,
             dayDuration,
             entry.IsRunning,
-            entry.Source);
+            entry.Source,
+            isReadOnly);
     }
 
     private (DateTimeOffset Start, DateTimeOffset End) GetUtcDayBounds(DateOnly localDate)
@@ -281,4 +293,15 @@ public sealed class TimelineService(
     private DateTimeOffset UtcNow() => timeProvider.GetUtcNow();
 
     private DateOnly LocalToday() => DateOnly.FromDateTime(timeProvider.GetLocalNow().DateTime);
+
+    private DateOnly GetRecordDate(TimelineEntry entry) =>
+        entry.RecordDate ?? DateOnly.FromDateTime(ConvertUtcToLocal(entry.StartAtUtc));
+
+    private async Task EnsureDayOpenAsync(DateOnly date, CancellationToken cancellationToken)
+    {
+        if ((await planRepository.FindAsync(date, cancellationToken).ConfigureAwait(false))?.IsClosed == true)
+        {
+            throw new InvalidOperationException("The selected day is closed and read-only.");
+        }
+    }
 }

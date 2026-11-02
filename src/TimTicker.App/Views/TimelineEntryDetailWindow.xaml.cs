@@ -60,7 +60,7 @@ public sealed class TimelineEntryDetailViewModel
         TimeRangeText = $"{entry.RecordDate:yyyy-MM-dd} · {FormatTime(entry.StartLocal, entry.RecordDate)} — {end}";
         DurationText = FormatDuration(entry.DayDuration);
         IsTimerEntry = entry.Source == TimelineEntrySource.Timer;
-        CanEdit = !entry.IsRunning;
+        CanEdit = !entry.IsRunning && !entry.IsReadOnly;
         LinkedTasks = new ObservableCollection<TimelineTaskCardViewModel>(entry.LinkedTasks.Select(task => new TimelineTaskCardViewModel(task)));
         HasLinkedTasks = LinkedTasks.Count > 0;
     }

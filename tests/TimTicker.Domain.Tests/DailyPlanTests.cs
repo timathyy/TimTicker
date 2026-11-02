@@ -57,5 +57,31 @@ public sealed class DailyPlanTests
         Assert.Equal(expectedOrder, plan.ActiveItems.Select(item => item.SortOrder));
     }
 
+    [Fact]
+    public void ClosedPlanCapturesCompletionAndBecomesReadOnlyUntilReopened()
+    {
+        DailyPlan plan = CreatePlan();
+        Guid completedTaskId = Guid.NewGuid();
+        Guid pendingTaskId = Guid.NewGuid();
+        plan.AddTask(completedTaskId, InitialTime);
+        plan.AddTask(pendingTaskId, InitialTime);
+
+        plan.Close("  Good progress  ", new HashSet<Guid> { completedTaskId }, InitialTime.AddHours(1));
+
+        Assert.True(plan.IsClosed);
+        Assert.Equal("Good progress", plan.ReviewText);
+        Assert.Equal(0.5m, plan.FinalCompletionRate);
+        Assert.True(plan.ActiveItems.Single(item => item.TaskItemId == completedTaskId).WasCompletedAtClose);
+        Assert.False(plan.ActiveItems.Single(item => item.TaskItemId == pendingTaskId).WasCompletedAtClose);
+        Assert.Throws<InvalidOperationException>(() => plan.RemoveTask(pendingTaskId, InitialTime.AddHours(2)));
+
+        plan.Reopen(InitialTime.AddHours(3));
+
+        Assert.False(plan.IsClosed);
+        Assert.Null(plan.FinalCompletionRate);
+        Assert.All(plan.ActiveItems, item => Assert.Null(item.WasCompletedAtClose));
+        plan.RemoveTask(pendingTaskId, InitialTime.AddHours(4));
+    }
+
     private static DailyPlan CreatePlan() => new(Guid.NewGuid(), new DateOnly(2026, 11, 2), InitialTime);
 }

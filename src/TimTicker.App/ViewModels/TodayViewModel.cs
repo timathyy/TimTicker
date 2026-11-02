@@ -48,6 +48,41 @@ public sealed partial class TodayViewModel(
     [ObservableProperty]
     private string _timelineErrorMessage = string.Empty;
 
+    [ObservableProperty]
+    private bool _isDayClosed;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(StopTimelineCommand))]
+    private bool _isDayOpen = true;
+
+    [ObservableProperty]
+    private bool _canEndDay = true;
+
+    [ObservableProperty]
+    private string _completionPercentageText = string.Empty;
+
+    [ObservableProperty]
+    private string _completionCountText = "未制定计划";
+
+    [ObservableProperty]
+    private string _completionStateText = "进行中";
+
+    [ObservableProperty]
+    private string _reviewSummaryText = "结束今天时可以填写每日复盘。";
+
+    [ObservableProperty]
+    private int _completedPlanItemCount;
+
+    [ObservableProperty]
+    private int _totalPlanItemCount;
+
+    [ObservableProperty]
+    private int _timelineEntryCount;
+
+    public DateOnly CurrentDate { get; private set; }
+
+    public string? CurrentReviewText { get; private set; }
+
     public async Task<IReadOnlyList<DailyPlanTaskCandidate>> GetTaskCandidatesAsync() =>
         await planService.ListTodayCandidatesAsync();
 
@@ -58,6 +93,7 @@ public sealed partial class TodayViewModel(
     public async Task LoadTodayAsync()
     {
         DateOnly today = LocalToday();
+        CurrentDate = today;
         DateText = today.ToDateTime(TimeOnly.MinValue).ToString("M月d日，dddd", CultureInfo.GetCultureInfo("zh-CN"));
         ApplyPlan(await planService.GetTodayAsync());
         ApplyTimeline(await timelineService.GetTodayAsync());
@@ -94,6 +130,18 @@ public sealed partial class TodayViewModel(
         ApplyTimeline(await timelineService.GetTodayAsync());
     }
 
+    public async Task CloseTodayAsync(string? reviewText)
+    {
+        ApplyPlan(await planService.CloseTodayAsync(reviewText));
+        ApplyTimeline(await timelineService.GetTodayAsync());
+    }
+
+    public async Task ReopenTodayAsync()
+    {
+        ApplyPlan(await planService.ReopenAsync(CurrentDate));
+        ApplyTimeline(await timelineService.GetTodayAsync());
+    }
+
     public async Task ShowTaskDetailsAsync(Guid taskId, System.Windows.Window? owner)
     {
         if (await detailNavigationService.ShowTaskAsync(taskId, owner))
@@ -115,7 +163,7 @@ public sealed partial class TodayViewModel(
     [RelayCommand]
     private async Task CompleteLinkedTaskAsync(TimelineLinkedTaskViewModel? item)
     {
-        if (item?.Status != DomainTaskStatus.Pending)
+        if (!IsDayOpen || item?.Status != DomainTaskStatus.Pending)
         {
             return;
         }
@@ -128,7 +176,7 @@ public sealed partial class TodayViewModel(
     [RelayCommand]
     private async Task RemoveLinkedTaskAsync(TimelineLinkedTaskViewModel? item)
     {
-        if (item is null)
+        if (!IsDayOpen || item is null)
         {
             return;
         }
@@ -140,7 +188,7 @@ public sealed partial class TodayViewModel(
     [RelayCommand]
     private async Task CompleteAsync(TodayPlanItemViewModel? item)
     {
-        if (item?.Status == DomainTaskStatus.Pending)
+        if (IsDayOpen && item?.Status == DomainTaskStatus.Pending)
         {
             await taskService.CompleteAsync(item.TaskId);
             ApplyPlan(await planService.GetTodayAsync());
@@ -150,7 +198,7 @@ public sealed partial class TodayViewModel(
     [RelayCommand]
     private async Task ReopenAsync(TodayPlanItemViewModel? item)
     {
-        if (item?.Status == DomainTaskStatus.Completed)
+        if (IsDayOpen && item?.Status == DomainTaskStatus.Completed)
         {
             await taskService.ReopenAsync(item.TaskId);
             ApplyPlan(await planService.GetTodayAsync());
@@ -160,7 +208,7 @@ public sealed partial class TodayViewModel(
     [RelayCommand]
     private async Task MoveUpAsync(TodayPlanItemViewModel? item)
     {
-        if (item?.CanMoveUp == true)
+        if (IsDayOpen && item?.CanMoveUp == true)
         {
             ApplyPlan(await planService.MoveTodayTaskAsync(item.TaskId, PlanMoveDirection.Up));
         }
@@ -169,7 +217,7 @@ public sealed partial class TodayViewModel(
     [RelayCommand]
     private async Task MoveDownAsync(TodayPlanItemViewModel? item)
     {
-        if (item?.CanMoveDown == true)
+        if (IsDayOpen && item?.CanMoveDown == true)
         {
             ApplyPlan(await planService.MoveTodayTaskAsync(item.TaskId, PlanMoveDirection.Down));
         }
@@ -178,7 +226,7 @@ public sealed partial class TodayViewModel(
     [RelayCommand]
     private async Task RemoveFromPlanAsync(TodayPlanItemViewModel? item)
     {
-        if (item is not null)
+        if (IsDayOpen && item is not null)
         {
             ApplyPlan(await planService.RemoveTaskFromTodayAsync(item.TaskId));
         }
@@ -208,11 +256,27 @@ public sealed partial class TodayViewModel(
         PlanItems.Clear();
         for (int index = 0; index < plan.Items.Count; index++)
         {
-            PlanItems.Add(new TodayPlanItemViewModel(plan.Items[index], index, plan.Items.Count));
+            PlanItems.Add(new TodayPlanItemViewModel(plan.Items[index], index, plan.Items.Count, plan.IsClosed));
         }
 
         HasPlanItems = PlanItems.Count > 0;
         PlanItemCountText = $"{PlanItems.Count} 项";
+        IsDayClosed = plan.IsClosed;
+        IsDayOpen = !plan.IsClosed;
+        CompletedPlanItemCount = plan.CompletedCount;
+        TotalPlanItemCount = plan.TotalCount;
+        CompletionPercentageText = plan.CompletionRate.HasValue
+            ? $"{Math.Round(plan.CompletionRate.Value * 100, MidpointRounding.AwayFromZero):0}%"
+            : string.Empty;
+        CompletionCountText = plan.TotalCount == 0
+            ? "未制定计划"
+            : $"已完成 {plan.CompletedCount} / {plan.TotalCount} 项";
+        CompletionStateText = plan.IsClosed ? "今日已结束" : "实时完成度";
+        CurrentReviewText = plan.ReviewText;
+        ReviewSummaryText = plan.IsClosed
+            ? string.IsNullOrWhiteSpace(plan.ReviewText) ? "今日未填写复盘。" : plan.ReviewText
+            : "结束今天时可以填写每日复盘。";
+        UpdateDayActions();
     }
 
     private void ApplyTimeline(TimelineDaySummary timeline)
@@ -224,13 +288,17 @@ public sealed partial class TodayViewModel(
         }
 
         HasTimelineItems = TimelineItems.Count > 0;
+        TimelineEntryCount = TimelineItems.Count;
         TodayTimelineItemViewModel? running = TimelineItems.SingleOrDefault(item => item.IsRunning);
         HasRunningTimeline = running is not null;
         RunningTimelineTitle = running?.Title ?? string.Empty;
         TotalRecordedTimeText = $"已记录 {FormatDuration(timeline.TotalDuration)}";
+        UpdateDayActions();
     }
 
-    private bool CanStopTimeline() => HasRunningTimeline;
+    private bool CanStopTimeline() => IsDayOpen && HasRunningTimeline;
+
+    private void UpdateDayActions() => CanEndDay = IsDayOpen && !HasRunningTimeline;
 
     private static string FormatDuration(TimeSpan duration)
     {
@@ -257,10 +325,13 @@ public sealed class TodayTimelineItemViewModel
         DurationText = entry.IsRunning ? "正在记录" : FormatDuration(entry.DayDuration);
         IsRunning = entry.IsRunning;
         IsTimerEntry = entry.Source == TimelineEntrySource.Timer;
+        IsReadOnly = entry.IsReadOnly;
+        CanEdit = !entry.IsRunning && !entry.IsReadOnly;
+        CanDelete = !entry.IsReadOnly;
         StartLocal = entry.StartLocal;
         EndLocal = entry.EndLocal;
         LinkedTasks = new ObservableCollection<TimelineLinkedTaskViewModel>(
-            entry.LinkedTasks.Select(task => new TimelineLinkedTaskViewModel(entry.Id, task)));
+            entry.LinkedTasks.Select(task => new TimelineLinkedTaskViewModel(entry.Id, task, entry.IsReadOnly)));
         HasLinkedTasks = LinkedTasks.Count > 0;
     }
 
@@ -281,6 +352,12 @@ public sealed class TodayTimelineItemViewModel
     public bool IsRunning { get; }
 
     public bool IsTimerEntry { get; }
+
+    public bool IsReadOnly { get; }
+
+    public bool CanEdit { get; }
+
+    public bool CanDelete { get; }
 
     public DateTime StartLocal { get; }
 
@@ -312,13 +389,14 @@ public sealed class TodayTimelineItemViewModel
 
 public sealed class TimelineLinkedTaskViewModel
 {
-    public TimelineLinkedTaskViewModel(Guid timelineEntryId, TaskSummary task)
+    public TimelineLinkedTaskViewModel(Guid timelineEntryId, TaskSummary task, bool isReadOnly)
     {
         TimelineEntryId = timelineEntryId;
         TaskId = task.Id;
         Title = task.Title;
         Status = task.Status;
-        CanComplete = task.Status == DomainTaskStatus.Pending;
+        CanComplete = task.Status == DomainTaskStatus.Pending && !isReadOnly;
+        CanRemove = !isReadOnly;
         StatusText = task.Status == DomainTaskStatus.Completed ? "已完成" : "待完成";
         DueDateText = task.DueDate.HasValue ? $"截止 {task.DueDate:yyyy-MM-dd}" : "无截止日期";
     }
@@ -333,6 +411,8 @@ public sealed class TimelineLinkedTaskViewModel
 
     public bool CanComplete { get; }
 
+    public bool CanRemove { get; }
+
     public string StatusText { get; }
 
     public string DueDateText { get; }
@@ -340,7 +420,7 @@ public sealed class TimelineLinkedTaskViewModel
 
 public sealed class TodayPlanItemViewModel
 {
-    public TodayPlanItemViewModel(DailyPlanItemSummary item, int index, int count)
+    public TodayPlanItemViewModel(DailyPlanItemSummary item, int index, int count, bool isReadOnly)
     {
         TaskId = item.TaskId;
         Title = item.Title;
@@ -355,8 +435,11 @@ public sealed class TodayPlanItemViewModel
         Status = item.Status;
         StatusText = item.Status == DomainTaskStatus.Completed ? "已完成" : "待完成";
         IsOverdue = item.IsOverdue && item.Status == DomainTaskStatus.Pending;
-        CanMoveUp = index > 0;
-        CanMoveDown = index < count - 1;
+        CanComplete = item.Status == DomainTaskStatus.Pending && !isReadOnly;
+        CanReopen = item.Status == DomainTaskStatus.Completed && !isReadOnly;
+        CanMoveUp = index > 0 && !isReadOnly;
+        CanMoveDown = index < count - 1 && !isReadOnly;
+        CanRemove = !isReadOnly;
     }
 
     public Guid TaskId { get; }
@@ -373,7 +456,13 @@ public sealed class TodayPlanItemViewModel
 
     public bool IsOverdue { get; }
 
+    public bool CanComplete { get; }
+
+    public bool CanReopen { get; }
+
     public bool CanMoveUp { get; }
 
     public bool CanMoveDown { get; }
+
+    public bool CanRemove { get; }
 }

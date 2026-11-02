@@ -195,42 +195,24 @@
                     </Border>
 
                     <StackPanel x:Name="TimeFieldsPanel">
+                        <TextBlock x:Name="DayBoundaryHintText"
+                                   Margin="0,0,0,14"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   TextWrapping="Wrap" />
                         <TextBlock FontWeight="SemiBold" Text="开始时间" />
                         <Grid Margin="0,8,0,18">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="18" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
                             <TextBox x:Name="StartTimeTextBox"
                                      VerticalContentAlignment="Center"
                                      Style="{StaticResource TextBoxStyle}"
                                      ToolTip="24 小时制，例如 09:30" />
-                            <CheckBox x:Name="StartNextDayCheckBox"
-                                      Grid.Column="2"
-                                      VerticalAlignment="Center"
-                                      Content="日+1"
-                                      Style="{StaticResource RoundSelectionCheckBoxStyle}"
-                                      ToolTip="该时刻位于记录归属日期的下一天" />
                         </Grid>
 
                         <TextBlock FontWeight="SemiBold" Text="结束时间" />
                         <Grid Margin="0,8,0,4">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="18" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
                             <TextBox x:Name="EndTimeTextBox"
                                      VerticalContentAlignment="Center"
                                      Style="{StaticResource TextBoxStyle}"
                                      ToolTip="24 小时制，例如 10:30" />
-                            <CheckBox x:Name="EndNextDayCheckBox"
-                                      Grid.Column="2"
-                                      VerticalAlignment="Center"
-                                      Content="日+1"
-                                      Style="{StaticResource RoundSelectionCheckBoxStyle}"
-                                      ToolTip="该时刻位于记录归属日期的下一天" />
                         </Grid>
                     </StackPanel>
 

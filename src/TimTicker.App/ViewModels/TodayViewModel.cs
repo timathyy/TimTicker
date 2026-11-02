@@ -3,6 +3,7 @@ using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TimTicker.Application.Planning;
+using TimTicker.Application.Settings;
 using TimTicker.Application.Tasks;
 using TimTicker.Application.Timeline;
 using TimTicker.App.Services;
@@ -17,7 +18,7 @@ public sealed partial class TodayViewModel(
     ITaskService taskService,
     ITimelineService timelineService,
     IDetailNavigationService detailNavigationService,
-    TimeProvider timeProvider) : ViewModelBase
+    IDayBoundarySettings dayBoundarySettings) : ViewModelBase
 {
     public ObservableCollection<TodayPlanItemViewModel> PlanItems { get; } = [];
 
@@ -83,6 +84,8 @@ public sealed partial class TodayViewModel(
 
     public string? CurrentReviewText { get; private set; }
 
+    public DayEndTime CurrentDayEndTime => dayBoundarySettings.CurrentDayEndTime;
+
     public async Task<IReadOnlyList<DailyPlanTaskCandidate>> GetTaskCandidatesAsync() =>
         await planService.ListTodayCandidatesAsync();
 
@@ -92,10 +95,10 @@ public sealed partial class TodayViewModel(
     [RelayCommand]
     public async Task LoadTodayAsync()
     {
-        DateOnly today = LocalToday();
-        CurrentDate = today;
-        DateText = today.ToDateTime(TimeOnly.MinValue).ToString("M月d日，dddd", CultureInfo.GetCultureInfo("zh-CN"));
-        ApplyPlan(await planService.GetTodayAsync());
+        DailyPlanSummary plan = await planService.GetTodayAsync();
+        CurrentDate = plan.Date;
+        DateText = plan.Date.ToDateTime(TimeOnly.MinValue).ToString("M月d日，dddd", CultureInfo.GetCultureInfo("zh-CN"));
+        ApplyPlan(plan);
         ApplyTimeline(await timelineService.GetTodayAsync());
     }
 
@@ -308,7 +311,6 @@ public sealed partial class TodayViewModel(
             : $"{totalMinutes} 分钟";
     }
 
-    private DateOnly LocalToday() => DateOnly.FromDateTime(timeProvider.GetLocalNow().DateTime);
 }
 
 public sealed class TodayTimelineItemViewModel

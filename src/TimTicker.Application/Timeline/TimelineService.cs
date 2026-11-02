@@ -1,5 +1,6 @@
 using TimTicker.Application.Tasks;
 using TimTicker.Application.Planning;
+using TimTicker.Application.Settings;
 using TimTicker.Domain.Timeline;
 
 namespace TimTicker.Application.Timeline;
@@ -8,6 +9,7 @@ public sealed class TimelineService(
     ITimelineEntryRepository repository,
     ITaskItemRepository taskRepository,
     IDailyPlanRepository planRepository,
+    IDayBoundarySettings dayBoundarySettings,
     TimeProvider timeProvider) : ITimelineService
 {
     public async Task<TimelineDaySummary> GetTodayAsync(CancellationToken cancellationToken = default)
@@ -20,11 +22,7 @@ public sealed class TimelineService(
         List<TimelineEntrySummary> summaries = [];
         foreach (TimelineEntry entry in entries.OrderBy(entry => entry.StartAtUtc))
         {
-            summaries.Add(await ToSummaryAsync(
-                entry,
-                today,
-                cancellationToken,
-                clipToDay: entry.RecordDate is null).ConfigureAwait(false));
+            summaries.Add(await ToSummaryAsync(entry, today, clipToDay: true, cancellationToken).ConfigureAwait(false));
         }
 
         TimeSpan totalDuration = summaries.Aggregate(TimeSpan.Zero, (total, entry) => total + entry.DayDuration);
@@ -34,8 +32,8 @@ public sealed class TimelineService(
     public async Task<TimelineEntrySummary> GetAsync(Guid id, CancellationToken cancellationToken = default)
     {
         TimelineEntry entry = await GetEntryAsync(id, cancellationToken).ConfigureAwait(false);
-        DateOnly displayDate = DateOnly.FromDateTime(ConvertUtcToLocal(entry.StartAtUtc));
-        return await ToSummaryAsync(entry, displayDate, cancellationToken, clipToDay: false).ConfigureAwait(false);
+        DateOnly displayDate = GetRecordDate(entry);
+        return await ToSummaryAsync(entry, displayDate, clipToDay: false, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<IReadOnlyList<TimelineEntrySummary>> ListForTaskAsync(
@@ -51,8 +49,8 @@ public sealed class TimelineService(
         List<TimelineEntrySummary> summaries = [];
         foreach (TimelineEntry entry in entries)
         {
-            DateOnly displayDate = DateOnly.FromDateTime(ConvertUtcToLocal(entry.StartAtUtc));
-            summaries.Add(await ToSummaryAsync(entry, displayDate, cancellationToken, clipToDay: false).ConfigureAwait(false));
+            DateOnly displayDate = GetRecordDate(entry);
+            summaries.Add(await ToSummaryAsync(entry, displayDate, clipToDay: false, cancellationToken).ConfigureAwait(false));
         }
 
         return summaries;
@@ -88,7 +86,7 @@ public sealed class TimelineService(
             TimelineEntrySource.Timer,
             recordDate);
         await repository.AddAsync(entry, cancellationToken).ConfigureAwait(false);
-        return await ToSummaryAsync(entry, entry.RecordDate!.Value, cancellationToken, clipToDay: false).ConfigureAwait(false);
+        return await ToSummaryAsync(entry, recordDate, clipToDay: false, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<TimelineEntrySummary> StopCurrentAsync(CancellationToken cancellationToken = default)
@@ -100,8 +98,8 @@ public sealed class TimelineService(
         await EnsureNoOverlapAsync(entry.StartAtUtc, now, entry.Id, cancellationToken).ConfigureAwait(false);
         entry.Stop(now);
         await repository.UpdateAsync(entry, cancellationToken).ConfigureAwait(false);
-        DateOnly displayDate = entry.RecordDate ?? LocalToday();
-        return await ToSummaryAsync(entry, displayDate, cancellationToken, clipToDay: entry.RecordDate is null).ConfigureAwait(false);
+        DateOnly displayDate = GetRecordDate(entry);
+        return await ToSummaryAsync(entry, displayDate, clipToDay: false, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<TimelineEntrySummary> CreateAsync(
@@ -109,6 +107,7 @@ public sealed class TimelineService(
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
+        EnsureRecordDateMatchesBoundary(request.RecordDate, request.StartLocal);
         await EnsureDayOpenAsync(request.RecordDate, cancellationToken).ConfigureAwait(false);
         await EnsureTasksExistAsync(request.TaskItemIds, cancellationToken).ConfigureAwait(false);
         DateTimeOffset startAtUtc = ConvertLocalToUtc(request.StartLocal, nameof(request.StartLocal));
@@ -127,7 +126,7 @@ public sealed class TimelineService(
             TimelineEntrySource.Manual,
             request.RecordDate);
         await repository.AddAsync(entry, cancellationToken).ConfigureAwait(false);
-        return await ToSummaryAsync(entry, request.RecordDate, cancellationToken, clipToDay: false).ConfigureAwait(false);
+        return await ToSummaryAsync(entry, request.RecordDate, clipToDay: false, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<TimelineEntrySummary> UpdateAsync(
@@ -137,6 +136,8 @@ public sealed class TimelineService(
         ArgumentNullException.ThrowIfNull(request);
         TimelineEntry entry = await GetEntryAsync(request.Id, cancellationToken).ConfigureAwait(false);
         await EnsureDayOpenAsync(GetRecordDate(entry), cancellationToken).ConfigureAwait(false);
+        EnsureRecordDateMatchesBoundary(request.RecordDate, request.StartLocal);
+        await EnsureDayOpenAsync(request.RecordDate, cancellationToken).ConfigureAwait(false);
         await EnsureTasksExistAsync(request.TaskItemIds, cancellationToken).ConfigureAwait(false);
         DateTimeOffset startAtUtc = ConvertLocalToUtc(request.StartLocal, nameof(request.StartLocal));
         DateTimeOffset endAtUtc = ConvertLocalToUtc(request.EndLocal, nameof(request.EndLocal));
@@ -151,7 +152,7 @@ public sealed class TimelineService(
             endAtUtc,
             UtcNow());
         await repository.UpdateAsync(entry, cancellationToken).ConfigureAwait(false);
-        return await ToSummaryAsync(entry, request.RecordDate, cancellationToken, clipToDay: false).ConfigureAwait(false);
+        return await ToSummaryAsync(entry, request.RecordDate, clipToDay: false, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task RemoveTaskAsync(
@@ -224,8 +225,8 @@ public sealed class TimelineService(
     private async Task<TimelineEntrySummary> ToSummaryAsync(
         TimelineEntry entry,
         DateOnly displayDate,
-        CancellationToken cancellationToken,
-        bool clipToDay = true)
+        bool clipToDay,
+        CancellationToken cancellationToken)
     {
         List<TaskSummary> linkedTasks = [];
         foreach (TimelineEntryTaskLink link in entry.ActiveTaskLinks)
@@ -270,9 +271,22 @@ public sealed class TimelineService(
 
     private (DateTimeOffset Start, DateTimeOffset End) GetUtcDayBounds(DateOnly localDate)
     {
-        DateTime startLocal = localDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified);
-        DateTime endLocal = localDate.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified);
-        return (ConvertLocalToUtc(startLocal, nameof(localDate)), ConvertLocalToUtc(endLocal, nameof(localDate)));
+        DayEndTime dayEndTime = dayBoundarySettings.CurrentDayEndTime;
+        DateTime startLocal = DayBoundary.GetStartLocal(localDate, dayEndTime);
+        DateTime endLocal = DayBoundary.GetEndLocal(localDate, dayEndTime);
+        return (ConvertBoundaryLocalToUtc(startLocal), ConvertBoundaryLocalToUtc(endLocal));
+    }
+
+    private DateTimeOffset ConvertBoundaryLocalToUtc(DateTime localValue)
+    {
+        DateTime normalized = DateTime.SpecifyKind(localValue, DateTimeKind.Unspecified);
+        while (timeProvider.LocalTimeZone.IsInvalidTime(normalized))
+        {
+            normalized = normalized.AddMinutes(1);
+        }
+
+        DateTime utc = TimeZoneInfo.ConvertTimeToUtc(normalized, timeProvider.LocalTimeZone);
+        return new DateTimeOffset(utc, TimeSpan.Zero);
     }
 
     private DateTimeOffset ConvertLocalToUtc(DateTime localValue, string parameterName)
@@ -292,16 +306,29 @@ public sealed class TimelineService(
 
     private DateTimeOffset UtcNow() => timeProvider.GetUtcNow();
 
-    private DateOnly LocalToday() => DateOnly.FromDateTime(timeProvider.GetLocalNow().DateTime);
+    private DateOnly LocalToday() => DayBoundary.GetBusinessDate(
+        timeProvider.GetLocalNow().DateTime,
+        dayBoundarySettings.CurrentDayEndTime);
 
     private DateOnly GetRecordDate(TimelineEntry entry) =>
-        entry.RecordDate ?? DateOnly.FromDateTime(ConvertUtcToLocal(entry.StartAtUtc));
+        DayBoundary.GetBusinessDate(
+            ConvertUtcToLocal(entry.StartAtUtc),
+            dayBoundarySettings.CurrentDayEndTime);
 
     private async Task EnsureDayOpenAsync(DateOnly date, CancellationToken cancellationToken)
     {
         if ((await planRepository.FindAsync(date, cancellationToken).ConfigureAwait(false))?.IsClosed == true)
         {
             throw new InvalidOperationException("The selected day is closed and read-only.");
+        }
+    }
+
+    private void EnsureRecordDateMatchesBoundary(DateOnly recordDate, DateTime startLocal)
+    {
+        DateOnly expectedDate = DayBoundary.GetBusinessDate(startLocal, dayBoundarySettings.CurrentDayEndTime);
+        if (recordDate != expectedDate)
+        {
+            throw new ArgumentException("The record date does not match the configured day boundary.", nameof(recordDate));
         }
     }
 }

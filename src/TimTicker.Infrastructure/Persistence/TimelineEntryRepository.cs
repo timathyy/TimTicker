@@ -58,10 +58,8 @@ public sealed class TimelineEntryRepository(IDbContextFactory<TimTickerDbContext
         return await context.TimelineEntries.AsNoTracking()
             .Include(entry => entry.TaskLinks)
             .Where(entry => !entry.IsDeleted &&
-                            (entry.RecordDate == recordDate ||
-                             (entry.RecordDate == null &&
-                              entry.StartAtUtc < dayEndUtc &&
-                              (entry.EndAtUtc == null || entry.EndAtUtc > dayStartUtc))))
+                            entry.StartAtUtc < dayEndUtc &&
+                            (entry.EndAtUtc == null || entry.EndAtUtc > dayStartUtc))
             .OrderBy(entry => entry.StartAtUtc)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);

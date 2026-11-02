@@ -1,6 +1,7 @@
 using TimTicker.Application.Tasks;
 using TimTicker.Application.Timeline;
 using TimTicker.Application.Planning;
+using TimTicker.Application.Settings;
 using TimTicker.Domain.Planning;
 using TimTicker.Domain.Tasks;
 using TimTicker.Domain.Timeline;
@@ -117,7 +118,7 @@ public sealed class TimelineServiceTests
             new DateTimeOffset(2026, 11, 2, 7, 0, 0, TimeSpan.Zero));
         tasks.Tasks.Add(task);
         MutableTimeProvider clock = new(new DateTimeOffset(2026, 11, 2, 12, 0, 0, TimeSpan.Zero));
-        TimelineService service = new(timelines, tasks, new EmptyPlanRepository(), clock);
+        TimelineService service = new(timelines, tasks, new EmptyPlanRepository(), new TestDayBoundarySettings(), clock);
         TimelineEntrySummary created = await service.CreateAsync(new CreateTimelineEntryRequest(
             "Original",
             null,
@@ -154,7 +155,12 @@ public sealed class TimelineServiceTests
         TaskItem first = new(Guid.NewGuid(), "First", null, new DateOnly(2026, 11, 2), null, TaskPriority.None, now);
         TaskItem second = new(Guid.NewGuid(), "Second", null, new DateOnly(2026, 11, 2), null, TaskPriority.None, now);
         tasks.Tasks.AddRange([first, second]);
-        TimelineService service = new(timelines, tasks, new EmptyPlanRepository(), new MutableTimeProvider(now));
+        TimelineService service = new(
+            timelines,
+            tasks,
+            new EmptyPlanRepository(),
+            new TestDayBoundarySettings(),
+            new MutableTimeProvider(now));
 
         TimelineEntrySummary created = await service.CreateAsync(new CreateTimelineEntryRequest(
             "Shared work",
@@ -177,7 +183,10 @@ public sealed class TimelineServiceTests
     {
         InMemoryTimelineRepository timelines = new();
         MutableTimeProvider clock = new(new DateTimeOffset(2026, 11, 2, 12, 0, 0, TimeSpan.Zero));
-        TimelineService service = CreateService(timelines, clock);
+        TimelineService service = CreateService(
+            timelines,
+            clock,
+            new TestDayBoundarySettings(DayEndTime.SixAm));
         TimelineEntrySummary created = await service.CreateAsync(new CreateTimelineEntryRequest(
             "After midnight",
             null,
@@ -195,6 +204,52 @@ public sealed class TimelineServiceTests
         Assert.Equal(new DateTime(2026, 11, 3, 1, 1, 0), ownedByToday.StartLocal);
         Assert.Equal(TimeSpan.FromMinutes(89), ownedByToday.DayDuration);
         Assert.Empty((await service.GetTodayAsync()).Entries);
+    }
+
+    [Fact]
+    public async Task TimerStartedBeforeSixAmBelongsToPreviousBusinessDay()
+    {
+        InMemoryTimelineRepository timelines = new();
+        MutableTimeProvider clock = new(new DateTimeOffset(2026, 11, 3, 3, 0, 0, TimeSpan.Zero));
+        TimelineService service = CreateService(
+            timelines,
+            clock,
+            new TestDayBoundarySettings(DayEndTime.SixAm));
+
+        TimelineEntrySummary started = await service.StartAsync(new StartTimelineEntryRequest("Late work", null, null, []));
+        TimelineDaySummary today = await service.GetTodayAsync();
+
+        Assert.Equal(new DateOnly(2026, 11, 2), today.Date);
+        Assert.Equal(new DateOnly(2026, 11, 2), started.RecordDate);
+        Assert.Equal(started.Id, Assert.Single(today.Entries).Id);
+    }
+
+    [Fact]
+    public async Task ChangingBoundaryReassignsEarlyMorningRecordWithoutEditingIt()
+    {
+        InMemoryTimelineRepository timelines = new();
+        MutableTimeProvider clock = new(new DateTimeOffset(2026, 11, 3, 8, 0, 0, TimeSpan.Zero));
+        TestDayBoundarySettings settings = new(DayEndTime.Midnight);
+        TimelineService service = CreateService(timelines, clock, settings);
+        TimelineEntry entry = new(
+            Guid.NewGuid(),
+            "Early morning",
+            null,
+            null,
+            [],
+            new DateTimeOffset(2026, 11, 3, 1, 0, 0, TimeSpan.Zero),
+            new DateTimeOffset(2026, 11, 3, 2, 0, 0, TimeSpan.Zero),
+            new DateTimeOffset(2026, 11, 3, 1, 0, 0, TimeSpan.Zero),
+            TimelineEntrySource.Manual,
+            new DateOnly(2026, 11, 3));
+        timelines.Entries.Add(entry);
+
+        Assert.Equal(entry.Id, Assert.Single((await service.GetTodayAsync()).Entries).Id);
+
+        settings.SetDayEndTime(DayEndTime.SixAm);
+
+        Assert.Empty((await service.GetTodayAsync()).Entries);
+        Assert.Equal(new DateOnly(2026, 11, 2), (await service.GetAsync(entry.Id)).RecordDate);
     }
 
     [Fact]
@@ -221,6 +276,7 @@ public sealed class TimelineServiceTests
             timelines,
             new EmptyTaskRepository(),
             new EmptyPlanRepository(plan),
+            new TestDayBoundarySettings(),
             new MutableTimeProvider(now));
 
         TimelineEntrySummary summary = await service.GetAsync(entry.Id);
@@ -243,7 +299,13 @@ public sealed class TimelineServiceTests
         CreateService(timelines, new MutableTimeProvider(utcNow));
 
     private static TimelineService CreateService(InMemoryTimelineRepository timelines, MutableTimeProvider clock) =>
-        new(timelines, new EmptyTaskRepository(), new EmptyPlanRepository(), clock);
+        CreateService(timelines, clock, new TestDayBoundarySettings());
+
+    private static TimelineService CreateService(
+        InMemoryTimelineRepository timelines,
+        MutableTimeProvider clock,
+        IDayBoundarySettings dayBoundarySettings) =>
+        new(timelines, new EmptyTaskRepository(), new EmptyPlanRepository(), dayBoundarySettings, clock);
 
     private sealed class EmptyPlanRepository(DailyPlan? plan = null) : IDailyPlanRepository
     {
@@ -296,9 +358,8 @@ public sealed class TimelineServiceTests
         {
             TimelineEntry[] result = Entries
                 .Where(entry => !entry.IsDeleted &&
-                                (entry.RecordDate == recordDate ||
-                                 (entry.RecordDate is null && entry.StartAtUtc < dayEndUtc &&
-                                  (!entry.EndAtUtc.HasValue || entry.EndAtUtc > dayStartUtc))))
+                                entry.StartAtUtc < dayEndUtc &&
+                                (!entry.EndAtUtc.HasValue || entry.EndAtUtc > dayStartUtc))
                 .OrderBy(entry => entry.StartAtUtc)
                 .ToArray();
             return Task.FromResult<IReadOnlyList<TimelineEntry>>(result);

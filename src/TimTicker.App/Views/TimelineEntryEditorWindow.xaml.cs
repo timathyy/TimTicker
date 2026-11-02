@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
+using TimTicker.Application.Settings;
 using TimTicker.Application.Timeline;
 
 namespace TimTicker.App.Views;
@@ -12,16 +13,20 @@ public partial class TimelineEntryEditorWindow : Window
     private readonly TimelineEntrySummary? _entry;
     private readonly bool _startMode;
     private readonly DateOnly _recordDate;
+    private readonly DayEndTime _dayEndTime;
 
     public TimelineEntryEditorWindow(
         IReadOnlyList<TimelineTaskOption> taskOptions,
+        DateOnly recordDate,
+        DayEndTime dayEndTime,
         TimelineEntrySummary? entry = null,
         bool startMode = false)
     {
         ArgumentNullException.ThrowIfNull(taskOptions);
         _entry = entry;
         _startMode = startMode;
-        _recordDate = entry?.RecordDate ?? DateOnly.FromDateTime(DateTime.Today);
+        _recordDate = entry?.RecordDate ?? recordDate;
+        _dayEndTime = dayEndTime;
         if (entry is not null && startMode)
         {
             throw new ArgumentException("An existing entry cannot be opened in start mode.", nameof(startMode));
@@ -64,8 +69,7 @@ public partial class TimelineEntryEditorWindow : Window
         CategoryTextBox.Text = _entry?.Category ?? string.Empty;
         StartTimeTextBox.Text = start.ToString("HH:mm", CultureInfo.InvariantCulture);
         EndTimeTextBox.Text = end.ToString("HH:mm", CultureInfo.InvariantCulture);
-        StartNextDayCheckBox.IsChecked = DateOnly.FromDateTime(start).DayNumber > _recordDate.DayNumber;
-        EndNextDayCheckBox.IsChecked = DateOnly.FromDateTime(end).DayNumber > _recordDate.DayNumber;
+        DayBoundaryHintText.Text = $"每日结束时间为 {DayBoundary.ToDisplayText(_dayEndTime)}，凌晨时刻会自动归入对应日期。";
     }
 
     private void SaveButton_Click(object sender, RoutedEventArgs e)
@@ -101,16 +105,17 @@ public partial class TimelineEntryEditorWindow : Window
             return;
         }
 
-        DateTime startLocal = _recordDate
-            .AddDays(StartNextDayCheckBox.IsChecked == true ? 1 : 0)
-            .ToDateTime(startTime);
-        DateTime endLocal = _recordDate
-            .AddDays(EndNextDayCheckBox.IsChecked == true ? 1 : 0)
-            .ToDateTime(endTime);
+        if (startTime == endTime)
+        {
+            ShowValidationError("开始时间与结束时间不能相同。", EndTimeTextBox);
+            return;
+        }
+
+        DateTime startLocal = DayBoundary.ResolveLocalTime(_recordDate, startTime, _dayEndTime);
+        DateTime endLocal = DayBoundary.ResolveLocalTime(_recordDate, endTime, _dayEndTime);
         if (endLocal <= startLocal)
         {
-            ShowValidationError("结束时间必须晚于开始时间；跨越午夜时请勾选对应时刻的“日+1”。", EndTimeTextBox);
-            return;
+            endLocal = endLocal.AddDays(1);
         }
 
         if (_entry is null)

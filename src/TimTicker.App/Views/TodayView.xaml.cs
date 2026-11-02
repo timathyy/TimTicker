@@ -58,7 +58,7 @@ public partial class TodayView : UserControl
             return;
         }
 
-        TaskEditorWindow window = new()
+        TaskEditorWindow window = new(defaultCreatedDate: viewModel.CurrentDate)
         {
             Owner = System.Windows.Window.GetWindow(this),
         };
@@ -76,7 +76,11 @@ public partial class TodayView : UserControl
         }
 
         IReadOnlyList<TimelineTaskOption> taskOptions = await viewModel.GetTimelineTaskOptionsAsync();
-        TimelineEntryEditorWindow window = new(taskOptions, startMode: true)
+        TimelineEntryEditorWindow window = new(
+            taskOptions,
+            viewModel.CurrentDate,
+            viewModel.CurrentDayEndTime,
+            startMode: true)
         {
             Owner = System.Windows.Window.GetWindow(this),
         };
@@ -94,7 +98,10 @@ public partial class TodayView : UserControl
         }
 
         IReadOnlyList<TimelineTaskOption> taskOptions = await viewModel.GetTimelineTaskOptionsAsync();
-        TimelineEntryEditorWindow window = new(taskOptions)
+        TimelineEntryEditorWindow window = new(
+            taskOptions,
+            viewModel.CurrentDate,
+            viewModel.CurrentDayEndTime)
         {
             Owner = System.Windows.Window.GetWindow(this),
         };
@@ -115,7 +122,11 @@ public partial class TodayView : UserControl
         }
 
         IReadOnlyList<TimelineTaskOption> taskOptions = await viewModel.GetTimelineTaskOptionsAsync();
-        TimelineEntryEditorWindow window = new(taskOptions, entry.Summary)
+        TimelineEntryEditorWindow window = new(
+            taskOptions,
+            entry.Summary.RecordDate,
+            viewModel.CurrentDayEndTime,
+            entry.Summary)
         {
             Owner = System.Windows.Window.GetWindow(this),
         };

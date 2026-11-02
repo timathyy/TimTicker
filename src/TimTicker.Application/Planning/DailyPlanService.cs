@@ -1,4 +1,5 @@
 using TimTicker.Application.Tasks;
+using TimTicker.Application.Settings;
 using TimTicker.Domain.Planning;
 using DomainTaskStatus = TimTicker.Domain.Tasks.TaskStatus;
 
@@ -8,6 +9,7 @@ public sealed class DailyPlanService(
     IDailyPlanRepository planRepository,
     ITaskItemRepository taskRepository,
     ITaskService taskService,
+    IDayBoundarySettings dayBoundarySettings,
     TimeProvider timeProvider) : IDailyPlanService
 {
     public async Task<DailyPlanSummary> GetTodayAsync(CancellationToken cancellationToken = default)
@@ -209,7 +211,9 @@ public sealed class DailyPlanService(
 
     private DateTimeOffset UtcNow() => timeProvider.GetUtcNow();
 
-    private DateOnly LocalToday() => DateOnly.FromDateTime(timeProvider.GetLocalNow().DateTime);
+    private DateOnly LocalToday() => DayBoundary.GetBusinessDate(
+        timeProvider.GetLocalNow().DateTime,
+        dayBoundarySettings.CurrentDayEndTime);
 
     private static bool IsOverdue(DateOnly? dueDate, DateOnly today) => dueDate.HasValue && dueDate.Value < today;
 

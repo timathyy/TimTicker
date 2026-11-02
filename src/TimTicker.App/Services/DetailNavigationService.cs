@@ -1,13 +1,15 @@
 using System.Windows;
 using TimTicker.Application.Tasks;
 using TimTicker.Application.Timeline;
+using TimTicker.Application.Settings;
 using TimTicker.App.Views;
 
 namespace TimTicker.App.Services;
 
 public sealed class DetailNavigationService(
     ITaskService taskService,
-    ITimelineService timelineService) : IDetailNavigationService
+    ITimelineService timelineService,
+    IDayBoundarySettings dayBoundarySettings) : IDetailNavigationService
 {
     public async Task<bool> ShowTaskAsync(Guid taskId, Window? owner)
     {
@@ -53,7 +55,12 @@ public sealed class DetailNavigationService(
         }
 
         IReadOnlyList<TimelineTaskOption> options = await timelineService.ListTaskOptionsAsync();
-        TimelineEntryEditorWindow editor = new(options, entry) { Owner = owner };
+        TimelineEntryEditorWindow editor = new(
+            options,
+            entry.RecordDate,
+            dayBoundarySettings.CurrentDayEndTime,
+            entry)
+        { Owner = owner };
         if (editor.ShowDialog() == true && editor.UpdateRequest is UpdateTimelineEntryRequest request)
         {
             await timelineService.UpdateAsync(request);

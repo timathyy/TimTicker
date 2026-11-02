@@ -3,9 +3,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TimTicker.Application.Abstractions;
 using TimTicker.Application.Planning;
+using TimTicker.Application.Settings;
 using TimTicker.Application.Tasks;
 using TimTicker.Application.Timeline;
 using TimTicker.Infrastructure.Persistence;
+using TimTicker.Infrastructure.Storage;
 
 namespace TimTicker.Infrastructure;
 
@@ -33,6 +35,8 @@ public static class DependencyInjection
         services.AddSingleton<ITaskItemRepository, TaskItemRepository>();
         services.AddSingleton<IDailyPlanRepository, DailyPlanRepository>();
         services.AddSingleton<ITimelineEntryRepository, TimelineEntryRepository>();
+        services.AddSingleton<IDayBoundarySettings>(_ =>
+            new JsonDayBoundarySettings(Path.GetDirectoryName(fullDatabasePath)!));
 
         return services;
     }

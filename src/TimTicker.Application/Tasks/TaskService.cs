@@ -1,8 +1,12 @@
 using TimTicker.Domain.Tasks;
+using TimTicker.Application.Settings;
 
 namespace TimTicker.Application.Tasks;
 
-public sealed class TaskService(ITaskItemRepository repository, TimeProvider timeProvider) : ITaskService
+public sealed class TaskService(
+    ITaskItemRepository repository,
+    IDayBoundarySettings dayBoundarySettings,
+    TimeProvider timeProvider) : ITaskService
 {
     public async Task<TaskSummary> CreateAsync(CreateTaskRequest request, CancellationToken cancellationToken = default)
     {
@@ -65,7 +69,9 @@ public sealed class TaskService(ITaskItemRepository repository, TimeProvider tim
 
     private DateTimeOffset UtcNow() => timeProvider.GetUtcNow();
 
-    private DateOnly LocalToday() => DateOnly.FromDateTime(timeProvider.GetLocalNow().DateTime);
+    private DateOnly LocalToday() => DayBoundary.GetBusinessDate(
+        timeProvider.GetLocalNow().DateTime,
+        dayBoundarySettings.CurrentDayEndTime);
 
     internal static TaskSummary ToSummary(TaskItem task) => new(
         task.Id,

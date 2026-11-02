@@ -1,5 +1,6 @@
 using TimTicker.Application.Planning;
 using TimTicker.Application.Tasks;
+using TimTicker.Application.Settings;
 using TimTicker.Domain.Planning;
 using TimTicker.Domain.Tasks;
 using DomainTaskStatus = TimTicker.Domain.Tasks.TaskStatus;
@@ -64,6 +65,24 @@ public sealed class DailyPlanServiceTests
         Assert.Equal(2, plans.Plans.Count);
         Assert.Contains(candidates, candidate => candidate.Task.Id == task.Id);
         Assert.Equal(DomainTaskStatus.Pending, task.Status);
+    }
+
+    [Fact]
+    public async Task BeforeConfiguredDayEndTodayStillUsesPreviousDate()
+    {
+        InMemoryDailyPlanRepository plans = new();
+        InMemoryTaskRepository tasks = new();
+        MutableTimeProvider clock = new(new DateTimeOffset(2026, 11, 3, 3, 0, 0, TimeSpan.Zero));
+        DailyPlanService service = CreateService(
+            plans,
+            tasks,
+            clock,
+            new TestDayBoundarySettings(DayEndTime.SixAm));
+
+        DailyPlanSummary today = await service.GetTodayAsync();
+
+        Assert.Equal(new DateOnly(2026, 11, 2), today.Date);
+        Assert.True(plans.Plans.ContainsKey(new DateOnly(2026, 11, 2)));
     }
 
     [Theory]
@@ -158,10 +177,17 @@ public sealed class DailyPlanServiceTests
     private static DailyPlanService CreateService(
         InMemoryDailyPlanRepository plans,
         InMemoryTaskRepository tasks,
-        MutableTimeProvider clock)
+        MutableTimeProvider clock,
+        IDayBoundarySettings? dayBoundarySettings = null)
     {
-        TaskService taskService = new(tasks, clock);
-        return new DailyPlanService(plans, tasks, taskService, clock);
+        IDayBoundarySettings settings = dayBoundarySettings ?? new TestDayBoundarySettings();
+        TaskService taskService = new(tasks, settings, clock);
+        return new DailyPlanService(
+            plans,
+            tasks,
+            taskService,
+            settings,
+            clock);
     }
 
     private static TaskItem AddPendingTask(InMemoryTaskRepository repository, string title, DateTimeOffset createdAtUtc)

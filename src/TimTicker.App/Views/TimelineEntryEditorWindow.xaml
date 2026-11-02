@@ -4,7 +4,7 @@
         xmlns:controls="clr-namespace:TimTicker.App.Controls"
         Title="时间记录"
         Width="660"
-        Height="690"
+        Height="790"
         AllowsTransparency="True"
         Background="Transparent"
         FontFamily="{StaticResource AppFontFamily}"
@@ -44,35 +44,49 @@
 
                     <TextBlock FontWeight="SemiBold" Text="说明（可选）" />
                     <TextBox x:Name="DescriptionTextBox"
-                             Height="74"
+                             Height="58"
                              Margin="0,8,0,18"
                              AcceptsReturn="True"
                              MaxLength="4000"
                              Style="{StaticResource TextBoxStyle}"
                              TextWrapping="Wrap" />
 
-                    <Grid Margin="0,0,0,18">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="16" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <StackPanel>
-                            <TextBlock FontWeight="SemiBold" Text="分类（可选）" />
-                            <TextBox x:Name="CategoryTextBox"
-                                     Margin="0,8,0,0"
-                                     MaxLength="100"
-                                     Style="{StaticResource TextBoxStyle}" />
-                        </StackPanel>
-                        <StackPanel Grid.Column="2">
-                            <TextBlock FontWeight="SemiBold" Text="关联任务（可选）" />
-                            <ComboBox x:Name="TaskComboBox"
-                                      Margin="0,8,0,0"
-                                      DisplayMemberPath="Title"
-                                      ItemsSource="{Binding TaskChoices}"
-                                      SelectedValuePath="Id" />
-                        </StackPanel>
-                    </Grid>
+                    <TextBlock FontWeight="SemiBold" Text="分类（可选）" />
+                    <TextBox x:Name="CategoryTextBox"
+                             Margin="0,8,0,18"
+                             MaxLength="100"
+                             Style="{StaticResource TextBoxStyle}" />
+
+                    <TextBlock FontWeight="SemiBold" Text="关联任务（可多选）" />
+                    <Border Height="110"
+                            Margin="0,8,0,18"
+                            Padding="6"
+                            Background="{DynamicResource SurfaceSecondaryBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8">
+                        <ListBox ItemsSource="{Binding TaskChoices}"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto">
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                    <Setter Property="Padding" Value="6,4" />
+                                    <Setter Property="Background" Value="Transparent" />
+                                    <Setter Property="BorderThickness" Value="0" />
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <CheckBox Content="{Binding Title}"
+                                              IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                              VerticalAlignment="Center" />
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Border>
 
                     <StackPanel x:Name="TimeFieldsPanel">
                         <TextBlock FontWeight="SemiBold" Text="开始时间" />

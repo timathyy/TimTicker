@@ -6,6 +6,8 @@ public sealed class TimelineEntry
     public const int MaximumDescriptionLength = 4_000;
     public const int MaximumCategoryLength = 100;
 
+    private readonly List<TimelineEntryTaskLink> _taskLinks = [];
+
     private TimelineEntry()
     {
     }
@@ -15,7 +17,7 @@ public sealed class TimelineEntry
         string title,
         string? description,
         string? category,
-        Guid? taskItemId,
+        IEnumerable<Guid> taskItemIds,
         DateTimeOffset startAtUtc,
         DateTimeOffset? endAtUtc,
         DateTimeOffset createdAtUtc,
@@ -32,9 +34,11 @@ public sealed class TimelineEntry
             throw new ArgumentOutOfRangeException(nameof(source));
         }
 
-        ApplyDetails(title, description, category, taskItemId, startAtUtc, endAtUtc);
+        DateTimeOffset normalizedCreatedAt = RequireUtc(createdAtUtc, nameof(createdAtUtc));
+        ApplyDetails(title, description, category, startAtUtc, endAtUtc);
+        SynchronizeTasks(taskItemIds, normalizedCreatedAt);
         Source = source;
-        CreatedAtUtc = RequireUtc(createdAtUtc, nameof(createdAtUtc));
+        CreatedAtUtc = normalizedCreatedAt;
         UpdatedAtUtc = CreatedAtUtc;
     }
 
@@ -46,7 +50,9 @@ public sealed class TimelineEntry
 
     public string? Category { get; private set; }
 
-    public Guid? TaskItemId { get; private set; }
+    public IReadOnlyList<TimelineEntryTaskLink> TaskLinks => _taskLinks;
+
+    public IReadOnlyList<TimelineEntryTaskLink> ActiveTaskLinks => _taskLinks.Where(link => link.IsActive).ToArray();
 
     public DateTimeOffset StartAtUtc { get; private set; }
 
@@ -66,7 +72,7 @@ public sealed class TimelineEntry
         string title,
         string? description,
         string? category,
-        Guid? taskItemId,
+        IEnumerable<Guid> taskItemIds,
         DateTimeOffset startAtUtc,
         DateTimeOffset endAtUtc,
         DateTimeOffset updatedAtUtc)
@@ -77,8 +83,20 @@ public sealed class TimelineEntry
             throw new InvalidOperationException("A running timeline entry must be stopped before it can be edited.");
         }
 
-        ApplyDetails(title, description, category, taskItemId, startAtUtc, endAtUtc);
-        UpdatedAtUtc = RequireUtc(updatedAtUtc, nameof(updatedAtUtc));
+        DateTimeOffset normalizedUpdatedAt = RequireUtc(updatedAtUtc, nameof(updatedAtUtc));
+        ApplyDetails(title, description, category, startAtUtc, endAtUtc);
+        SynchronizeTasks(taskItemIds, normalizedUpdatedAt);
+        UpdatedAtUtc = normalizedUpdatedAt;
+    }
+
+    public void RemoveTask(Guid taskItemId, DateTimeOffset updatedAtUtc)
+    {
+        EnsureActive();
+        DateTimeOffset normalizedUpdatedAt = RequireUtc(updatedAtUtc, nameof(updatedAtUtc));
+        TimelineEntryTaskLink link = _taskLinks.SingleOrDefault(link => link.TaskItemId == taskItemId && link.IsActive)
+            ?? throw new KeyNotFoundException("The task is not linked to this timeline entry.");
+        link.Remove(normalizedUpdatedAt);
+        UpdatedAtUtc = normalizedUpdatedAt;
     }
 
     public void Stop(DateTimeOffset endAtUtc)
@@ -110,7 +128,6 @@ public sealed class TimelineEntry
         string title,
         string? description,
         string? category,
-        Guid? taskItemId,
         DateTimeOffset startAtUtc,
         DateTimeOffset? endAtUtc)
     {
@@ -123,11 +140,6 @@ public sealed class TimelineEntry
 
         string? normalizedDescription = NormalizeOptional(description, MaximumDescriptionLength, nameof(description));
         string? normalizedCategory = NormalizeOptional(category, MaximumCategoryLength, nameof(category));
-        if (taskItemId == Guid.Empty)
-        {
-            throw new ArgumentException("The task identifier must not be empty.", nameof(taskItemId));
-        }
-
         DateTimeOffset normalizedStart = RequireUtc(startAtUtc, nameof(startAtUtc));
         DateTimeOffset? normalizedEnd = endAtUtc.HasValue ? RequireUtc(endAtUtc.Value, nameof(endAtUtc)) : null;
         if (normalizedEnd <= normalizedStart)
@@ -138,9 +150,36 @@ public sealed class TimelineEntry
         Title = normalizedTitle;
         Description = normalizedDescription;
         Category = normalizedCategory;
-        TaskItemId = taskItemId;
         StartAtUtc = normalizedStart;
         EndAtUtc = normalizedEnd;
+    }
+
+    private void SynchronizeTasks(IEnumerable<Guid> taskItemIds, DateTimeOffset changedAtUtc)
+    {
+        ArgumentNullException.ThrowIfNull(taskItemIds);
+        Guid[] normalizedIds = taskItemIds.Distinct().ToArray();
+        if (normalizedIds.Any(id => id == Guid.Empty))
+        {
+            throw new ArgumentException("Task identifiers must not be empty.", nameof(taskItemIds));
+        }
+
+        foreach (TimelineEntryTaskLink link in _taskLinks.Where(link => link.IsActive && !normalizedIds.Contains(link.TaskItemId)))
+        {
+            link.Remove(changedAtUtc);
+        }
+
+        foreach (Guid taskItemId in normalizedIds)
+        {
+            TimelineEntryTaskLink? existing = _taskLinks.SingleOrDefault(link => link.TaskItemId == taskItemId);
+            if (existing is null)
+            {
+                _taskLinks.Add(new TimelineEntryTaskLink(Id, taskItemId, changedAtUtc));
+            }
+            else if (!existing.IsActive)
+            {
+                existing.Restore(changedAtUtc);
+            }
+        }
     }
 
     private void EnsureActive()

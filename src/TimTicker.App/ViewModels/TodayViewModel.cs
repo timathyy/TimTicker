@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 using TimTicker.Application.Planning;
 using TimTicker.Application.Tasks;
 using TimTicker.Application.Timeline;
+using TimTicker.App.Services;
 using TimTicker.Domain.Tasks;
 using TimTicker.Domain.Timeline;
 using DomainTaskStatus = TimTicker.Domain.Tasks.TaskStatus;
@@ -15,6 +16,7 @@ public sealed partial class TodayViewModel(
     IDailyPlanService planService,
     ITaskService taskService,
     ITimelineService timelineService,
+    IDetailNavigationService detailNavigationService,
     TimeProvider timeProvider) : ViewModelBase
 {
     public ObservableCollection<TodayPlanItemViewModel> PlanItems { get; } = [];
@@ -89,6 +91,49 @@ public sealed partial class TodayViewModel(
     public async Task DeleteTimelineEntryAsync(Guid id)
     {
         await timelineService.DeleteAsync(id);
+        ApplyTimeline(await timelineService.GetTodayAsync());
+    }
+
+    public async Task ShowTaskDetailsAsync(Guid taskId, System.Windows.Window? owner)
+    {
+        if (await detailNavigationService.ShowTaskAsync(taskId, owner))
+        {
+            ApplyPlan(await planService.GetTodayAsync());
+            ApplyTimeline(await timelineService.GetTodayAsync());
+        }
+    }
+
+    public async Task ShowTimelineEntryDetailsAsync(Guid entryId, System.Windows.Window? owner)
+    {
+        if (await detailNavigationService.ShowTimelineEntryAsync(entryId, owner))
+        {
+            ApplyPlan(await planService.GetTodayAsync());
+            ApplyTimeline(await timelineService.GetTodayAsync());
+        }
+    }
+
+    [RelayCommand]
+    private async Task CompleteLinkedTaskAsync(TimelineLinkedTaskViewModel? item)
+    {
+        if (item?.Status != DomainTaskStatus.Pending)
+        {
+            return;
+        }
+
+        await taskService.CompleteAsync(item.TaskId);
+        ApplyPlan(await planService.GetTodayAsync());
+        ApplyTimeline(await timelineService.GetTodayAsync());
+    }
+
+    [RelayCommand]
+    private async Task RemoveLinkedTaskAsync(TimelineLinkedTaskViewModel? item)
+    {
+        if (item is null)
+        {
+            return;
+        }
+
+        await timelineService.RemoveTaskAsync(item.TimelineEntryId, item.TaskId);
         ApplyTimeline(await timelineService.GetTodayAsync());
     }
 
@@ -202,10 +247,11 @@ public sealed class TodayTimelineItemViewModel
 {
     public TodayTimelineItemViewModel(TimelineEntrySummary entry, DateOnly displayDate)
     {
+        Summary = entry;
         Id = entry.Id;
         Title = entry.Title;
         Description = entry.Description;
-        CategoryAndTaskText = string.Join(" · ", new[] { entry.Category, entry.TaskTitle }.Where(value => !string.IsNullOrWhiteSpace(value)));
+        CategoryText = entry.Category ?? string.Empty;
         TimeRangeText = $"{FormatLocalTime(entry.StartLocal, displayDate)} — " +
             (entry.EndLocal.HasValue ? FormatLocalTime(entry.EndLocal.Value, displayDate) : "进行中");
         DurationText = entry.IsRunning ? "正在记录" : FormatDuration(entry.DayDuration);
@@ -213,9 +259,12 @@ public sealed class TodayTimelineItemViewModel
         IsTimerEntry = entry.Source == TimelineEntrySource.Timer;
         StartLocal = entry.StartLocal;
         EndLocal = entry.EndLocal;
-        TaskItemId = entry.TaskItemId;
-        Category = entry.Category;
+        LinkedTasks = new ObservableCollection<TimelineLinkedTaskViewModel>(
+            entry.LinkedTasks.Select(task => new TimelineLinkedTaskViewModel(entry.Id, task)));
+        HasLinkedTasks = LinkedTasks.Count > 0;
     }
+
+    public TimelineEntrySummary Summary { get; }
 
     public Guid Id { get; }
 
@@ -223,7 +272,7 @@ public sealed class TodayTimelineItemViewModel
 
     public string? Description { get; }
 
-    public string CategoryAndTaskText { get; }
+    public string CategoryText { get; }
 
     public string TimeRangeText { get; }
 
@@ -237,9 +286,9 @@ public sealed class TodayTimelineItemViewModel
 
     public DateTime? EndLocal { get; }
 
-    public Guid? TaskItemId { get; }
+    public ObservableCollection<TimelineLinkedTaskViewModel> LinkedTasks { get; }
 
-    public string? Category { get; }
+    public bool HasLinkedTasks { get; }
 
     private static string FormatLocalTime(DateTime value, DateOnly displayDate) =>
         DateOnly.FromDateTime(value) == displayDate
@@ -253,6 +302,34 @@ public sealed class TodayTimelineItemViewModel
             ? $"{totalMinutes / 60}小时{totalMinutes % 60}分钟"
             : $"{totalMinutes}分钟";
     }
+}
+
+public sealed class TimelineLinkedTaskViewModel
+{
+    public TimelineLinkedTaskViewModel(Guid timelineEntryId, TaskSummary task)
+    {
+        TimelineEntryId = timelineEntryId;
+        TaskId = task.Id;
+        Title = task.Title;
+        Status = task.Status;
+        CanComplete = task.Status == DomainTaskStatus.Pending;
+        StatusText = task.Status == DomainTaskStatus.Completed ? "已完成" : "待完成";
+        DueDateText = task.DueDate.HasValue ? $"截止 {task.DueDate:yyyy-MM-dd}" : "无截止日期";
+    }
+
+    public Guid TimelineEntryId { get; }
+
+    public Guid TaskId { get; }
+
+    public string Title { get; }
+
+    public DomainTaskStatus Status { get; }
+
+    public bool CanComplete { get; }
+
+    public string StatusText { get; }
+
+    public string DueDateText { get; }
 }
 
 public sealed class TodayPlanItemViewModel

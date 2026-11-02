@@ -30,7 +30,7 @@ public sealed class TimelineServiceTests
             "Overnight",
             null,
             null,
-            null,
+            [],
             new DateTimeOffset(2026, 11, 2, 23, 0, 0, TimeSpan.Zero),
             new DateTimeOffset(2026, 11, 3, 1, 0, 0, TimeSpan.Zero),
             new DateTimeOffset(2026, 11, 2, 23, 0, 0, TimeSpan.Zero)));
@@ -55,7 +55,7 @@ public sealed class TimelineServiceTests
             "Local midnight",
             null,
             null,
-            null,
+            [],
             new DateTimeOffset(2026, 11, 2, 16, 0, 0, TimeSpan.Zero),
             new DateTimeOffset(2026, 11, 2, 18, 0, 0, TimeSpan.Zero),
             new DateTimeOffset(2026, 11, 2, 16, 0, 0, TimeSpan.Zero)));
@@ -73,7 +73,7 @@ public sealed class TimelineServiceTests
         InMemoryTimelineRepository timelines = new();
         MutableTimeProvider clock = new(new DateTimeOffset(2026, 11, 2, 8, 0, 0, TimeSpan.Zero));
         TimelineService firstService = CreateService(timelines, clock);
-        TimelineEntrySummary started = await firstService.StartAsync(new StartTimelineEntryRequest("Focus", null, null, null));
+        TimelineEntrySummary started = await firstService.StartAsync(new StartTimelineEntryRequest("Focus", null, null, []));
 
         clock.UtcNow = clock.UtcNow.AddHours(2);
         TimelineService restartedService = CreateService(timelines, clock);
@@ -120,7 +120,7 @@ public sealed class TimelineServiceTests
             "Original",
             null,
             "Work",
-            task.Id,
+            [task.Id],
             new DateTime(2026, 11, 2, 8, 0, 0),
             new DateTime(2026, 11, 2, 9, 0, 0)));
 
@@ -129,23 +129,49 @@ public sealed class TimelineServiceTests
             "Updated",
             "Description",
             "Focus",
-            task.Id,
+            [task.Id],
             new DateTime(2026, 11, 2, 9, 0, 0),
             new DateTime(2026, 11, 2, 10, 0, 0)));
         await service.DeleteAsync(created.Id);
 
         Assert.Equal("Updated", updated.Title);
-        Assert.Equal("Linked task", updated.TaskTitle);
+        Assert.Equal("Linked task", Assert.Single(updated.LinkedTasks).Title);
         Assert.Equal(TimelineEntrySource.Manual, updated.Source);
         Assert.True(Assert.Single(timelines.Entries).IsDeleted);
         Assert.Empty((await service.GetTodayAsync()).Entries);
+    }
+
+    [Fact]
+    public async Task EntryCanLinkMultipleTasksAndRemoveOneAssociation()
+    {
+        InMemoryTimelineRepository timelines = new();
+        InMemoryTaskRepository tasks = new();
+        DateTimeOffset now = new(2026, 11, 2, 12, 0, 0, TimeSpan.Zero);
+        TaskItem first = new(Guid.NewGuid(), "First", null, new DateOnly(2026, 11, 2), null, TaskPriority.None, now);
+        TaskItem second = new(Guid.NewGuid(), "Second", null, new DateOnly(2026, 11, 2), null, TaskPriority.None, now);
+        tasks.Tasks.AddRange([first, second]);
+        TimelineService service = new(timelines, tasks, new MutableTimeProvider(now));
+
+        TimelineEntrySummary created = await service.CreateAsync(new CreateTimelineEntryRequest(
+            "Shared work",
+            null,
+            null,
+            [first.Id, second.Id],
+            new DateTime(2026, 11, 2, 9, 0, 0),
+            new DateTime(2026, 11, 2, 10, 0, 0)));
+        await service.RemoveTaskAsync(created.Id, first.Id);
+
+        TimelineEntrySummary updated = await service.GetAsync(created.Id);
+        Assert.Equal([second.Id], updated.LinkedTasks.Select(task => task.Id));
+        Assert.Empty(await service.ListForTaskAsync(first.Id));
+        Assert.Equal(created.Id, Assert.Single(await service.ListForTaskAsync(second.Id)).Id);
     }
 
     private static CreateTimelineEntryRequest CreateRequest(int startHour, int startMinute, int endHour, int endMinute) => new(
         "Manual entry",
         null,
         null,
-        null,
+        [],
         new DateTime(2026, 11, 2, startHour, startMinute, 0),
         new DateTime(2026, 11, 2, endHour, endMinute, 0));
 
@@ -183,6 +209,12 @@ public sealed class TimelineServiceTests
                 .ToArray();
             return Task.FromResult<IReadOnlyList<TimelineEntry>>(result);
         }
+
+        public Task<IReadOnlyList<TimelineEntry>> ListByTaskAsync(
+            Guid taskId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<TimelineEntry>>(
+                Entries.Where(entry => !entry.IsDeleted && entry.ActiveTaskLinks.Any(link => link.TaskItemId == taskId)).ToArray());
 
         public Task UpdateAsync(TimelineEntry entry, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }

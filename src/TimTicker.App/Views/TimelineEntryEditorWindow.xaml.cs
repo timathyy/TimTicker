@@ -2,19 +2,19 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Input;
+using CommunityToolkit.Mvvm.ComponentModel;
 using TimTicker.Application.Timeline;
-using TimTicker.App.ViewModels;
 
 namespace TimTicker.App.Views;
 
 public partial class TimelineEntryEditorWindow : Window
 {
-    private readonly TodayTimelineItemViewModel? _entry;
+    private readonly TimelineEntrySummary? _entry;
     private readonly bool _startMode;
 
     public TimelineEntryEditorWindow(
         IReadOnlyList<TimelineTaskOption> taskOptions,
-        TodayTimelineItemViewModel? entry = null,
+        TimelineEntrySummary? entry = null,
         bool startMode = false)
     {
         ArgumentNullException.ThrowIfNull(taskOptions);
@@ -25,8 +25,10 @@ public partial class TimelineEntryEditorWindow : Window
             throw new ArgumentException("An existing entry cannot be opened in start mode.", nameof(startMode));
         }
         TaskChoices = new ObservableCollection<TimelineTaskChoice>(
-            new[] { new TimelineTaskChoice(null, "不关联任务") }
-                .Concat(taskOptions.Select(option => new TimelineTaskChoice(option.Id, option.Title))));
+            taskOptions.Select(option => new TimelineTaskChoice(
+                option.Id,
+                option.Title,
+                entry?.LinkedTasks.Any(task => task.Id == option.Id) == true)));
         InitializeComponent();
         DataContext = this;
         InitializeFields();
@@ -47,7 +49,7 @@ public partial class TimelineEntryEditorWindow : Window
         WindowTitleText.Text = _startMode ? "开始记录" : isEditing ? "编辑时间记录" : "手动录入";
         SaveButton.Content = _startMode ? "开始记录" : isEditing ? "保存修改" : "添加记录";
         TimeFieldsPanel.Visibility = _startMode ? Visibility.Collapsed : Visibility.Visible;
-        Height = _startMode ? 520 : 690;
+        Height = _startMode ? 610 : 790;
         DateTime end = _entry?.EndLocal ?? DateTime.Now;
         DateTime start = _entry?.StartLocal ?? end.AddHours(-1);
         TitleTextBox.Text = _entry?.Title ?? string.Empty;
@@ -57,7 +59,6 @@ public partial class TimelineEntryEditorWindow : Window
         StartTimeTextBox.Text = start.ToString("HH:mm", CultureInfo.InvariantCulture);
         EndDateSelector.SelectedDate = end.Date;
         EndTimeTextBox.Text = end.ToString("HH:mm", CultureInfo.InvariantCulture);
-        TaskComboBox.SelectedIndex = Math.Max(0, TaskChoices.ToList().FindIndex(choice => choice.Id == _entry?.TaskItemId));
     }
 
     private void SaveButton_Click(object sender, RoutedEventArgs e)
@@ -69,14 +70,14 @@ public partial class TimelineEntryEditorWindow : Window
             return;
         }
 
-        Guid? taskItemId = (TaskComboBox.SelectedItem as TimelineTaskChoice)?.Id;
+        Guid[] taskItemIds = TaskChoices.Where(choice => choice.IsSelected).Select(choice => choice.Id).ToArray();
         if (_startMode)
         {
             StartRequest = new StartTimelineEntryRequest(
                 title,
                 DescriptionTextBox.Text,
                 CategoryTextBox.Text,
-                taskItemId);
+                taskItemIds);
             DialogResult = true;
             return;
         }
@@ -109,7 +110,7 @@ public partial class TimelineEntryEditorWindow : Window
                 title,
                 DescriptionTextBox.Text,
                 CategoryTextBox.Text,
-                taskItemId,
+                taskItemIds,
                 startLocal,
                 endLocal);
         }
@@ -120,7 +121,7 @@ public partial class TimelineEntryEditorWindow : Window
                 title,
                 DescriptionTextBox.Text,
                 CategoryTextBox.Text,
-                taskItemId,
+                taskItemIds,
                 startLocal,
                 endLocal);
         }
@@ -167,4 +168,12 @@ public partial class TimelineEntryEditorWindow : Window
     }
 }
 
-public sealed record TimelineTaskChoice(Guid? Id, string Title);
+public sealed partial class TimelineTaskChoice(Guid id, string title, bool isSelected) : ObservableObject
+{
+    public Guid Id { get; } = id;
+
+    public string Title { get; } = title;
+
+    [ObservableProperty]
+    private bool _isSelected = isSelected;
+}

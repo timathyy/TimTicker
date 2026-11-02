@@ -33,6 +33,14 @@ public partial class TasksView : UserControl
         }
     }
 
+    private async void TaskDetailButton_Click(object sender, System.Windows.RoutedEventArgs e)
+    {
+        if (sender is Button { DataContext: TaskSummary task } && DataContext is TasksViewModel viewModel)
+        {
+            await viewModel.ShowTaskDetailsAsync(task.Id, System.Windows.Window.GetWindow(this));
+        }
+    }
+
     private async void DeleteTaskButton_Click(object sender, System.Windows.RoutedEventArgs e)
     {
         if (sender is not Button { DataContext: TaskSummary task } || DataContext is not TasksViewModel viewModel)

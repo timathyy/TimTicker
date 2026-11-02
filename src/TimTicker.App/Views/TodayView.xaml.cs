@@ -1,4 +1,5 @@
 using System.Windows.Controls;
+using System.Windows.Media;
 using TimTicker.Application.Planning;
 using TimTicker.Application.Tasks;
 using TimTicker.Application.Timeline;
@@ -113,7 +114,7 @@ public partial class TodayView : UserControl
         }
 
         IReadOnlyList<TimelineTaskOption> taskOptions = await viewModel.GetTimelineTaskOptionsAsync();
-        TimelineEntryEditorWindow window = new(taskOptions, entry)
+        TimelineEntryEditorWindow window = new(taskOptions, entry.Summary)
         {
             Owner = System.Windows.Window.GetWindow(this),
         };
@@ -121,6 +122,35 @@ public partial class TodayView : UserControl
         {
             await RunTimelineActionAsync(() => viewModel.UpdateTimelineEntryAsync(request));
         }
+    }
+
+    private async void PlanTaskDetailButton_Click(object sender, System.Windows.RoutedEventArgs e)
+    {
+        if (sender is Button { DataContext: TodayPlanItemViewModel item } && DataContext is TodayViewModel viewModel)
+        {
+            await viewModel.ShowTaskDetailsAsync(item.TaskId, System.Windows.Window.GetWindow(this));
+        }
+    }
+
+    private async void TimelineEntryDetailButton_Click(object sender, System.Windows.RoutedEventArgs e)
+    {
+        if (sender is Button { DataContext: TodayTimelineItemViewModel entry } && DataContext is TodayViewModel viewModel)
+        {
+            await viewModel.ShowTimelineEntryDetailsAsync(entry.Id, System.Windows.Window.GetWindow(this));
+        }
+    }
+
+    private async void LinkedTaskCard_MouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (FindAncestor<Button>(e.OriginalSource as System.Windows.DependencyObject) is not null ||
+            sender is not Border { DataContext: TimelineLinkedTaskViewModel task } ||
+            DataContext is not TodayViewModel viewModel)
+        {
+            return;
+        }
+
+        await viewModel.ShowTaskDetailsAsync(task.TaskId, System.Windows.Window.GetWindow(this));
+        e.Handled = true;
     }
 
     private async void DeleteTimelineEntryButton_Click(object sender, System.Windows.RoutedEventArgs e)
@@ -169,4 +199,19 @@ public partial class TodayView : UserControl
         "TimTicker",
         System.Windows.MessageBoxButton.OK,
         System.Windows.MessageBoxImage.Information);
+
+    private static T? FindAncestor<T>(System.Windows.DependencyObject? source) where T : System.Windows.DependencyObject
+    {
+        while (source is not null)
+        {
+            if (source is T match)
+            {
+                return match;
+            }
+
+            source = VisualTreeHelper.GetParent(source);
+        }
+
+        return null;
+    }
 }

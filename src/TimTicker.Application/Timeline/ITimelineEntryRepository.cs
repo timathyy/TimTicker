@@ -15,5 +15,7 @@ public interface ITimelineEntryRepository
         DateTimeOffset endAtUtc,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<TimelineEntry>> ListByTaskAsync(Guid taskId, CancellationToken cancellationToken = default);
+
     Task UpdateAsync(TimelineEntry entry, CancellationToken cancellationToken = default);
 }

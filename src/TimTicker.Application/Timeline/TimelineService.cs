@@ -25,6 +25,33 @@ public sealed class TimelineService(
         return new TimelineDaySummary(today, summaries, totalDuration);
     }
 
+    public async Task<TimelineEntrySummary> GetAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        TimelineEntry entry = await GetEntryAsync(id, cancellationToken).ConfigureAwait(false);
+        DateOnly displayDate = DateOnly.FromDateTime(ConvertUtcToLocal(entry.StartAtUtc));
+        return await ToSummaryAsync(entry, displayDate, cancellationToken, clipToDay: false).ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyList<TimelineEntrySummary>> ListForTaskAsync(
+        Guid taskId,
+        CancellationToken cancellationToken = default)
+    {
+        if (taskId == Guid.Empty)
+        {
+            throw new ArgumentException("The task identifier must not be empty.", nameof(taskId));
+        }
+
+        IReadOnlyList<TimelineEntry> entries = await repository.ListByTaskAsync(taskId, cancellationToken).ConfigureAwait(false);
+        List<TimelineEntrySummary> summaries = [];
+        foreach (TimelineEntry entry in entries)
+        {
+            DateOnly displayDate = DateOnly.FromDateTime(ConvertUtcToLocal(entry.StartAtUtc));
+            summaries.Add(await ToSummaryAsync(entry, displayDate, cancellationToken, clipToDay: false).ConfigureAwait(false));
+        }
+
+        return summaries;
+    }
+
     public async Task<IReadOnlyList<TimelineTaskOption>> ListTaskOptionsAsync(CancellationToken cancellationToken = default)
     {
         IReadOnlyList<Domain.Tasks.TaskItem> tasks = await taskRepository.ListAsync(
@@ -38,7 +65,7 @@ public sealed class TimelineService(
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        await EnsureTaskExistsAsync(request.TaskItemId, cancellationToken).ConfigureAwait(false);
+        await EnsureTasksExistAsync(request.TaskItemIds, cancellationToken).ConfigureAwait(false);
         DateTimeOffset now = UtcNow();
         await EnsureNoOverlapAsync(now, DateTimeOffset.MaxValue, null, cancellationToken).ConfigureAwait(false);
         TimelineEntry entry = new(
@@ -46,7 +73,7 @@ public sealed class TimelineService(
             request.Title,
             request.Description,
             request.Category,
-            request.TaskItemId,
+            request.TaskItemIds,
             now,
             null,
             now,
@@ -71,7 +98,7 @@ public sealed class TimelineService(
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        await EnsureTaskExistsAsync(request.TaskItemId, cancellationToken).ConfigureAwait(false);
+        await EnsureTasksExistAsync(request.TaskItemIds, cancellationToken).ConfigureAwait(false);
         DateTimeOffset startAtUtc = ConvertLocalToUtc(request.StartLocal, nameof(request.StartLocal));
         DateTimeOffset endAtUtc = ConvertLocalToUtc(request.EndLocal, nameof(request.EndLocal));
         await EnsureNoOverlapAsync(startAtUtc, endAtUtc, null, cancellationToken).ConfigureAwait(false);
@@ -81,7 +108,7 @@ public sealed class TimelineService(
             request.Title,
             request.Description,
             request.Category,
-            request.TaskItemId,
+            request.TaskItemIds,
             startAtUtc,
             endAtUtc,
             now,
@@ -96,7 +123,7 @@ public sealed class TimelineService(
     {
         ArgumentNullException.ThrowIfNull(request);
         TimelineEntry entry = await GetEntryAsync(request.Id, cancellationToken).ConfigureAwait(false);
-        await EnsureTaskExistsAsync(request.TaskItemId, cancellationToken).ConfigureAwait(false);
+        await EnsureTasksExistAsync(request.TaskItemIds, cancellationToken).ConfigureAwait(false);
         DateTimeOffset startAtUtc = ConvertLocalToUtc(request.StartLocal, nameof(request.StartLocal));
         DateTimeOffset endAtUtc = ConvertLocalToUtc(request.EndLocal, nameof(request.EndLocal));
         await EnsureNoOverlapAsync(startAtUtc, endAtUtc, entry.Id, cancellationToken).ConfigureAwait(false);
@@ -104,12 +131,27 @@ public sealed class TimelineService(
             request.Title,
             request.Description,
             request.Category,
-            request.TaskItemId,
+            request.TaskItemIds,
             startAtUtc,
             endAtUtc,
             UtcNow());
         await repository.UpdateAsync(entry, cancellationToken).ConfigureAwait(false);
         return await ToSummaryAsync(entry, LocalToday(), cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task RemoveTaskAsync(
+        Guid entryId,
+        Guid taskId,
+        CancellationToken cancellationToken = default)
+    {
+        if (taskId == Guid.Empty)
+        {
+            throw new ArgumentException("The task identifier must not be empty.", nameof(taskId));
+        }
+
+        TimelineEntry entry = await GetEntryAsync(entryId, cancellationToken).ConfigureAwait(false);
+        entry.RemoveTask(taskId, UtcNow());
+        await repository.UpdateAsync(entry, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
@@ -130,16 +172,15 @@ public sealed class TimelineService(
             ?? throw new KeyNotFoundException("The requested timeline entry was not found.");
     }
 
-    private async Task EnsureTaskExistsAsync(Guid? taskItemId, CancellationToken cancellationToken)
+    private async Task EnsureTasksExistAsync(IEnumerable<Guid> taskItemIds, CancellationToken cancellationToken)
     {
-        if (!taskItemId.HasValue)
+        ArgumentNullException.ThrowIfNull(taskItemIds);
+        foreach (Guid taskItemId in taskItemIds.Distinct())
         {
-            return;
-        }
-
-        if (taskItemId == Guid.Empty || await taskRepository.FindAsync(taskItemId.Value, cancellationToken).ConfigureAwait(false) is null)
-        {
-            throw new KeyNotFoundException("The linked task was not found.");
+            if (taskItemId == Guid.Empty || await taskRepository.FindAsync(taskItemId, cancellationToken).ConfigureAwait(false) is null)
+            {
+                throw new KeyNotFoundException("A linked task was not found.");
+            }
         }
     }
 
@@ -166,18 +207,29 @@ public sealed class TimelineService(
     private async Task<TimelineEntrySummary> ToSummaryAsync(
         TimelineEntry entry,
         DateOnly displayDate,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool clipToDay = true)
     {
-        string? taskTitle = null;
-        if (entry.TaskItemId.HasValue)
+        List<TaskSummary> linkedTasks = [];
+        foreach (TimelineEntryTaskLink link in entry.ActiveTaskLinks)
         {
-            taskTitle = (await taskRepository.FindAsync(entry.TaskItemId.Value, cancellationToken).ConfigureAwait(false))?.Title;
+            Domain.Tasks.TaskItem? task = await taskRepository.FindAsync(link.TaskItemId, cancellationToken).ConfigureAwait(false);
+            if (task is not null)
+            {
+                linkedTasks.Add(TaskService.ToSummary(task));
+            }
         }
 
-        (DateTimeOffset dayStartUtc, DateTimeOffset dayEndUtc) = GetUtcDayBounds(displayDate);
         DateTimeOffset effectiveEnd = entry.EndAtUtc ?? UtcNow();
-        DateTimeOffset segmentStart = entry.StartAtUtc > dayStartUtc ? entry.StartAtUtc : dayStartUtc;
-        DateTimeOffset segmentEnd = effectiveEnd < dayEndUtc ? effectiveEnd : dayEndUtc;
+        DateTimeOffset segmentStart = entry.StartAtUtc;
+        DateTimeOffset segmentEnd = effectiveEnd;
+        if (clipToDay)
+        {
+            (DateTimeOffset dayStartUtc, DateTimeOffset dayEndUtc) = GetUtcDayBounds(displayDate);
+            segmentStart = entry.StartAtUtc > dayStartUtc ? entry.StartAtUtc : dayStartUtc;
+            segmentEnd = effectiveEnd < dayEndUtc ? effectiveEnd : dayEndUtc;
+        }
+
         TimeSpan dayDuration = segmentEnd > segmentStart ? segmentEnd - segmentStart : TimeSpan.Zero;
 
         return new TimelineEntrySummary(
@@ -185,8 +237,7 @@ public sealed class TimelineService(
             entry.Title,
             entry.Description,
             entry.Category,
-            entry.TaskItemId,
-            taskTitle,
+            linkedTasks,
             entry.StartAtUtc,
             entry.EndAtUtc,
             ConvertUtcToLocal(entry.StartAtUtc),

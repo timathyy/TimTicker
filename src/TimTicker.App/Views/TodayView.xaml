@@ -242,6 +242,12 @@
                                             </StackPanel>
                                             <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" Orientation="Horizontal">
                                                 <Button Margin="0,0,8,0"
+                                                        Click="PlanTaskDetailButton_Click"
+                                                        Content="&#xE946;"
+                                                        FontFamily="Segoe Fluent Icons"
+                                                        Style="{StaticResource TaskIconButtonStyle}"
+                                                        ToolTip="查看详情" />
+                                                <Button Margin="0,0,8,0"
                                                         Command="{Binding DataContext.CompleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                         CommandParameter="{Binding}"
                                                         ToolTip="完成任务">
@@ -488,9 +494,56 @@
                                                 <TextBlock Margin="0,3,0,0"
                                                            Foreground="{DynamicResource TextTertiaryBrush}"
                                                            FontSize="12"
-                                                           Text="{Binding CategoryAndTaskText}" />
+                                                           Text="{Binding CategoryText}" />
+                                                <ItemsControl Margin="0,8,0,0" ItemsSource="{Binding LinkedTasks}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Border Margin="0,0,0,6"
+                                                                    Padding="10,7"
+                                                                    Background="{DynamicResource SurfaceSecondaryBrush}"
+                                                                    BorderBrush="{DynamicResource BorderBrush}"
+                                                                    BorderThickness="1"
+                                                                    CornerRadius="8"
+                                                                    Cursor="Hand"
+                                                                    MouseLeftButtonUp="LinkedTaskCard_MouseLeftButtonUp">
+                                                                <Grid>
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="*" />
+                                                                        <ColumnDefinition Width="Auto" />
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <StackPanel VerticalAlignment="Center">
+                                                                        <TextBlock FontWeight="SemiBold" Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                                                        <TextBlock Margin="0,3,0,0" FontSize="11" Foreground="{DynamicResource TextTertiaryBrush}" Text="{Binding DueDateText}" />
+                                                                    </StackPanel>
+                                                                    <StackPanel Grid.Column="1" Margin="10,0,0,0" Orientation="Horizontal">
+                                                                        <Button Margin="0,0,6,0"
+                                                                                Command="{Binding DataContext.CompleteLinkedTaskCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                                CommandParameter="{Binding}"
+                                                                                Content="&#xE73E;"
+                                                                                FontFamily="Segoe Fluent Icons"
+                                                                                IsEnabled="{Binding CanComplete}"
+                                                                                Style="{StaticResource PlanIconButtonStyle}"
+                                                                                ToolTip="完成任务" />
+                                                                        <Button Command="{Binding DataContext.RemoveLinkedTaskCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                                CommandParameter="{Binding}"
+                                                                                Content="&#xE711;"
+                                                                                FontFamily="Segoe Fluent Icons"
+                                                                                Style="{StaticResource PlanIconButtonStyle}"
+                                                                                ToolTip="移出此记录" />
+                                                                    </StackPanel>
+                                                                </Grid>
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
                                             </StackPanel>
                                             <StackPanel Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal">
+                                                <Button Margin="0,0,6,0"
+                                                        Click="TimelineEntryDetailButton_Click"
+                                                        Content="&#xE946;"
+                                                        FontFamily="Segoe Fluent Icons"
+                                                        Style="{StaticResource PlanIconButtonStyle}"
+                                                        ToolTip="查看详情" />
                                                 <Button Margin="0,0,6,0"
                                                         Click="EditTimelineEntryButton_Click"
                                                         Content="编辑">

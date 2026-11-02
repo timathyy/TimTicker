@@ -3,13 +3,13 @@ using TimTicker.Domain.Timeline;
 
 namespace TimTicker.Application.Timeline;
 
-public sealed record StartTimelineEntryRequest(string Title, string? Description, string? Category, Guid? TaskItemId);
+public sealed record StartTimelineEntryRequest(string Title, string? Description, string? Category, IReadOnlyList<Guid> TaskItemIds);
 
 public sealed record CreateTimelineEntryRequest(
     string Title,
     string? Description,
     string? Category,
-    Guid? TaskItemId,
+    IReadOnlyList<Guid> TaskItemIds,
     DateTime StartLocal,
     DateTime EndLocal);
 
@@ -18,7 +18,7 @@ public sealed record UpdateTimelineEntryRequest(
     string Title,
     string? Description,
     string? Category,
-    Guid? TaskItemId,
+    IReadOnlyList<Guid> TaskItemIds,
     DateTime StartLocal,
     DateTime EndLocal);
 
@@ -27,8 +27,7 @@ public sealed record TimelineEntrySummary(
     string Title,
     string? Description,
     string? Category,
-    Guid? TaskItemId,
-    string? TaskTitle,
+    IReadOnlyList<TaskSummary> LinkedTasks,
     DateTimeOffset StartAtUtc,
     DateTimeOffset? EndAtUtc,
     DateTime StartLocal,

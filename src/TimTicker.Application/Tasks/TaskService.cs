@@ -28,6 +28,9 @@ public sealed class TaskService(ITaskItemRepository repository, TimeProvider tim
         return ToSummary(task);
     }
 
+    public async Task<TaskSummary> GetAsync(Guid id, CancellationToken cancellationToken = default) =>
+        ToSummary(await GetTaskAsync(id, cancellationToken).ConfigureAwait(false));
+
     public async Task<IReadOnlyList<TaskSummary>> ListAsync(TaskQuery query, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(query);

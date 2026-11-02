@@ -6,6 +6,8 @@ public interface ITaskService
 
     Task<TaskSummary> UpdateAsync(UpdateTaskRequest request, CancellationToken cancellationToken = default);
 
+    Task<TaskSummary> GetAsync(Guid id, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<TaskSummary>> ListAsync(TaskQuery query, CancellationToken cancellationToken = default);
 
     Task CompleteAsync(Guid id, CancellationToken cancellationToken = default);

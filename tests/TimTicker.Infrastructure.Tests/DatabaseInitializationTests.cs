@@ -43,13 +43,14 @@ public sealed class DatabaseInitializationTests
                         (await context.Database.GetPendingMigrationsAsync()).ToArray();
 
                     Assert.True(File.Exists(databasePath));
-                    Assert.Equal(6, appliedMigrations.Length);
+                    Assert.Equal(7, appliedMigrations.Length);
                     Assert.Contains(appliedMigrations, migration => migration.EndsWith("_InitialCreate", StringComparison.Ordinal));
                     Assert.Contains(appliedMigrations, migration => migration.EndsWith("_TaskPool", StringComparison.Ordinal));
                     Assert.Contains(appliedMigrations, migration => migration.EndsWith("_TaskDates", StringComparison.Ordinal));
                     Assert.Contains(appliedMigrations, migration => migration.EndsWith("_DailyPlanning", StringComparison.Ordinal));
                     Assert.Contains(appliedMigrations, migration => migration.EndsWith("_TimelineEntries", StringComparison.Ordinal));
                     Assert.Contains(appliedMigrations, migration => migration.EndsWith("_TimelineEntrySource", StringComparison.Ordinal));
+                    Assert.Contains(appliedMigrations, migration => migration.EndsWith("_TimelineEntryMultipleTasks", StringComparison.Ordinal));
                     Assert.Empty(pendingMigrations);
                 }
             }
@@ -65,7 +66,7 @@ public sealed class DatabaseInitializationTests
     }
 
     [Fact]
-    public async Task InitializeAsyncAddsSourceToExistingTimelineEntries()
+    public async Task InitializeAsyncMigratesExistingTimelineTaskAssociation()
     {
         string testRoot = Path.Combine(Path.GetTempPath(), "TimTicker.Tests", Guid.NewGuid().ToString("N"));
         string databasePath = Path.Combine(testRoot, "Data", "timticker.db");
@@ -81,25 +82,37 @@ public sealed class DatabaseInitializationTests
             IDbContextFactory<TimTickerDbContext> contextFactory =
                 serviceProvider.GetRequiredService<IDbContextFactory<TimTickerDbContext>>();
             Guid entryId = Guid.NewGuid();
+            Guid taskId = Guid.NewGuid();
             long startTicks = new DateTimeOffset(2026, 11, 2, 8, 0, 0, TimeSpan.Zero).UtcTicks;
             long endTicks = new DateTimeOffset(2026, 11, 2, 9, 0, 0, TimeSpan.Zero).UtcTicks;
             await using (TimTickerDbContext oldContext = await contextFactory.CreateDbContextAsync())
             {
                 await oldContext.Database.MigrateAsync("20261102114842_TimelineEntries");
+                TaskItem task = new(
+                    taskId,
+                    "Existing linked task",
+                    null,
+                    new DateOnly(2026, 11, 2),
+                    null,
+                    TaskPriority.None,
+                    new DateTimeOffset(startTicks, TimeSpan.Zero));
+                oldContext.Tasks.Add(task);
+                await oldContext.SaveChangesAsync();
                 await oldContext.Database.ExecuteSqlInterpolatedAsync($"""
                     INSERT INTO TimelineEntries
                         (Id, Title, Description, Category, TaskItemId, StartAtUtc, EndAtUtc, CreatedAtUtc, UpdatedAtUtc, IsDeleted)
                     VALUES
-                        ({entryId}, {"Existing manual record"}, {null}, {null}, {null}, {startTicks}, {endTicks}, {startTicks}, {startTicks}, {false})
+                        ({entryId}, {"Existing manual record"}, {null}, {null}, {taskId}, {startTicks}, {endTicks}, {startTicks}, {startTicks}, {false})
                     """);
             }
 
             await serviceProvider.GetRequiredService<IAppDatabaseInitializer>().InitializeAsync();
 
             await using TimTickerDbContext upgradedContext = await contextFactory.CreateDbContextAsync();
-            TimelineEntry entry = Assert.Single(await upgradedContext.TimelineEntries.ToListAsync());
+            TimelineEntry entry = Assert.Single(await upgradedContext.TimelineEntries.Include(entry => entry.TaskLinks).ToListAsync());
             Assert.Equal(entryId, entry.Id);
             Assert.Equal(TimelineEntrySource.Manual, entry.Source);
+            Assert.Equal(taskId, Assert.Single(entry.ActiveTaskLinks).TaskItemId);
             Assert.Empty(await upgradedContext.Database.GetPendingMigrationsAsync());
         }
         finally

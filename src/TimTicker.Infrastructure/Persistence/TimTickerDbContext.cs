@@ -24,6 +24,8 @@ public sealed class TimTickerDbContext(DbContextOptions<TimTickerDbContext> opti
 
     public DbSet<TimelineEntry> TimelineEntries => Set<TimelineEntry>();
 
+    public DbSet<TimelineEntryTaskLink> TimelineEntryTaskLinks => Set<TimelineEntryTaskLink>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<TaskItem>(entity =>
@@ -86,11 +88,27 @@ public sealed class TimTickerDbContext(DbContextOptions<TimTickerDbContext> opti
             entity.Property(entry => entry.CreatedAtUtc).HasConversion(UtcTicksConverter);
             entity.Property(entry => entry.UpdatedAtUtc).HasConversion(UtcTicksConverter);
             entity.Ignore(entry => entry.IsRunning);
+            entity.Ignore(entry => entry.ActiveTaskLinks);
+            entity.Navigation(entry => entry.TaskLinks).UsePropertyAccessMode(PropertyAccessMode.Field);
             entity.HasIndex(entry => new { entry.IsDeleted, entry.StartAtUtc });
             entity.HasIndex(entry => new { entry.IsDeleted, entry.EndAtUtc });
+            entity.HasMany(entry => entry.TaskLinks)
+                .WithOne()
+                .HasForeignKey(link => link.TimelineEntryId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<TimelineEntryTaskLink>(entity =>
+        {
+            entity.ToTable("TimelineEntryTaskLinks");
+            entity.HasKey(link => new { link.TimelineEntryId, link.TaskItemId });
+            entity.HasIndex(link => new { link.TaskItemId, link.RemovedAtUtc });
+            entity.Property(link => link.AddedAtUtc).HasConversion(UtcTicksConverter);
+            entity.Property(link => link.RemovedAtUtc).HasConversion(NullableUtcTicksConverter);
+            entity.Ignore(link => link.IsActive);
             entity.HasOne<TaskItem>()
                 .WithMany()
-                .HasForeignKey(entry => entry.TaskItemId)
+                .HasForeignKey(link => link.TaskItemId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
     }

@@ -163,9 +163,6 @@ namespace TimTicker.Infrastructure.Persistence.Migrations
                     b.Property<long>("StartAtUtc")
                         .HasColumnType("INTEGER");
 
-                    b.Property<Guid?>("TaskItemId")
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -176,13 +173,32 @@ namespace TimTicker.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TaskItemId");
-
                     b.HasIndex("IsDeleted", "EndAtUtc");
 
                     b.HasIndex("IsDeleted", "StartAtUtc");
 
                     b.ToTable("TimelineEntries", (string)null);
+                });
+
+            modelBuilder.Entity("TimTicker.Domain.Timeline.TimelineEntryTaskLink", b =>
+                {
+                    b.Property<Guid>("TimelineEntryId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("TaskItemId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("AddedAtUtc")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long?>("RemovedAtUtc")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("TimelineEntryId", "TaskItemId");
+
+                    b.HasIndex("TaskItemId", "RemovedAtUtc");
+
+                    b.ToTable("TimelineEntryTaskLinks", (string)null);
                 });
 
             modelBuilder.Entity("TimTicker.Domain.Planning.DailyPlanItem", b =>
@@ -200,17 +216,29 @@ namespace TimTicker.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("TimTicker.Domain.Timeline.TimelineEntry", b =>
+            modelBuilder.Entity("TimTicker.Domain.Timeline.TimelineEntryTaskLink", b =>
                 {
                     b.HasOne("TimTicker.Domain.Tasks.TaskItem", null)
                         .WithMany()
                         .HasForeignKey("TaskItemId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TimTicker.Domain.Timeline.TimelineEntry", null)
+                        .WithMany("TaskLinks")
+                        .HasForeignKey("TimelineEntryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("TimTicker.Domain.Planning.DailyPlan", b =>
                 {
                     b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("TimTicker.Domain.Timeline.TimelineEntry", b =>
+                {
+                    b.Navigation("TaskLinks");
                 });
 #pragma warning restore 612, 618
         }

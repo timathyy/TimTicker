@@ -3,6 +3,8 @@ using Microsoft.Extensions.DependencyInjection;
 using TimTicker.Application;
 using TimTicker.Application.Abstractions;
 using TimTicker.Application.Timeline;
+using TimTicker.Application.Tasks;
+using TimTicker.Domain.Tasks;
 using TimTicker.Domain.Timeline;
 using TimTicker.Infrastructure;
 
@@ -10,6 +12,67 @@ namespace TimTicker.Infrastructure.Tests;
 
 public sealed class TimelinePersistenceTests
 {
+    [Fact]
+    public async Task MultipleTaskLinksPersistAcrossServiceProviders()
+    {
+        string testRoot = Path.Combine(Path.GetTempPath(), "TimTicker.Tests", Guid.NewGuid().ToString("N"));
+        string databasePath = Path.Combine(testRoot, "timticker.db");
+        Directory.CreateDirectory(testRoot);
+        MutableTimeProvider clock = new(new DateTimeOffset(2026, 11, 2, 12, 0, 0, TimeSpan.Zero));
+
+        try
+        {
+            Guid entryId;
+            Guid firstTaskId;
+            Guid secondTaskId;
+            await using (ServiceProvider firstProvider = CreateProvider(databasePath, clock))
+            {
+                await firstProvider.GetRequiredService<IAppDatabaseInitializer>().InitializeAsync();
+                ITaskService tasks = firstProvider.GetRequiredService<ITaskService>();
+                firstTaskId = (await tasks.CreateAsync(new CreateTaskRequest(
+                    "First",
+                    null,
+                    new DateOnly(2026, 11, 2),
+                    null,
+                    TaskPriority.None))).Id;
+                secondTaskId = (await tasks.CreateAsync(new CreateTaskRequest(
+                    "Second",
+                    null,
+                    new DateOnly(2026, 11, 2),
+                    null,
+                    TaskPriority.None))).Id;
+                TimelineEntrySummary entry = await firstProvider.GetRequiredService<ITimelineService>().CreateAsync(
+                    new CreateTimelineEntryRequest(
+                        "Shared record",
+                        null,
+                        null,
+                        [firstTaskId, secondTaskId],
+                        new DateTime(2026, 11, 2, 9, 0, 0),
+                        new DateTime(2026, 11, 2, 10, 0, 0)));
+                entryId = entry.Id;
+            }
+
+            await using (ServiceProvider secondProvider = CreateProvider(databasePath, clock))
+            {
+                await secondProvider.GetRequiredService<IAppDatabaseInitializer>().InitializeAsync();
+                ITimelineService timeline = secondProvider.GetRequiredService<ITimelineService>();
+                TimelineEntrySummary recovered = await timeline.GetAsync(entryId);
+                Assert.Equal(new[] { firstTaskId, secondTaskId }.Order(), recovered.LinkedTasks.Select(task => task.Id).Order());
+
+                await timeline.RemoveTaskAsync(entryId, firstTaskId);
+                Assert.Equal(secondTaskId, Assert.Single((await timeline.GetAsync(entryId)).LinkedTasks).Id);
+            }
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            if (Directory.Exists(testRoot))
+            {
+                Directory.Delete(testRoot, recursive: true);
+            }
+        }
+    }
+
     [Fact]
     public async Task RunningEntrySurvivesNewServiceProviderAndCanBeStopped()
     {
@@ -25,7 +88,7 @@ public sealed class TimelinePersistenceTests
             {
                 await firstProvider.GetRequiredService<IAppDatabaseInitializer>().InitializeAsync();
                 TimelineEntrySummary started = await firstProvider.GetRequiredService<ITimelineService>()
-                    .StartAsync(new StartTimelineEntryRequest("Persist running entry", null, "Focus", null));
+                    .StartAsync(new StartTimelineEntryRequest("Persist running entry", null, "Focus", []));
                 entryId = started.Id;
             }
 

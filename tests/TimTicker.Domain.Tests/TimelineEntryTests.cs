@@ -33,7 +33,7 @@ public sealed class TimelineEntryTests
             "  Work  ",
             "  Details  ",
             "  Focus  ",
-            null,
+            [],
             Start,
             Start.AddHours(1),
             Start);
@@ -46,7 +46,7 @@ public sealed class TimelineEntryTests
             "Invalid",
             null,
             null,
-            null,
+            [],
             Start.ToOffset(TimeSpan.FromHours(8)),
             null,
             Start));
@@ -63,10 +63,31 @@ public sealed class TimelineEntryTests
             "Changed",
             null,
             null,
-            null,
+            [],
             Start,
             Start.AddHours(1),
             Start.AddHours(3)));
+    }
+
+    [Fact]
+    public void EntrySupportsMultipleTasksAndCanRemoveOneLink()
+    {
+        Guid firstTaskId = Guid.NewGuid();
+        Guid secondTaskId = Guid.NewGuid();
+        TimelineEntry entry = new(
+            Guid.NewGuid(),
+            "Multiple tasks",
+            null,
+            null,
+            [firstTaskId, secondTaskId, firstTaskId],
+            Start,
+            Start.AddHours(1),
+            Start);
+
+        entry.RemoveTask(firstTaskId, Start.AddHours(2));
+
+        Assert.Equal([secondTaskId], entry.ActiveTaskLinks.Select(link => link.TaskItemId));
+        Assert.Equal(Start.AddHours(2), entry.UpdatedAtUtc);
     }
 
     private static TimelineEntry Create(DateTimeOffset? endAtUtc) => new(
@@ -74,7 +95,7 @@ public sealed class TimelineEntryTests
         "Timeline entry",
         null,
         null,
-        null,
+        [],
         Start,
         endAtUtc,
         Start);

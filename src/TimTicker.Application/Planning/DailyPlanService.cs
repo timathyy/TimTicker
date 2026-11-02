@@ -35,6 +35,7 @@ public sealed class DailyPlanService(
         DateOnly today = LocalToday();
         DailyPlan plan = await planRepository.GetOrCreateAsync(today, UtcNow(), cancellationToken).ConfigureAwait(false);
         EnsureOpen(plan);
+        await LoadActiveTasksAsync(plan, pruneMissingTasks: true, cancellationToken).ConfigureAwait(false);
         HashSet<Guid> plannedTaskIds = plan.ActiveItems.Select(item => item.TaskItemId).ToHashSet();
         IReadOnlyList<TimTicker.Domain.Tasks.TaskItem> tasks = await taskRepository.ListAsync(
             new TaskQuery(DomainTaskStatus.Pending, null, TaskSortOrder.PriorityDescending),
@@ -137,11 +138,14 @@ public sealed class DailyPlanService(
         DateOnly today = LocalToday();
         DailyPlan plan = await planRepository.GetOrCreateAsync(today, UtcNow(), cancellationToken).ConfigureAwait(false);
         EnsureOpen(plan);
+        IReadOnlyDictionary<Guid, TimTicker.Domain.Tasks.TaskItem> activeTasks = await LoadActiveTasksAsync(
+            plan,
+            pruneMissingTasks: true,
+            cancellationToken).ConfigureAwait(false);
         HashSet<Guid> completedTaskIds = [];
         foreach (DailyPlanItem item in plan.ActiveItems)
         {
-            TimTicker.Domain.Tasks.TaskItem? task = await taskRepository.FindAsync(item.TaskItemId, cancellationToken).ConfigureAwait(false);
-            if (task?.Status == DomainTaskStatus.Completed)
+            if (activeTasks[item.TaskItemId].Status == DomainTaskStatus.Completed)
             {
                 completedTaskIds.Add(item.TaskItemId);
             }
@@ -168,11 +172,14 @@ public sealed class DailyPlanService(
 
     private async Task<DailyPlanSummary> ToSummaryAsync(DailyPlan plan, DateOnly today, CancellationToken cancellationToken)
     {
+        IReadOnlyDictionary<Guid, TimTicker.Domain.Tasks.TaskItem> activeTasks = await LoadActiveTasksAsync(
+            plan,
+            pruneMissingTasks: !plan.IsClosed,
+            cancellationToken).ConfigureAwait(false);
         List<DailyPlanItemSummary> items = [];
         foreach (DailyPlanItem planItem in plan.ActiveItems)
         {
-            TimTicker.Domain.Tasks.TaskItem? task = await taskRepository.FindAsync(planItem.TaskItemId, cancellationToken).ConfigureAwait(false);
-            if (task is null)
+            if (!activeTasks.TryGetValue(planItem.TaskItemId, out TimTicker.Domain.Tasks.TaskItem? task))
             {
                 continue;
             }
@@ -207,6 +214,40 @@ public sealed class DailyPlanService(
             plan.IsClosed,
             plan.ClosedAtUtc,
             plan.ReviewText);
+    }
+
+    private async Task<IReadOnlyDictionary<Guid, TimTicker.Domain.Tasks.TaskItem>> LoadActiveTasksAsync(
+        DailyPlan plan,
+        bool pruneMissingTasks,
+        CancellationToken cancellationToken)
+    {
+        Dictionary<Guid, TimTicker.Domain.Tasks.TaskItem> tasks = [];
+        List<Guid> missingTaskIds = [];
+        foreach (DailyPlanItem item in plan.ActiveItems)
+        {
+            TimTicker.Domain.Tasks.TaskItem? task = await taskRepository.FindAsync(item.TaskItemId, cancellationToken).ConfigureAwait(false);
+            if (task is null)
+            {
+                missingTaskIds.Add(item.TaskItemId);
+            }
+            else
+            {
+                tasks.Add(task.Id, task);
+            }
+        }
+
+        if (pruneMissingTasks && missingTaskIds.Count > 0)
+        {
+            DateTimeOffset removedAtUtc = UtcNow();
+            foreach (Guid taskId in missingTaskIds)
+            {
+                plan.RemoveTask(taskId, removedAtUtc);
+            }
+
+            await planRepository.UpdateAsync(plan, cancellationToken).ConfigureAwait(false);
+        }
+
+        return tasks;
     }
 
     private DateTimeOffset UtcNow() => timeProvider.GetUtcNow();

@@ -100,6 +100,63 @@ public sealed class DailyPlanPersistenceTests
         }
     }
 
+    [Fact]
+    public async Task DeletedTaskIsPersistentlyRemovedFromOpenPlan()
+    {
+        string testRoot = Path.Combine(Path.GetTempPath(), "TimTicker.Tests", Guid.NewGuid().ToString("N"));
+        string databasePath = Path.Combine(testRoot, "timticker.db");
+        Directory.CreateDirectory(testRoot);
+        FixedTimeProvider clock = new(new DateTimeOffset(2026, 11, 2, 8, 0, 0, TimeSpan.Zero));
+
+        try
+        {
+            Guid retainedTaskId;
+            Guid deletedTaskId;
+            await using (ServiceProvider firstProvider = CreateProvider(databasePath, clock))
+            {
+                await firstProvider.GetRequiredService<IAppDatabaseInitializer>().InitializeAsync();
+                ITaskService tasks = firstProvider.GetRequiredService<ITaskService>();
+                retainedTaskId = (await tasks.CreateAsync(CreateRequest("Retained"))).Id;
+                deletedTaskId = (await tasks.CreateAsync(CreateRequest("Deleted"))).Id;
+                IDailyPlanService plan = firstProvider.GetRequiredService<IDailyPlanService>();
+                await plan.AddTasksToTodayAsync([retainedTaskId, deletedTaskId]);
+                await tasks.CompleteAsync(retainedTaskId);
+                await tasks.DeleteAsync(deletedTaskId);
+
+                DailyPlanSummary refreshed = await plan.GetTodayAsync();
+
+                Assert.Equal(1, refreshed.TotalCount);
+                Assert.Equal(1m, refreshed.CompletionRate);
+            }
+
+            await using (ServiceProvider secondProvider = CreateProvider(databasePath, clock))
+            {
+                await secondProvider.GetRequiredService<IAppDatabaseInitializer>().InitializeAsync();
+                DailyPlanSummary reloaded = await secondProvider.GetRequiredService<IDailyPlanService>().GetTodayAsync();
+
+                Assert.Equal(retainedTaskId, Assert.Single(reloaded.Items).TaskId);
+                Assert.Equal(1, reloaded.TotalCount);
+                Assert.Equal(1, reloaded.CompletedCount);
+                Assert.Equal(1m, reloaded.CompletionRate);
+
+                IDbContextFactory<TimTickerDbContext> contextFactory =
+                    secondProvider.GetRequiredService<IDbContextFactory<TimTickerDbContext>>();
+                await using TimTickerDbContext context = await contextFactory.CreateDbContextAsync();
+                TimTicker.Domain.Planning.DailyPlanItem removedItem = await context.DailyPlanItems
+                    .SingleAsync(item => item.TaskItemId == deletedTaskId);
+                Assert.NotNull(removedItem.RemovedAtUtc);
+            }
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            if (Directory.Exists(testRoot))
+            {
+                Directory.Delete(testRoot, recursive: true);
+            }
+        }
+    }
+
     private static ServiceProvider CreateProvider(string databasePath, TimeProvider clock)
     {
         ServiceCollection services = new();

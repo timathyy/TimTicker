@@ -144,6 +144,28 @@ public sealed class DailyPlanServiceTests
     }
 
     [Fact]
+    public async Task DeletedTaskIsRemovedFromOpenPlanAndCompletionDenominator()
+    {
+        InMemoryDailyPlanRepository plans = new();
+        InMemoryTaskRepository tasks = new();
+        MutableTimeProvider clock = new(new DateTimeOffset(2026, 11, 2, 8, 0, 0, TimeSpan.Zero));
+        DailyPlanService service = CreateService(plans, tasks, clock);
+        TaskItem completedTask = AddPendingTask(tasks, "Completed", clock.GetUtcNow());
+        TaskItem deletedTask = AddPendingTask(tasks, "Deleted", clock.GetUtcNow());
+        await service.AddTasksToTodayAsync([completedTask.Id, deletedTask.Id]);
+        completedTask.Complete(clock.GetUtcNow(), new DateOnly(2026, 11, 2));
+        deletedTask.Delete(clock.GetUtcNow());
+
+        DailyPlanSummary summary = await service.GetTodayAsync();
+
+        Assert.Single(summary.Items);
+        Assert.Equal(1, summary.TotalCount);
+        Assert.Equal(1, summary.CompletedCount);
+        Assert.Equal(1m, summary.CompletionRate);
+        Assert.Equal(completedTask.Id, Assert.Single(plans.Plans.Values).ActiveItems.Single().TaskItemId);
+    }
+
+    [Fact]
     public async Task CloseFreezesCompletionAndReopenRecalculatesHistoricalPlan()
     {
         InMemoryDailyPlanRepository plans = new();

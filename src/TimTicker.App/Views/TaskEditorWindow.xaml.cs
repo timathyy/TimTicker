@@ -9,10 +9,12 @@ namespace TimTicker.App.Views;
 public partial class TaskEditorWindow : Window
 {
     private readonly TaskSummary? _task;
+    private readonly DateOnly _defaultCreatedDate;
 
-    public TaskEditorWindow(TaskSummary? task = null)
+    public TaskEditorWindow(TaskSummary? task = null, DateOnly? defaultCreatedDate = null)
     {
         _task = task;
+        _defaultCreatedDate = defaultCreatedDate ?? DateOnly.FromDateTime(DateTime.Today);
         InitializeComponent();
         InitializeFields();
         Loaded += (_, _) => TitleTextBox.Focus();
@@ -27,7 +29,7 @@ public partial class TaskEditorWindow : Window
         bool isEditing = _task is not null;
         WindowTitleText.Text = isEditing ? "编辑任务" : "新建任务";
         SaveButton.Content = isEditing ? "保存修改" : "创建任务";
-        CreatedDateSelector.SelectedDate = (_task?.CreatedDate ?? DateOnly.FromDateTime(DateTime.Today)).ToDateTime(TimeOnly.MinValue);
+        CreatedDateSelector.SelectedDate = (_task?.CreatedDate ?? _defaultCreatedDate).ToDateTime(TimeOnly.MinValue);
 
         if (_task is null)
         {

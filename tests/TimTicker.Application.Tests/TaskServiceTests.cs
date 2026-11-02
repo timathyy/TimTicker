@@ -1,4 +1,5 @@
 using TimTicker.Application.Tasks;
+using TimTicker.Application.Settings;
 using TimTicker.Domain.Tasks;
 using DomainTaskStatus = TimTicker.Domain.Tasks.TaskStatus;
 
@@ -10,7 +11,7 @@ public sealed class TaskServiceTests
     public async Task CreateAndCompletePersistsExpectedState()
     {
         InMemoryTaskRepository repository = new();
-        TaskService service = new(repository, new FixedTimeProvider(new DateTimeOffset(2026, 10, 29, 8, 0, 0, TimeSpan.Zero)));
+        TaskService service = CreateService(repository, new DateTimeOffset(2026, 10, 29, 8, 0, 0, TimeSpan.Zero));
 
         TaskSummary created = await service.CreateAsync(CreateRequest("Review tasks", TaskPriority.Medium));
         await service.CompleteAsync(created.Id);
@@ -25,7 +26,7 @@ public sealed class TaskServiceTests
     public async Task CompletedDateCanBeEditedAndIsClearedWhenTaskReopens()
     {
         InMemoryTaskRepository repository = new();
-        TaskService service = new(repository, new FixedTimeProvider(new DateTimeOffset(2026, 10, 29, 8, 0, 0, TimeSpan.Zero)));
+        TaskService service = CreateService(repository, new DateTimeOffset(2026, 10, 29, 8, 0, 0, TimeSpan.Zero));
         TaskSummary created = await service.CreateAsync(CreateRequest("Editable completion"));
         await service.CompleteAsync(created.Id);
 
@@ -52,7 +53,7 @@ public sealed class TaskServiceTests
     public async Task ListUsesRequestedStatusAndExcludesDeletedTasks()
     {
         InMemoryTaskRepository repository = new();
-        TaskService service = new(repository, new FixedTimeProvider(new DateTimeOffset(2026, 10, 29, 8, 0, 0, TimeSpan.Zero)));
+        TaskService service = CreateService(repository, new DateTimeOffset(2026, 10, 29, 8, 0, 0, TimeSpan.Zero));
         TaskSummary completed = await service.CreateAsync(CreateRequest("Done"));
         TaskSummary deleted = await service.CreateAsync(CreateRequest("Remove"));
         await service.CompleteAsync(completed.Id);
@@ -67,7 +68,7 @@ public sealed class TaskServiceTests
     public async Task ListWithNoStatusReturnsTasksFromEveryState()
     {
         InMemoryTaskRepository repository = new();
-        TaskService service = new(repository, new FixedTimeProvider(new DateTimeOffset(2026, 10, 29, 8, 0, 0, TimeSpan.Zero)));
+        TaskService service = CreateService(repository, new DateTimeOffset(2026, 10, 29, 8, 0, 0, TimeSpan.Zero));
         TaskSummary pending = await service.CreateAsync(CreateRequest("Pending"));
         TaskSummary completed = await service.CreateAsync(CreateRequest("Completed"));
         await service.CompleteAsync(completed.Id);
@@ -78,6 +79,27 @@ public sealed class TaskServiceTests
         Assert.Contains(tasks, task => task.Id == pending.Id);
         Assert.Contains(tasks, task => task.Id == completed.Id);
     }
+
+    [Fact]
+    public async Task CompletionBeforeConfiguredDayEndUsesPreviousBusinessDate()
+    {
+        InMemoryTaskRepository repository = new();
+        TaskService service = CreateService(
+            repository,
+            new DateTimeOffset(2026, 11, 3, 3, 0, 0, TimeSpan.Zero),
+            new TestDayBoundarySettings(DayEndTime.SixAm));
+        TaskSummary task = await service.CreateAsync(CreateRequest("Late completion"));
+
+        await service.CompleteAsync(task.Id);
+
+        Assert.Equal(new DateOnly(2026, 11, 2), Assert.Single(repository.Tasks).CompletedDate);
+    }
+
+    private static TaskService CreateService(
+        InMemoryTaskRepository repository,
+        DateTimeOffset utcNow,
+        IDayBoundarySettings? dayBoundarySettings = null) =>
+        new(repository, dayBoundarySettings ?? new TestDayBoundarySettings(), new FixedTimeProvider(utcNow));
 
     private sealed class InMemoryTaskRepository : ITaskItemRepository
     {
@@ -107,6 +129,8 @@ public sealed class TaskServiceTests
 
     private sealed class FixedTimeProvider(DateTimeOffset utcNow) : TimeProvider
     {
+        public override TimeZoneInfo LocalTimeZone => TimeZoneInfo.Utc;
+
         public override DateTimeOffset GetUtcNow() => utcNow;
     }
 }

@@ -2,11 +2,14 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TimTicker.Application.Tasks;
+using TimTicker.App.Services;
 using DomainTaskStatus = TimTicker.Domain.Tasks.TaskStatus;
 
 namespace TimTicker.App.ViewModels;
 
-public sealed partial class TasksViewModel(ITaskService taskService) : ViewModelBase
+public sealed partial class TasksViewModel(
+    ITaskService taskService,
+    IDetailNavigationService detailNavigationService) : ViewModelBase
 {
     public ObservableCollection<TaskSummary> Tasks { get; } = [];
 
@@ -66,6 +69,14 @@ public sealed partial class TasksViewModel(ITaskService taskService) : ViewModel
         ArgumentNullException.ThrowIfNull(request);
         await taskService.UpdateAsync(request);
         await LoadTasksAsync();
+    }
+
+    public async Task ShowTaskDetailsAsync(Guid taskId, System.Windows.Window? owner)
+    {
+        if (await detailNavigationService.ShowTaskAsync(taskId, owner))
+        {
+            await LoadTasksAsync();
+        }
     }
 
     [RelayCommand]

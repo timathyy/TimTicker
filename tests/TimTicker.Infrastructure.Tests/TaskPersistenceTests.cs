@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using TimTicker.Application;
 using TimTicker.Application.Abstractions;
 using TimTicker.Application.Tasks;
+using TimTicker.Application.Settings;
 using TimTicker.Domain.Tasks;
 using TimTicker.Infrastructure;
 using DomainTaskStatus = TimTicker.Domain.Tasks.TaskStatus;
@@ -118,7 +119,10 @@ public sealed class TaskPersistenceTests
                     null,
                     TaskSortOrder.CreatedAtDescending));
                 Assert.Equal(taskId, Assert.Single(completed).Id);
-                Assert.Equal(DateOnly.FromDateTime(DateTime.Today), Assert.Single(completed).CompletedDate);
+                DateOnly expectedCompletionDate = DayBoundary.GetBusinessDate(
+                    TimeProvider.System.GetLocalNow().DateTime,
+                    DayBoundary.DefaultDayEndTime);
+                Assert.Equal(expectedCompletionDate, Assert.Single(completed).CompletedDate);
 
                 IReadOnlyList<TaskSummary> allTasks = await tasks.ListAsync(new TaskQuery(
                     null,

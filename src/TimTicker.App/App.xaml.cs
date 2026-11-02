@@ -78,6 +78,7 @@ public partial class App : System.Windows.Application
         builder.Services.AddTimTickerInfrastructure(appPaths.DatabasePath);
         builder.Services.AddSingleton<IThemeService, ThemeService>();
         builder.Services.AddSingleton<INavigationService, NavigationService>();
+        builder.Services.AddSingleton<IDetailNavigationService, DetailNavigationService>();
 
         builder.Services.AddSingleton<TodayViewModel>();
         builder.Services.AddSingleton<TasksViewModel>();

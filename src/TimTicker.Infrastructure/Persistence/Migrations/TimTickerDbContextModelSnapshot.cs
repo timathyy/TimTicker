@@ -17,6 +17,72 @@ namespace TimTicker.Infrastructure.Persistence.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.14");
 
+            modelBuilder.Entity("TimTicker.Domain.Planning.DailyPlan", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("ClosedAtUtc")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("CreatedAtUtc")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal?>("FinalCompletionRate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ReviewText")
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("UpdatedAtUtc")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Date")
+                        .IsUnique();
+
+                    b.ToTable("DailyPlans", (string)null);
+                });
+
+            modelBuilder.Entity("TimTicker.Domain.Planning.DailyPlanItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("AddedAtUtc")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("DailyPlanId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("RemovedAtUtc")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("TaskItemId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TaskItemId");
+
+                    b.HasIndex("DailyPlanId", "TaskItemId")
+                        .IsUnique();
+
+                    b.HasIndex("DailyPlanId", "RemovedAtUtc", "SortOrder");
+
+                    b.ToTable("DailyPlanItems", (string)null);
+                });
+
             modelBuilder.Entity("TimTicker.Domain.Tasks.TaskItem", b =>
                 {
                     b.Property<Guid>("Id")
@@ -66,6 +132,26 @@ namespace TimTicker.Infrastructure.Persistence.Migrations
                     b.HasIndex("IsDeleted", "Status", "CreatedAtUtc");
 
                     b.ToTable("Tasks", (string)null);
+                });
+
+            modelBuilder.Entity("TimTicker.Domain.Planning.DailyPlanItem", b =>
+                {
+                    b.HasOne("TimTicker.Domain.Planning.DailyPlan", null)
+                        .WithMany("Items")
+                        .HasForeignKey("DailyPlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TimTicker.Domain.Tasks.TaskItem", null)
+                        .WithMany()
+                        .HasForeignKey("TaskItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TimTicker.Domain.Planning.DailyPlan", b =>
+                {
+                    b.Navigation("Items");
                 });
 #pragma warning restore 612, 618
         }

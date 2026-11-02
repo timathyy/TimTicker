@@ -64,7 +64,7 @@ public sealed class TaskService(ITaskItemRepository repository, TimeProvider tim
 
     private DateOnly LocalToday() => DateOnly.FromDateTime(timeProvider.GetLocalNow().DateTime);
 
-    private static TaskSummary ToSummary(TaskItem task) => new(
+    internal static TaskSummary ToSummary(TaskItem task) => new(
         task.Id,
         task.Title,
         task.Description,

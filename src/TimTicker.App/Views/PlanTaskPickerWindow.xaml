@@ -1,0 +1,88 @@
+<Window x:Class="TimTicker.App.Views.PlanTaskPickerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="从任务池加入今日计划"
+        Width="640"
+        Height="590"
+        MinWidth="560"
+        MinHeight="480"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource WindowBackgroundBrush}"
+        FontFamily="{StaticResource AppFontFamily}">
+    <Grid Margin="28">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="18" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="20" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel>
+            <TextBlock FontSize="24" FontWeight="SemiBold" Text="选择今天要做的任务" />
+            <TextBlock Margin="0,6,0,0"
+                       Foreground="{DynamicResource TextSecondaryBrush}"
+                       Text="可一次选择多项；已在今日计划中的任务不会重复显示。" />
+        </StackPanel>
+
+        <Border Grid.Row="2" Style="{StaticResource CardStyle}">
+            <ListBox ItemsSource="{Binding Candidates}"
+                     Background="Transparent"
+                     BorderThickness="0"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                        <Setter Property="Padding" Value="0" />
+                        <Setter Property="Background" Value="Transparent" />
+                        <Setter Property="BorderThickness" Value="0" />
+                        <Setter Property="Focusable" Value="False" />
+                    </Style>
+                </ListBox.ItemContainerStyle>
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <CheckBox Padding="2,12"
+                                  IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                  Style="{StaticResource CircularCheckBoxStyle}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <TextBlock FontWeight="SemiBold" Text="{Binding Title}" />
+                                <StackPanel Grid.Row="1" Margin="0,5,0,0" Orientation="Horizontal">
+                                    <TextBlock Foreground="{DynamicResource TextTertiaryBrush}" Text="{Binding PriorityText}" />
+                                    <TextBlock Margin="14,0,0,0" Text="{Binding DueDateText}">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{DynamicResource TextTertiaryBrush}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsOverdue}" Value="True">
+                                                        <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+                                                        <Setter Property="FontWeight" Value="SemiBold" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Grid>
+                        </CheckBox>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Border>
+
+        <StackPanel Grid.Row="4" HorizontalAlignment="Right" Orientation="Horizontal">
+            <Button Margin="0,0,10,0"
+                    Click="CancelButton_Click"
+                    Content="取消"
+                    IsCancel="True"
+                    Style="{StaticResource SecondaryButtonStyle}" />
+            <Button Click="AddButton_Click"
+                    Content="加入今日计划"
+                    IsDefault="True"
+                    Style="{StaticResource PrimaryButtonStyle}" />
+        </StackPanel>
+    </Grid>
+</Window>

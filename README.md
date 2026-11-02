@@ -2,9 +2,9 @@
 
 [![Windows CI](https://github.com/timathyy/TimTicker/actions/workflows/windows-ci.yml/badge.svg)](https://github.com/timathyy/TimTicker/actions/workflows/windows-ci.yml)
 
-TimTicker 是一款面向个人的 Windows 本地日历与时间记录应用。项目当前处于 `v0.2.0` 任务池 MVP 阶段。
+TimTicker 是一款面向个人的 Windows 本地日历与时间记录应用。项目当前已完成 `v0.3.0` 每日规划里程碑。
 
-当前界面提供“今天、任务、日历、设置”四个主入口，并内置浅色与深色主题。任务池支持快速添加、编辑、完成、重新打开和带确认的软删除，并可按状态、关键字及多种排序方式查看；数据保存在本地 SQLite 数据库中。
+当前界面提供“今天、任务、日历、设置”四个主入口，并内置浅色与深色主题。任务池支持快速添加、编辑、完成、重新打开和带确认的软删除，并可按状态、关键字及多种排序方式查看。今天页支持从任务池多选、新建并直接加入、调整顺序和移出今日计划；计划按本地自然日隔离并持久化到 SQLite 数据库。
 
 ## 开发环境
 

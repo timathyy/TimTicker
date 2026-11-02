@@ -1,0 +1,114 @@
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using TimTicker.Application;
+using TimTicker.Application.Abstractions;
+using TimTicker.Application.Planning;
+using TimTicker.Application.Tasks;
+using TimTicker.Domain.Tasks;
+using TimTicker.Infrastructure;
+using TimTicker.Infrastructure.Persistence;
+
+namespace TimTicker.Infrastructure.Tests;
+
+public sealed class DailyPlanPersistenceTests
+{
+    [Fact]
+    public async Task PlanOrderAndRemovalSurviveNewServiceProvider()
+    {
+        string testRoot = Path.Combine(Path.GetTempPath(), "TimTicker.Tests", Guid.NewGuid().ToString("N"));
+        string databasePath = Path.Combine(testRoot, "timticker.db");
+        Directory.CreateDirectory(testRoot);
+        FixedTimeProvider clock = new(new DateTimeOffset(2026, 11, 2, 8, 0, 0, TimeSpan.Zero));
+
+        try
+        {
+            Guid firstTaskId;
+            Guid secondTaskId;
+            await using (ServiceProvider firstProvider = CreateProvider(databasePath, clock))
+            {
+                await firstProvider.GetRequiredService<IAppDatabaseInitializer>().InitializeAsync();
+                ITaskService taskService = firstProvider.GetRequiredService<ITaskService>();
+                firstTaskId = (await taskService.CreateAsync(CreateRequest("First"))).Id;
+                secondTaskId = (await taskService.CreateAsync(CreateRequest("Second"))).Id;
+                IDailyPlanService planService = firstProvider.GetRequiredService<IDailyPlanService>();
+                await planService.AddTasksToTodayAsync([firstTaskId, secondTaskId]);
+                await planService.MoveTodayTaskAsync(secondTaskId, PlanMoveDirection.Up);
+                await planService.RemoveTaskFromTodayAsync(firstTaskId);
+            }
+
+            await using (ServiceProvider secondProvider = CreateProvider(databasePath, clock))
+            {
+                await secondProvider.GetRequiredService<IAppDatabaseInitializer>().InitializeAsync();
+                DailyPlanSummary plan = await secondProvider.GetRequiredService<IDailyPlanService>().GetTodayAsync();
+
+                DailyPlanItemSummary item = Assert.Single(plan.Items);
+                Assert.Equal(secondTaskId, item.TaskId);
+                Assert.Equal(0, item.SortOrder);
+                IReadOnlyList<TaskSummary> pendingTasks = await secondProvider.GetRequiredService<ITaskService>().ListAsync(
+                    new TaskQuery(TimTicker.Domain.Tasks.TaskStatus.Pending, null, TaskSortOrder.CreatedAtDescending));
+                Assert.Contains(pendingTasks, task => task.Id == firstTaskId);
+            }
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            if (Directory.Exists(testRoot))
+            {
+                Directory.Delete(testRoot, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task RepositoryReturnsSinglePlanForSameDate()
+    {
+        string testRoot = Path.Combine(Path.GetTempPath(), "TimTicker.Tests", Guid.NewGuid().ToString("N"));
+        string databasePath = Path.Combine(testRoot, "timticker.db");
+        Directory.CreateDirectory(testRoot);
+        FixedTimeProvider clock = new(new DateTimeOffset(2026, 11, 2, 8, 0, 0, TimeSpan.Zero));
+
+        try
+        {
+            await using ServiceProvider provider = CreateProvider(databasePath, clock);
+            await provider.GetRequiredService<IAppDatabaseInitializer>().InitializeAsync();
+            IDailyPlanRepository repository = provider.GetRequiredService<IDailyPlanRepository>();
+
+            TimTicker.Domain.Planning.DailyPlan first = await repository.GetOrCreateAsync(new DateOnly(2026, 11, 2), clock.GetUtcNow());
+            TimTicker.Domain.Planning.DailyPlan second = await repository.GetOrCreateAsync(new DateOnly(2026, 11, 2), clock.GetUtcNow());
+
+            Assert.Equal(first.Id, second.Id);
+            IDbContextFactory<TimTickerDbContext> contextFactory = provider.GetRequiredService<IDbContextFactory<TimTickerDbContext>>();
+            await using TimTickerDbContext context = await contextFactory.CreateDbContextAsync();
+            Assert.Equal(1, await context.DailyPlans.CountAsync());
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            if (Directory.Exists(testRoot))
+            {
+                Directory.Delete(testRoot, recursive: true);
+            }
+        }
+    }
+
+    private static ServiceProvider CreateProvider(string databasePath, TimeProvider clock)
+    {
+        ServiceCollection services = new();
+        services.AddLogging();
+        services.AddTimTickerApplication();
+        services.AddSingleton<TimeProvider>(clock);
+        services.AddTimTickerInfrastructure(databasePath);
+        return services.BuildServiceProvider();
+    }
+
+    private static CreateTaskRequest CreateRequest(string title) =>
+        new(title, null, new DateOnly(2026, 11, 2), null, TaskPriority.None);
+
+    private sealed class FixedTimeProvider(DateTimeOffset utcNow) : TimeProvider
+    {
+        public override TimeZoneInfo LocalTimeZone => TimeZoneInfo.Utc;
+
+        public override DateTimeOffset GetUtcNow() => utcNow;
+    }
+}

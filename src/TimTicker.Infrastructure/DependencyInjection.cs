@@ -2,6 +2,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TimTicker.Application.Abstractions;
+using TimTicker.Application.Planning;
 using TimTicker.Application.Tasks;
 using TimTicker.Infrastructure.Persistence;
 
@@ -29,6 +30,7 @@ public static class DependencyInjection
             options.UseSqlite(connectionString.ConnectionString));
         services.AddSingleton<IAppDatabaseInitializer, AppDatabaseInitializer>();
         services.AddSingleton<ITaskItemRepository, TaskItemRepository>();
+        services.AddSingleton<IDailyPlanRepository, DailyPlanRepository>();
 
         return services;
     }

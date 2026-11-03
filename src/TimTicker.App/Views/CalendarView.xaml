@@ -244,9 +244,11 @@
                                                 </Grid.ColumnDefinitions>
                                                 <StackPanel>
                                                     <TextBlock FontWeight="SemiBold" Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
-                                                    <TextBlock Margin="0,3,0,0" FontSize="11" Foreground="{DynamicResource TextTertiaryBrush}">
-                                                        <Run Text="{Binding DetailText}" /><Run Text=" · 优先级 " /><Run Text="{Binding PriorityText}" />
-                                                    </TextBlock>
+                                                    <TextBlock Margin="0,3,0,0"
+                                                               FontSize="11"
+                                                               Foreground="{DynamicResource TextTertiaryBrush}"
+                                                               Text="{Binding MetadataText}"
+                                                               TextTrimming="CharacterEllipsis" />
                                                 </StackPanel>
                                                 <TextBlock Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="{DynamicResource SuccessBrush}" Text="{Binding StatusText}" />
                                             </Grid>

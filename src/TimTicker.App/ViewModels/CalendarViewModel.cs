@@ -328,6 +328,7 @@ public sealed class CalendarPlanItemViewModel
             TaskPriority.Low => "低",
             _ => "无",
         };
+        MetadataText = $"{DetailText} · 优先级 {PriorityText}";
     }
 
     public string Title { get; }
@@ -339,6 +340,8 @@ public sealed class CalendarPlanItemViewModel
     public string DetailText { get; }
 
     public string PriorityText { get; }
+
+    public string MetadataText { get; }
 }
 
 public sealed class CalendarTimelineItemViewModel

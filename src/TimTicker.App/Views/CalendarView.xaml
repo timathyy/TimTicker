@@ -33,7 +33,69 @@
         <Style x:Key="SectionHeadingStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="15" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Margin" Value="0,0,0,10" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="Margin" Value="0,0,0,14" />
+        </Style>
+        <Style x:Key="CalendarDetailScrollThumbStyle" TargetType="Thumb">
+            <Setter Property="MinHeight" Value="28" />
+            <Setter Property="Background" Value="{DynamicResource TextTertiaryBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Thumb">
+                        <Border x:Name="ThumbBorder"
+                                Margin="1,0"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="3"
+                                Opacity="0.55" />
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ThumbBorder" Property="Background" Value="{DynamicResource AccentBrush}" />
+                                <Setter TargetName="ThumbBorder" Property="Opacity" Value="0.8" />
+                            </Trigger>
+                            <Trigger Property="IsDragging" Value="True">
+                                <Setter TargetName="ThumbBorder" Property="Background" Value="{DynamicResource AccentBrush}" />
+                                <Setter TargetName="ThumbBorder" Property="Opacity" Value="1" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="CalendarDetailScrollBarStyle" TargetType="ScrollBar">
+            <Setter Property="Width" Value="8" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollBar">
+                        <Grid Width="8" Background="Transparent">
+                            <Track x:Name="PART_Track" Margin="0,2" IsDirectionReversed="True">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="{x:Static ScrollBar.PageUpCommand}" Focusable="False">
+                                        <RepeatButton.Template>
+                                            <ControlTemplate TargetType="RepeatButton">
+                                                <Border Background="Transparent" />
+                                            </ControlTemplate>
+                                        </RepeatButton.Template>
+                                    </RepeatButton>
+                                </Track.DecreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb Style="{StaticResource CalendarDetailScrollThumbStyle}" />
+                                </Track.Thumb>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="{x:Static ScrollBar.PageDownCommand}" Focusable="False">
+                                        <RepeatButton.Template>
+                                            <ControlTemplate TargetType="RepeatButton">
+                                                <Border Background="Transparent" />
+                                            </ControlTemplate>
+                                        </RepeatButton.Template>
+                                    </RepeatButton>
+                                </Track.IncreaseRepeatButton>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </UserControl.Resources>
 
@@ -172,15 +234,30 @@
             </Border>
 
             <Border Grid.Column="2" Padding="20" Style="{StaticResource CardStyle}">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="16" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
                     <StackPanel>
                         <TextBlock FontSize="19" FontWeight="SemiBold" Text="{Binding SelectedDateText}" />
-                        <StackPanel Margin="0,7,0,0" Orientation="Horizontal">
-                            <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource AccentBrush}" Text="{Binding SelectedStateText}" />
-                            <TextBlock Margin="8,0,0,0" FontSize="12" Foreground="{DynamicResource TextTertiaryBrush}" Text="{Binding SelectedStateDescription}" TextWrapping="Wrap" />
-                        </StackPanel>
+                        <TextBlock Margin="0,7,0,0"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource AccentBrush}"
+                                   Text="{Binding SelectedStateText}" />
+                    </StackPanel>
 
-                        <Border Margin="0,14,0,0"
+                    <ScrollViewer Grid.Row="2"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  VerticalScrollBarVisibility="Auto">
+                        <ScrollViewer.Resources>
+                            <Style TargetType="ScrollBar" BasedOn="{StaticResource CalendarDetailScrollBarStyle}" />
+                        </ScrollViewer.Resources>
+                        <StackPanel Margin="0,0,4,0">
+
+                        <Border Margin="0,0,0,14"
                                 Padding="12"
                                 Background="{DynamicResource AccentSoftBrush}"
                                 CornerRadius="10"
@@ -188,7 +265,7 @@
                             <TextBlock Foreground="{DynamicResource DangerBrush}" Text="{Binding ErrorMessage}" TextWrapping="Wrap" />
                         </Border>
 
-                        <StackPanel Margin="0,28,0,0">
+                        <StackPanel Margin="0,12,0,0">
                             <StackPanel.Style>
                                 <Style TargetType="StackPanel">
                                     <Setter Property="Visibility" Value="Collapsed" />
@@ -206,7 +283,7 @@
                             <TextBlock Margin="0,6,0,0" HorizontalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" Text="没有计划、时间记录或每日复盘。" TextAlignment="Center" TextWrapping="Wrap" />
                         </StackPanel>
 
-                        <StackPanel Margin="0,20,0,0">
+                        <StackPanel>
                             <StackPanel.Style>
                                 <Style TargetType="StackPanel">
                                     <Setter Property="Visibility" Value="Visible" />
@@ -232,7 +309,7 @@
                                 </Grid>
                             </Border>
 
-                            <TextBlock Margin="0,20,0,0" Style="{StaticResource SectionHeadingStyle}" Text="当日计划" />
+                            <TextBlock Margin="0,22,0,14" Style="{StaticResource SectionHeadingStyle}" Text="当日计划" />
                             <ItemsControl ItemsSource="{Binding PlanItems}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
@@ -269,18 +346,18 @@
                                 </TextBlock.Style>
                             </TextBlock>
 
-                            <TextBlock Margin="0,20,0,0" Style="{StaticResource SectionHeadingStyle}" Text="时间轴" />
-                            <TextBlock Margin="0,-5,0,10" FontSize="11" Foreground="{DynamicResource TextTertiaryBrush}" Text="{Binding TimelineSummaryText}" />
+                            <TextBlock Margin="0,24,0,14" Style="{StaticResource SectionHeadingStyle}" Text="时间轴" />
+                            <TextBlock Margin="0,0,0,12" FontSize="11" Foreground="{DynamicResource TextTertiaryBrush}" Text="{Binding TimelineSummaryText}" />
                             <ItemsControl ItemsSource="{Binding TimelineItems}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Border Margin="0,0,0,7" Padding="10" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8">
                                             <StackPanel>
                                                 <Grid>
-                                                    <TextBlock Margin="0,0,70,0" FontWeight="SemiBold" Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Margin="0,0,70,0" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding TimeText}" TextTrimming="CharacterEllipsis" />
                                                     <TextBlock HorizontalAlignment="Right" FontSize="11" Foreground="{DynamicResource AccentBrush}" Text="{Binding DurationText}" />
                                                 </Grid>
-                                                <TextBlock Margin="0,4,0,0" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding TimeText}" />
+                                                <TextBlock Margin="0,4,0,0" FontWeight="SemiBold" Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
                                                 <TextBlock Margin="0,3,0,0" FontSize="10" Foreground="{DynamicResource TextTertiaryBrush}" Text="{Binding LinkedTasksText}" TextTrimming="CharacterEllipsis" />
                                             </StackPanel>
                                         </Border>
@@ -288,13 +365,14 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
 
-                            <TextBlock Margin="0,20,0,0" Style="{StaticResource SectionHeadingStyle}" Text="每日复盘" />
+                            <TextBlock Margin="0,24,0,14" Style="{StaticResource SectionHeadingStyle}" Text="每日复盘" />
                             <Border Padding="12" Background="{DynamicResource SurfaceSecondaryBrush}" CornerRadius="10">
                                 <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding ReviewText}" TextWrapping="Wrap" />
                             </Border>
                         </StackPanel>
-                    </StackPanel>
-                </ScrollViewer>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
             </Border>
         </Grid>
     </Grid>

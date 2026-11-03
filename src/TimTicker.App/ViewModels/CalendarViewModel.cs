@@ -34,9 +34,6 @@ public sealed partial class CalendarViewModel(
     private string _selectedStateText = string.Empty;
 
     [ObservableProperty]
-    private string _selectedStateDescription = string.Empty;
-
-    [ObservableProperty]
     private string _completionPercentageText = string.Empty;
 
     [ObservableProperty]
@@ -243,11 +240,6 @@ public sealed partial class CalendarViewModel(
         SelectedStateText = details.Plan?.IsClosed == true
             ? "已结束"
             : details.HasData ? "进行中 / 未结束" : "无数据";
-        SelectedStateDescription = details.Plan?.IsClosed == true
-            ? "计划完成状态与完成度已保存为历史快照。"
-            : details.HasData
-                ? "当前显示实时状态，之后的修改会同步更新。"
-                : "这一天还没有计划、时间记录或复盘。";
     }
 
     private void ShowLoadError(string message)

@@ -20,6 +20,9 @@
                 <DataTrigger Binding="{Binding IsClosed}" Value="True">
                     <Setter Property="BorderBrush" Value="{DynamicResource SuccessBrush}" />
                 </DataTrigger>
+                <DataTrigger Binding="{Binding IsToday}" Value="True">
+                    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                </DataTrigger>
                 <DataTrigger Binding="{Binding IsOutsideMonth}" Value="True">
                     <Setter Property="Opacity" Value="0.45" />
                 </DataTrigger>
@@ -189,16 +192,7 @@
                                             <RowDefinition Height="*" />
                                             <RowDefinition Height="Auto" />
                                         </Grid.RowDefinitions>
-                                        <Grid>
-                                            <TextBlock FontSize="14" FontWeight="SemiBold" Text="{Binding DayNumberText}" />
-                                            <Border Width="6"
-                                                    Height="6"
-                                                    HorizontalAlignment="Right"
-                                                    VerticalAlignment="Top"
-                                                    Background="{DynamicResource AccentBrush}"
-                                                    CornerRadius="3"
-                                                    Visibility="{Binding IsToday, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                                        </Grid>
+                                        <TextBlock FontSize="14" FontWeight="SemiBold" Text="{Binding DayNumberText}" />
                                         <TextBlock Grid.Row="1"
                                                    Margin="0,4,0,0"
                                                    FontSize="10"

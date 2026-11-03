@@ -34,7 +34,9 @@ public partial class TodayView : UserControl
         {
             System.Windows.MessageBox.Show(
                 System.Windows.Window.GetWindow(this),
-                "任务池中没有可加入今日计划的待完成任务。",
+                viewModel.IsHistoricalEditor
+                    ? "任务池中没有可加入当日计划的待完成任务。"
+                    : "任务池中没有可加入今日计划的待完成任务。",
                 "TimTicker",
                 System.Windows.MessageBoxButton.OK,
                 System.Windows.MessageBoxImage.Information);

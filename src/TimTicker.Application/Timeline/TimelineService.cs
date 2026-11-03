@@ -15,19 +15,33 @@ public sealed class TimelineService(
 {
     public async Task<TimelineDaySummary> GetTodayAsync(CancellationToken cancellationToken = default)
     {
-        DateOnly today = LocalToday();
-        (DateTimeOffset dayStartUtc, DateTimeOffset dayEndUtc) = GetUtcDayBounds(today);
-        IReadOnlyList<TimelineEntry> entries = await repository
-            .ListForDateAsync(today, dayStartUtc, dayEndUtc, cancellationToken)
-            .ConfigureAwait(false);
-        List<TimelineEntrySummary> summaries = [];
-        foreach (TimelineEntry entry in entries.OrderBy(entry => entry.StartAtUtc))
+        return await GetForDateAsync(LocalToday(), cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<TimelineDaySummary> GetForDateAsync(
+        DateOnly timelineDate,
+        CancellationToken cancellationToken = default)
+    {
+        if (timelineDate == default)
         {
-            summaries.Add(await ToSummaryAsync(entry, today, clipToDay: true, cancellationToken).ConfigureAwait(false));
+            throw new ArgumentException("The timeline date must not be empty.", nameof(timelineDate));
+        }
+
+        (DateTimeOffset dayStartUtc, DateTimeOffset dayEndUtc) = GetUtcDayBounds(timelineDate);
+        IReadOnlyList<TimelineEntry> entries = await repository
+            .ListForDateAsync(timelineDate, dayStartUtc, dayEndUtc, cancellationToken)
+            .ConfigureAwait(false);
+        DateTimeOffset now = UtcNow();
+        List<TimelineEntrySummary> summaries = [];
+        foreach (TimelineEntry entry in entries
+                     .Where(entry => entry.StartAtUtc < dayEndUtc && (entry.EndAtUtc ?? now) > dayStartUtc)
+                     .OrderBy(entry => entry.StartAtUtc))
+        {
+            summaries.Add(await ToSummaryAsync(entry, timelineDate, clipToDay: true, cancellationToken).ConfigureAwait(false));
         }
 
         TimeSpan totalDuration = summaries.Aggregate(TimeSpan.Zero, (total, entry) => total + entry.DayDuration);
-        return new TimelineDaySummary(today, summaries, totalDuration);
+        return new TimelineDaySummary(timelineDate, summaries, totalDuration);
     }
 
     public async Task<TimelineEntrySummary> GetAsync(Guid id, CancellationToken cancellationToken = default)

@@ -4,6 +4,8 @@ public interface ITimelineService
 {
     Task<TimelineDaySummary> GetTodayAsync(CancellationToken cancellationToken = default);
 
+    Task<TimelineDaySummary> GetForDateAsync(DateOnly timelineDate, CancellationToken cancellationToken = default);
+
     Task<TimelineEntrySummary> GetAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<TimelineEntrySummary>> ListForTaskAsync(Guid taskId, CancellationToken cancellationToken = default);

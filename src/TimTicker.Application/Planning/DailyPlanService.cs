@@ -14,9 +14,16 @@ public sealed class DailyPlanService(
 {
     public async Task<DailyPlanSummary> GetTodayAsync(CancellationToken cancellationToken = default)
     {
-        DateOnly today = LocalToday();
-        DailyPlan plan = await planRepository.GetOrCreateAsync(today, UtcNow(), cancellationToken).ConfigureAwait(false);
-        return await ToSummaryAsync(plan, today, cancellationToken).ConfigureAwait(false);
+        return await GetOrCreateForDateAsync(LocalToday(), cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<DailyPlanSummary> GetOrCreateForDateAsync(
+        DateOnly planDate,
+        CancellationToken cancellationToken = default)
+    {
+        ValidatePlanDate(planDate);
+        DailyPlan plan = await planRepository.GetOrCreateAsync(planDate, UtcNow(), cancellationToken).ConfigureAwait(false);
+        return await ToSummaryAsync(plan, planDate, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<DailyPlanSummary?> GetForDateAsync(DateOnly planDate, CancellationToken cancellationToken = default)
@@ -32,8 +39,15 @@ public sealed class DailyPlanService(
 
     public async Task<IReadOnlyList<DailyPlanTaskCandidate>> ListTodayCandidatesAsync(CancellationToken cancellationToken = default)
     {
-        DateOnly today = LocalToday();
-        DailyPlan plan = await planRepository.GetOrCreateAsync(today, UtcNow(), cancellationToken).ConfigureAwait(false);
+        return await ListCandidatesAsync(LocalToday(), cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyList<DailyPlanTaskCandidate>> ListCandidatesAsync(
+        DateOnly planDate,
+        CancellationToken cancellationToken = default)
+    {
+        ValidatePlanDate(planDate);
+        DailyPlan plan = await planRepository.GetOrCreateAsync(planDate, UtcNow(), cancellationToken).ConfigureAwait(false);
         EnsureOpen(plan);
         await LoadActiveTasksAsync(plan, pruneMissingTasks: true, cancellationToken).ConfigureAwait(false);
         HashSet<Guid> plannedTaskIds = plan.ActiveItems.Select(item => item.TaskItemId).ToHashSet();
@@ -43,12 +57,21 @@ public sealed class DailyPlanService(
 
         return tasks
             .Where(task => !plannedTaskIds.Contains(task.Id))
-            .Select(task => new DailyPlanTaskCandidate(TaskService.ToSummary(task), IsOverdue(task.DueDate, today)))
+            .Select(task => new DailyPlanTaskCandidate(TaskService.ToSummary(task), IsOverdue(task.DueDate, planDate)))
             .ToArray();
     }
 
     public async Task<DailyPlanSummary> AddTasksToTodayAsync(IEnumerable<Guid> taskIds, CancellationToken cancellationToken = default)
     {
+        return await AddTasksAsync(LocalToday(), taskIds, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<DailyPlanSummary> AddTasksAsync(
+        DateOnly planDate,
+        IEnumerable<Guid> taskIds,
+        CancellationToken cancellationToken = default)
+    {
+        ValidatePlanDate(planDate);
         ArgumentNullException.ThrowIfNull(taskIds);
         Guid[] ids = taskIds.ToArray();
         if (ids.Length == 0)
@@ -67,12 +90,11 @@ public sealed class DailyPlanService(
                 ?? throw new KeyNotFoundException("A selected task was not found.");
             if (task.Status != DomainTaskStatus.Pending)
             {
-                throw new InvalidOperationException("Only pending tasks can be added to today's plan.");
+                throw new InvalidOperationException("Only pending tasks can be added to the selected daily plan.");
             }
         }
 
-        DateOnly today = LocalToday();
-        DailyPlan plan = await planRepository.GetOrCreateAsync(today, UtcNow(), cancellationToken).ConfigureAwait(false);
+        DailyPlan plan = await planRepository.GetOrCreateAsync(planDate, UtcNow(), cancellationToken).ConfigureAwait(false);
         EnsureOpen(plan);
         DateTimeOffset now = UtcNow();
         foreach (Guid taskId in ids)
@@ -81,62 +103,95 @@ public sealed class DailyPlanService(
         }
 
         await planRepository.UpdateAsync(plan, cancellationToken).ConfigureAwait(false);
-        return await ToSummaryAsync(plan, today, cancellationToken).ConfigureAwait(false);
+        return await ToSummaryAsync(plan, planDate, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<DailyPlanSummary> CreateTaskAndAddToTodayAsync(CreateTaskRequest request, CancellationToken cancellationToken = default)
     {
-        DateOnly today = LocalToday();
-        DailyPlan plan = await planRepository.GetOrCreateAsync(today, UtcNow(), cancellationToken).ConfigureAwait(false);
+        return await CreateTaskAndAddAsync(LocalToday(), request, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<DailyPlanSummary> CreateTaskAndAddAsync(
+        DateOnly planDate,
+        CreateTaskRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ValidatePlanDate(planDate);
+        DailyPlan plan = await planRepository.GetOrCreateAsync(planDate, UtcNow(), cancellationToken).ConfigureAwait(false);
         EnsureOpen(plan);
         TaskSummary task = await taskService.CreateAsync(request, cancellationToken).ConfigureAwait(false);
-        return await AddTasksToTodayAsync([task.Id], cancellationToken).ConfigureAwait(false);
+        return await AddTasksAsync(planDate, [task.Id], cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<DailyPlanSummary> RemoveTaskFromTodayAsync(Guid taskId, CancellationToken cancellationToken = default)
     {
-        DateOnly today = LocalToday();
-        DailyPlan plan = await planRepository.GetOrCreateAsync(today, UtcNow(), cancellationToken).ConfigureAwait(false);
+        return await RemoveTaskAsync(LocalToday(), taskId, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<DailyPlanSummary> RemoveTaskAsync(
+        DateOnly planDate,
+        Guid taskId,
+        CancellationToken cancellationToken = default)
+    {
+        ValidatePlanDate(planDate);
+        DailyPlan plan = await planRepository.GetOrCreateAsync(planDate, UtcNow(), cancellationToken).ConfigureAwait(false);
         EnsureOpen(plan);
         plan.RemoveTask(taskId, UtcNow());
         await planRepository.UpdateAsync(plan, cancellationToken).ConfigureAwait(false);
-        return await ToSummaryAsync(plan, today, cancellationToken).ConfigureAwait(false);
+        return await ToSummaryAsync(plan, planDate, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<DailyPlanSummary> MoveTodayTaskAsync(Guid taskId, PlanMoveDirection direction, CancellationToken cancellationToken = default)
     {
+        return await MoveTaskAsync(LocalToday(), taskId, direction, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<DailyPlanSummary> MoveTaskAsync(
+        DateOnly planDate,
+        Guid taskId,
+        PlanMoveDirection direction,
+        CancellationToken cancellationToken = default)
+    {
+        ValidatePlanDate(planDate);
         if (!Enum.IsDefined(direction))
         {
             throw new ArgumentOutOfRangeException(nameof(direction));
         }
 
-        DateOnly today = LocalToday();
-        DailyPlan plan = await planRepository.GetOrCreateAsync(today, UtcNow(), cancellationToken).ConfigureAwait(false);
+        DailyPlan plan = await planRepository.GetOrCreateAsync(planDate, UtcNow(), cancellationToken).ConfigureAwait(false);
         EnsureOpen(plan);
         IReadOnlyList<DailyPlanItem> activeItems = plan.ActiveItems;
         int currentIndex = activeItems.ToList().FindIndex(item => item.TaskItemId == taskId);
         if (currentIndex < 0)
         {
-            throw new KeyNotFoundException("The task is not in today's plan.");
+            throw new KeyNotFoundException("The task is not in the selected daily plan.");
         }
 
         int newIndex = currentIndex + (int)direction;
         if (newIndex < 0 || newIndex >= activeItems.Count)
         {
-            return await ToSummaryAsync(plan, today, cancellationToken).ConfigureAwait(false);
+            return await ToSummaryAsync(plan, planDate, cancellationToken).ConfigureAwait(false);
         }
 
         plan.MoveTask(taskId, newIndex, UtcNow());
         await planRepository.UpdateAsync(plan, cancellationToken).ConfigureAwait(false);
-        return await ToSummaryAsync(plan, today, cancellationToken).ConfigureAwait(false);
+        return await ToSummaryAsync(plan, planDate, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<DailyPlanSummary> CloseTodayAsync(
         string? reviewText,
         CancellationToken cancellationToken = default)
     {
-        DateOnly today = LocalToday();
-        DailyPlan plan = await planRepository.GetOrCreateAsync(today, UtcNow(), cancellationToken).ConfigureAwait(false);
+        return await CloseAsync(LocalToday(), reviewText, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<DailyPlanSummary> CloseAsync(
+        DateOnly planDate,
+        string? reviewText,
+        CancellationToken cancellationToken = default)
+    {
+        ValidatePlanDate(planDate);
+        DailyPlan plan = await planRepository.GetOrCreateAsync(planDate, UtcNow(), cancellationToken).ConfigureAwait(false);
         EnsureOpen(plan);
         IReadOnlyDictionary<Guid, TimTicker.Domain.Tasks.TaskItem> activeTasks = await LoadActiveTasksAsync(
             plan,
@@ -153,7 +208,7 @@ public sealed class DailyPlanService(
 
         plan.Close(reviewText, completedTaskIds, UtcNow());
         await planRepository.UpdateAsync(plan, cancellationToken).ConfigureAwait(false);
-        return await ToSummaryAsync(plan, today, cancellationToken).ConfigureAwait(false);
+        return await ToSummaryAsync(plan, planDate, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<DailyPlanSummary> ReopenAsync(DateOnly planDate, CancellationToken cancellationToken = default)
@@ -257,6 +312,14 @@ public sealed class DailyPlanService(
         dayBoundarySettings.CurrentDayEndTime);
 
     private static bool IsOverdue(DateOnly? dueDate, DateOnly today) => dueDate.HasValue && dueDate.Value < today;
+
+    private static void ValidatePlanDate(DateOnly planDate)
+    {
+        if (planDate == default)
+        {
+            throw new ArgumentException("The plan date must not be empty.", nameof(planDate));
+        }
+    }
 
     private static void EnsureOpen(DailyPlan plan)
     {

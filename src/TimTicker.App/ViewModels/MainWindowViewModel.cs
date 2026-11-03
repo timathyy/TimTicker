@@ -30,6 +30,18 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
     public IReadOnlyList<NavigationItemViewModel> NavigationItems { get; }
 
+    public void NavigateTo(AppPage page)
+    {
+        NavigationItemViewModel item = NavigationItems.Single(item => item.Page == page);
+        if (SelectedNavigationItem == item)
+        {
+            CurrentPage = _navigationService.Navigate(page);
+            return;
+        }
+
+        SelectedNavigationItem = item;
+    }
+
     partial void OnSelectedNavigationItemChanged(NavigationItemViewModel? value)
     {
         if (value is not null)

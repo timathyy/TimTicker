@@ -89,6 +89,71 @@ public sealed class CalendarPersistenceTests
         }
     }
 
+    [Fact]
+    public async Task DeletedOnlyTaskIsExcludedFromOpenCalendarPlanSummary()
+    {
+        string testRoot = Path.Combine(Path.GetTempPath(), "TimTicker.Tests", Guid.NewGuid().ToString("N"));
+        string databasePath = Path.Combine(testRoot, "timticker.db");
+        Directory.CreateDirectory(testRoot);
+        FixedTimeProvider clock = new(new DateTimeOffset(2026, 11, 2, 12, 0, 0, TimeSpan.Zero));
+
+        try
+        {
+            await using ServiceProvider provider = CreateProvider(databasePath, clock);
+            await provider.GetRequiredService<IAppDatabaseInitializer>().InitializeAsync();
+            ITaskItemRepository tasks = provider.GetRequiredService<ITaskItemRepository>();
+            TaskItem task = new(
+                Guid.NewGuid(),
+                "Pending task",
+                null,
+                new DateOnly(2026, 11, 2),
+                null,
+                TaskPriority.None,
+                clock.GetUtcNow());
+            await tasks.AddAsync(task);
+
+            IDailyPlanRepository plans = provider.GetRequiredService<IDailyPlanRepository>();
+            TimTicker.Domain.Planning.DailyPlan plan = await plans.GetOrCreateAsync(
+                new DateOnly(2026, 11, 2),
+                clock.GetUtcNow());
+            plan.AddTask(task.Id, clock.GetUtcNow());
+            await plans.UpdateAsync(plan);
+
+            ICalendarReadRepository calendar = provider.GetRequiredService<ICalendarReadRepository>();
+            CalendarRangeData beforeDeletion = await calendar.ReadRangeAsync(
+                new DateOnly(2026, 11, 1),
+                new DateOnly(2026, 12, 1),
+                new DateTimeOffset(2026, 11, 1, 0, 0, 0, TimeSpan.Zero),
+                new DateTimeOffset(2026, 12, 1, 0, 0, 0, TimeSpan.Zero));
+
+            CalendarPlanData beforePlan = Assert.Single(beforeDeletion.Plans);
+            Assert.Equal(0, beforePlan.CompletedCount);
+            Assert.Equal(1, beforePlan.TotalCount);
+            Assert.Equal(0m, beforePlan.CompletionRate);
+
+            task.Delete(clock.GetUtcNow().AddMinutes(1));
+            await tasks.UpdateAsync(task);
+            CalendarRangeData afterDeletion = await calendar.ReadRangeAsync(
+                new DateOnly(2026, 11, 1),
+                new DateOnly(2026, 12, 1),
+                new DateTimeOffset(2026, 11, 1, 0, 0, 0, TimeSpan.Zero),
+                new DateTimeOffset(2026, 12, 1, 0, 0, 0, TimeSpan.Zero));
+
+            CalendarPlanData afterPlan = Assert.Single(afterDeletion.Plans);
+            Assert.Equal(0, afterPlan.CompletedCount);
+            Assert.Equal(0, afterPlan.TotalCount);
+            Assert.Null(afterPlan.CompletionRate);
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            if (Directory.Exists(testRoot))
+            {
+                Directory.Delete(testRoot, recursive: true);
+            }
+        }
+    }
+
     private static ServiceProvider CreateProvider(string databasePath, TimeProvider clock)
     {
         ServiceCollection services = new();

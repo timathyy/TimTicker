@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TimTicker.Application.Calendar;
+using TimTicker.Domain.Planning;
 using DomainTaskStatus = TimTicker.Domain.Tasks.TaskStatus;
 
 namespace TimTicker.Infrastructure.Persistence;
@@ -48,10 +49,15 @@ public sealed class CalendarReadRepository(IDbContextFactory<TimTickerDbContext>
         List<CalendarPlanData> planData = [];
         foreach (var plan in plans)
         {
-            int totalCount = plan.ActiveItems.Count;
+            DailyPlanItem[] countedItems = plan.IsClosed
+                ? plan.ActiveItems.ToArray()
+                : plan.ActiveItems
+                    .Where(item => taskStatuses.ContainsKey(item.TaskItemId))
+                    .ToArray();
+            int totalCount = countedItems.Length;
             int completedCount = plan.IsClosed
-                ? plan.ActiveItems.Count(item => item.WasCompletedAtClose == true)
-                : plan.ActiveItems.Count(item =>
+                ? countedItems.Count(item => item.WasCompletedAtClose == true)
+                : countedItems.Count(item =>
                     taskStatuses.TryGetValue(item.TaskItemId, out DomainTaskStatus status) &&
                     status == DomainTaskStatus.Completed);
             decimal? completionRate = plan.IsClosed

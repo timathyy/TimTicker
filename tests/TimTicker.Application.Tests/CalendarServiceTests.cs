@@ -98,6 +98,33 @@ public sealed class CalendarServiceTests
         Assert.Equal(selectedDate, timelines.RequestedDate);
     }
 
+    [Fact]
+    public async Task DayDetailsTreatPersistedEmptyPlanAsNoData()
+    {
+        DateOnly selectedDate = new(2026, 11, 3);
+        DailyPlanSummary emptyPlan = new(
+            Guid.NewGuid(),
+            selectedDate,
+            [],
+            0,
+            0,
+            null,
+            false,
+            null,
+            null);
+        CalendarService service = new(
+            new RecordingCalendarRepository(),
+            new StubPlanService(emptyPlan),
+            new StubTimelineService(new TimelineDaySummary(selectedDate, [], TimeSpan.Zero)),
+            new TestDayBoundarySettings(),
+            new FixedTimeProvider(new DateTimeOffset(2026, 11, 3, 12, 0, 0, TimeSpan.Zero), TimeZoneInfo.Utc));
+
+        CalendarDayDetails details = await service.GetDayAsync(selectedDate);
+
+        Assert.Same(emptyPlan, details.Plan);
+        Assert.False(details.HasData);
+    }
+
     private static CalendarService CreateService(
         RecordingCalendarRepository repository,
         IDayBoundarySettings? settings = null,

@@ -259,9 +259,9 @@ public sealed partial class CalendarViewModel(
                 ? string.IsNullOrWhiteSpace(details.Plan.ReviewText) ? "当天未填写复盘。" : details.Plan.ReviewText
                 : "当天尚未结束，复盘将在结束后显示。";
 
-        SelectedStateText = details.Plan?.IsClosed == true
-            ? "已结束"
-            : details.HasData ? "进行中 / 未结束" : "无数据";
+        SelectedStateText = !details.HasData
+            ? "无数据"
+            : details.Plan?.IsClosed == true ? "已结束" : "进行中 / 未结束";
     }
 
     private void ShowLoadError(string message)

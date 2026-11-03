@@ -26,7 +26,10 @@ public sealed record CalendarDayDetails(
     DailyPlanSummary? Plan,
     TimelineDaySummary Timeline)
 {
-    public bool HasData => Plan is not null || Timeline.Entries.Count > 0;
+    public bool HasData =>
+        Plan?.TotalCount > 0 ||
+        !string.IsNullOrWhiteSpace(Plan?.ReviewText) ||
+        Timeline.Entries.Count > 0;
 }
 
 public sealed record CalendarPlanData(

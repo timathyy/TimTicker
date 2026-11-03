@@ -2,6 +2,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TimTicker.Application.Abstractions;
+using TimTicker.Application.Calendar;
 using TimTicker.Application.Planning;
 using TimTicker.Application.Settings;
 using TimTicker.Application.Tasks;
@@ -35,6 +36,7 @@ public static class DependencyInjection
         services.AddSingleton<ITaskItemRepository, TaskItemRepository>();
         services.AddSingleton<IDailyPlanRepository, DailyPlanRepository>();
         services.AddSingleton<ITimelineEntryRepository, TimelineEntryRepository>();
+        services.AddSingleton<ICalendarReadRepository, CalendarReadRepository>();
         services.AddSingleton<IDayBoundarySettings>(_ =>
             new JsonDayBoundarySettings(Path.GetDirectoryName(fullDatabasePath)!));
 

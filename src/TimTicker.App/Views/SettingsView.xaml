@@ -244,7 +244,7 @@
                         <TextBlock Style="{StaticResource SectionTitleStyle}" Text="关于" />
                         <TextBlock Margin="0,8,0,0"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
-                                   Text="TimTicker v0.3.0 · 本地优先的日历与时间记录工具" />
+                                   Text="TimTicker v0.4.0 · 本地优先的日历与时间记录工具" />
                     </StackPanel>
                     <Border HorizontalAlignment="Right"
                             VerticalAlignment="Center"

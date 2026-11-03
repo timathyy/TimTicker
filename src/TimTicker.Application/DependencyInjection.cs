@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using TimTicker.Application.Calendar;
 using TimTicker.Application.Planning;
 using TimTicker.Application.Tasks;
 using TimTicker.Application.Timeline;
@@ -14,6 +15,7 @@ public static class DependencyInjection
         services.AddSingleton<ITaskService, TaskService>();
         services.AddSingleton<IDailyPlanService, DailyPlanService>();
         services.AddSingleton<ITimelineService, TimelineService>();
+        services.AddSingleton<ICalendarService, CalendarService>();
         return services;
     }
 }

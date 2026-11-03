@@ -1,11 +1,46 @@
 <UserControl x:Class="TimTicker.App.Views.CalendarView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             Background="{DynamicResource WindowBackgroundBrush}">
-    <Grid Margin="42,34,42,42">
+             Background="{DynamicResource WindowBackgroundBrush}"
+             Loaded="CalendarView_Loaded">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <Style x:Key="CalendarDayButtonStyle" TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+            <Setter Property="Height" Value="78" />
+            <Setter Property="MinHeight" Value="78" />
+            <Setter Property="Margin" Value="3" />
+            <Setter Property="Padding" Value="9,7" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Stretch" />
+            <Setter Property="FontWeight" Value="Normal" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding HasData}" Value="True">
+                    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsClosed}" Value="True">
+                    <Setter Property="BorderBrush" Value="{DynamicResource SuccessBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsOutsideMonth}" Value="True">
+                    <Setter Property="Opacity" Value="0.45" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                    <Setter Property="Opacity" Value="1" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="SectionHeadingStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,0,0,10" />
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="34,28,34,34">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="26" />
+            <RowDefinition Height="18" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -14,69 +49,251 @@
                 <TextBlock Style="{StaticResource PageTitleStyle}" Text="日历" />
                 <TextBlock Margin="0,4,0,0"
                            Foreground="{DynamicResource TextSecondaryBrush}"
-                           Text="回顾计划、时间记录和每日复盘" />
+                           Text="按月回顾计划、时间记录和每日复盘" />
             </StackPanel>
             <StackPanel HorizontalAlignment="Right" VerticalAlignment="Top" Orientation="Horizontal">
+                <Button Margin="0,0,10,0"
+                        Command="{Binding GoToTodayCommand}"
+                        Content="回到今天"
+                        Style="{StaticResource SecondaryButtonStyle}" />
                 <Button Width="42"
                         Padding="0"
+                        AutomationProperties.Name="上个月"
+                        Command="{Binding PreviousMonthCommand}"
                         Content="‹"
-                        IsEnabled="False"
                         Style="{StaticResource SecondaryButtonStyle}" />
-                <TextBlock Margin="18,0"
+                <TextBlock Width="118"
+                           Margin="8,0"
+                           HorizontalAlignment="Center"
                            VerticalAlignment="Center"
                            FontSize="16"
                            FontWeight="SemiBold"
-                           Text="{Binding MonthText}" />
+                           Text="{Binding MonthText}"
+                           TextAlignment="Center" />
                 <Button Width="42"
                         Padding="0"
+                        AutomationProperties.Name="下个月"
+                        Command="{Binding NextMonthCommand}"
                         Content="›"
-                        IsEnabled="False"
                         Style="{StaticResource SecondaryButtonStyle}" />
             </StackPanel>
         </Grid>
 
-        <Border Grid.Row="2" Style="{StaticResource CardStyle}">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="1" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-                <UniformGrid Columns="7" Margin="0,0,0,16">
-                    <TextBlock HorizontalAlignment="Center" Foreground="{DynamicResource TextTertiaryBrush}" Text="周一" />
-                    <TextBlock HorizontalAlignment="Center" Foreground="{DynamicResource TextTertiaryBrush}" Text="周二" />
-                    <TextBlock HorizontalAlignment="Center" Foreground="{DynamicResource TextTertiaryBrush}" Text="周三" />
-                    <TextBlock HorizontalAlignment="Center" Foreground="{DynamicResource TextTertiaryBrush}" Text="周四" />
-                    <TextBlock HorizontalAlignment="Center" Foreground="{DynamicResource TextTertiaryBrush}" Text="周五" />
-                    <TextBlock HorizontalAlignment="Center" Foreground="{DynamicResource TextTertiaryBrush}" Text="周六" />
-                    <TextBlock HorizontalAlignment="Center" Foreground="{DynamicResource TextTertiaryBrush}" Text="周日" />
-                </UniformGrid>
-                <Border Grid.Row="1" Background="{DynamicResource BorderBrush}" />
-                <StackPanel Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="390">
-                    <Border Width="52"
-                            Height="52"
-                            HorizontalAlignment="Center"
-                            Background="{DynamicResource AccentSoftBrush}"
-                            CornerRadius="17">
-                        <TextBlock HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"
-                                   FontFamily="Segoe Fluent Icons"
-                                   FontSize="22"
-                                   Foreground="{DynamicResource AccentBrush}"
-                                   Text="&#xE787;" />
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="3*" MinWidth="550" />
+                <ColumnDefinition Width="18" />
+                <ColumnDefinition Width="2*" MinWidth="320" />
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Padding="14" Style="{StaticResource CardStyle}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="30" />
+                        <RowDefinition Height="1" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <UniformGrid Columns="7">
+                        <TextBlock HorizontalAlignment="Center" Foreground="{DynamicResource TextTertiaryBrush}" Text="周一" />
+                        <TextBlock HorizontalAlignment="Center" Foreground="{DynamicResource TextTertiaryBrush}" Text="周二" />
+                        <TextBlock HorizontalAlignment="Center" Foreground="{DynamicResource TextTertiaryBrush}" Text="周三" />
+                        <TextBlock HorizontalAlignment="Center" Foreground="{DynamicResource TextTertiaryBrush}" Text="周四" />
+                        <TextBlock HorizontalAlignment="Center" Foreground="{DynamicResource TextTertiaryBrush}" Text="周五" />
+                        <TextBlock HorizontalAlignment="Center" Foreground="{DynamicResource TextTertiaryBrush}" Text="周六" />
+                        <TextBlock HorizontalAlignment="Center" Foreground="{DynamicResource TextTertiaryBrush}" Text="周日" />
+                    </UniformGrid>
+                    <Border Grid.Row="1" Background="{DynamicResource BorderBrush}" />
+                    <ItemsControl Grid.Row="2" Margin="-3,6,-3,-3" ItemsSource="{Binding Days}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Columns="7" Rows="6" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button AutomationProperties.Name="{Binding AutomationText}"
+                                        Command="{Binding DataContext.SelectDayCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding}"
+                                        Style="{StaticResource CalendarDayButtonStyle}">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="*" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <Grid>
+                                            <TextBlock FontSize="14" FontWeight="SemiBold" Text="{Binding DayNumberText}" />
+                                            <Border Width="6"
+                                                    Height="6"
+                                                    HorizontalAlignment="Right"
+                                                    VerticalAlignment="Top"
+                                                    Background="{DynamicResource AccentBrush}"
+                                                    CornerRadius="3"
+                                                    Visibility="{Binding IsToday, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                        </Grid>
+                                        <TextBlock Grid.Row="1"
+                                                   Margin="0,4,0,0"
+                                                   FontSize="10"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                                   Text="{Binding CompletionText}"
+                                                   TextTrimming="CharacterEllipsis" />
+                                        <StackPanel Grid.Row="2" HorizontalAlignment="Right" Orientation="Horizontal">
+                                            <Ellipse Width="6"
+                                                     Height="6"
+                                                     Margin="0,0,5,0"
+                                                     Fill="{DynamicResource AccentBrush}"
+                                                     ToolTip="有时间记录"
+                                                     Visibility="{Binding HasTimelineEntries, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                            <TextBlock FontSize="9"
+                                                       Foreground="{DynamicResource SuccessBrush}"
+                                                       Text="已结束"
+                                                       Visibility="{Binding IsClosed, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Border Grid.RowSpan="3"
+                            Background="{DynamicResource SurfaceBrush}"
+                            Opacity="0.82"
+                            Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <TextBlock HorizontalAlignment="Center"
+                                       FontFamily="Segoe Fluent Icons"
+                                       FontSize="24"
+                                       Foreground="{DynamicResource AccentBrush}"
+                                       Text="&#xE895;" />
+                            <TextBlock Margin="0,8,0,0" Foreground="{DynamicResource TextSecondaryBrush}" Text="正在加载日历…" />
+                        </StackPanel>
                     </Border>
-                    <TextBlock Margin="0,18,0,0"
-                               HorizontalAlignment="Center"
-                               FontSize="17"
-                               FontWeight="SemiBold"
-                               Text="日历视图即将加入" />
-                    <TextBlock Margin="0,7,0,0"
-                               HorizontalAlignment="Center"
-                               Foreground="{DynamicResource TextSecondaryBrush}"
-                               Text="完成每日计划与时间记录后，你可以在这里回看每一天。"
-                               TextAlignment="Center" />
-                </StackPanel>
-            </Grid>
-        </Border>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="2" Padding="20" Style="{StaticResource CardStyle}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock FontSize="19" FontWeight="SemiBold" Text="{Binding SelectedDateText}" />
+                        <StackPanel Margin="0,7,0,0" Orientation="Horizontal">
+                            <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource AccentBrush}" Text="{Binding SelectedStateText}" />
+                            <TextBlock Margin="8,0,0,0" FontSize="12" Foreground="{DynamicResource TextTertiaryBrush}" Text="{Binding SelectedStateDescription}" TextWrapping="Wrap" />
+                        </StackPanel>
+
+                        <Border Margin="0,14,0,0"
+                                Padding="12"
+                                Background="{DynamicResource AccentSoftBrush}"
+                                CornerRadius="10"
+                                Visibility="{Binding HasError, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <TextBlock Foreground="{DynamicResource DangerBrush}" Text="{Binding ErrorMessage}" TextWrapping="Wrap" />
+                        </Border>
+
+                        <StackPanel Margin="0,28,0,0">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasSelectedData}" Value="False">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                            <Border Width="46" Height="46" HorizontalAlignment="Center" Background="{DynamicResource SurfaceSecondaryBrush}" CornerRadius="15">
+                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe Fluent Icons" FontSize="20" Foreground="{DynamicResource TextTertiaryBrush}" Text="&#xE787;" />
+                            </Border>
+                            <TextBlock Margin="0,14,0,0" HorizontalAlignment="Center" FontWeight="SemiBold" Text="这一天还没有记录" />
+                            <TextBlock Margin="0,6,0,0" HorizontalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" Text="没有计划、时间记录或每日复盘。" TextAlignment="Center" TextWrapping="Wrap" />
+                        </StackPanel>
+
+                        <StackPanel Margin="0,20,0,0">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasSelectedData}" Value="False">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+
+                            <Border Padding="13" Background="{DynamicResource SurfaceSecondaryBrush}" CornerRadius="10">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock FontSize="12" Foreground="{DynamicResource TextTertiaryBrush}" Text="计划完成度" />
+                                        <TextBlock Margin="0,4,0,0" FontWeight="SemiBold" Text="{Binding CompletionCountText}" />
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="24" FontWeight="SemiBold" Foreground="{DynamicResource AccentBrush}" Text="{Binding CompletionPercentageText}" />
+                                </Grid>
+                            </Border>
+
+                            <TextBlock Margin="0,20,0,0" Style="{StaticResource SectionHeadingStyle}" Text="当日计划" />
+                            <ItemsControl ItemsSource="{Binding PlanItems}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Margin="0,0,0,7" Padding="10" Background="{DynamicResource SurfaceSecondaryBrush}" CornerRadius="8">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock FontWeight="SemiBold" Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Margin="0,3,0,0" FontSize="11" Foreground="{DynamicResource TextTertiaryBrush}">
+                                                        <Run Text="{Binding DetailText}" /><Run Text=" · 优先级 " /><Run Text="{Binding PriorityText}" />
+                                                    </TextBlock>
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="{DynamicResource SuccessBrush}" Text="{Binding StatusText}" />
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" Text="当天未安排任务。">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding HasPlanItems}" Value="False">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+
+                            <TextBlock Margin="0,20,0,0" Style="{StaticResource SectionHeadingStyle}" Text="时间轴" />
+                            <TextBlock Margin="0,-5,0,10" FontSize="11" Foreground="{DynamicResource TextTertiaryBrush}" Text="{Binding TimelineSummaryText}" />
+                            <ItemsControl ItemsSource="{Binding TimelineItems}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Margin="0,0,0,7" Padding="10" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8">
+                                            <StackPanel>
+                                                <Grid>
+                                                    <TextBlock Margin="0,0,70,0" FontWeight="SemiBold" Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock HorizontalAlignment="Right" FontSize="11" Foreground="{DynamicResource AccentBrush}" Text="{Binding DurationText}" />
+                                                </Grid>
+                                                <TextBlock Margin="0,4,0,0" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding TimeText}" />
+                                                <TextBlock Margin="0,3,0,0" FontSize="10" Foreground="{DynamicResource TextTertiaryBrush}" Text="{Binding LinkedTasksText}" TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <TextBlock Margin="0,20,0,0" Style="{StaticResource SectionHeadingStyle}" Text="每日复盘" />
+                            <Border Padding="12" Background="{DynamicResource SurfaceSecondaryBrush}" CornerRadius="10">
+                                <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding ReviewText}" TextWrapping="Wrap" />
+                            </Border>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
     </Grid>
 </UserControl>

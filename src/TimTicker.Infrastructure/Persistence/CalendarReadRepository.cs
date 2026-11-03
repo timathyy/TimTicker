@@ -63,6 +63,11 @@ public sealed class CalendarReadRepository(IDbContextFactory<TimTickerDbContext>
             decimal? completionRate = plan.IsClosed
                 ? plan.FinalCompletionRate
                 : totalCount == 0 ? null : completedCount / (decimal)totalCount;
+            if (totalCount == 0 && string.IsNullOrWhiteSpace(plan.ReviewText))
+            {
+                continue;
+            }
+
             planData.Add(new CalendarPlanData(
                 plan.Date,
                 plan.IsClosed,

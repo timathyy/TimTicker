@@ -20,7 +20,7 @@ public partial class EndDayReviewWindow : Window
         InitializeComponent();
 
         CompletionText.Text = totalCount == 0
-            ? "未制定计划"
+            ? "0/0"
             : $"{Math.Round(completedCount / (decimal)totalCount * 100, MidpointRounding.AwayFromZero):0}%";
         PlanSummaryText.Text = totalCount == 0 ? "今天没有计划任务" : $"已完成 {completedCount} / {totalCount} 项";
         TimelineCountText.Text = $"{timelineEntryCount} 条";

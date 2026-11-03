@@ -136,7 +136,7 @@ public sealed partial class TodayViewModel : ViewModelBase
     private string _completionPercentageText = string.Empty;
 
     [ObservableProperty]
-    private string _completionCountText = "未制定计划";
+    private string _completionCountText = "0/0";
 
     [ObservableProperty]
     private string _completionStateText = "进行中";
@@ -356,7 +356,7 @@ public sealed partial class TodayViewModel : ViewModelBase
             ? $"{Math.Round(plan.CompletionRate.Value * 100, MidpointRounding.AwayFromZero):0}%"
             : string.Empty;
         CompletionCountText = plan.TotalCount == 0
-            ? "未制定计划"
+            ? "0/0"
             : $"已完成 {plan.CompletedCount} / {plan.TotalCount} 项";
         CompletionStateText = plan.IsClosed ? ClosedStatusText : "实时完成度";
         CurrentReviewText = plan.ReviewText;

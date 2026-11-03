@@ -56,7 +56,11 @@ public sealed class CalendarServiceTests
         Assert.Equal(new DateOnly(2026, 2, 23), month.VisibleStart);
         Assert.Equal(new DateTimeOffset(2026, 2, 22, 22, 0, 0, TimeSpan.Zero), repository.StartAtUtc);
         Assert.Equal(new DateTimeOffset(2026, 4, 5, 22, 0, 0, TimeSpan.Zero), repository.EndAtUtc);
-        Assert.True(Assert.Single(month.Days, day => day.Date == new DateOnly(2026, 2, 23)).HasTimelineEntries);
+        CalendarDaySummary timelineOnlyDay = Assert.Single(month.Days, day => day.Date == new DateOnly(2026, 2, 23));
+        Assert.True(timelineOnlyDay.HasTimelineEntries);
+        Assert.True(timelineOnlyDay.HasData);
+        Assert.False(timelineOnlyDay.HasPlan);
+        Assert.Equal(0, timelineOnlyDay.TotalCount);
         Assert.True(Assert.Single(month.Days, day => day.Date == new DateOnly(2026, 2, 24)).HasTimelineEntries);
         Assert.False(Assert.Single(month.Days, day => day.Date == new DateOnly(2026, 2, 25)).HasTimelineEntries);
     }

@@ -139,10 +139,54 @@ public sealed class CalendarPersistenceTests
                 new DateTimeOffset(2026, 11, 1, 0, 0, 0, TimeSpan.Zero),
                 new DateTimeOffset(2026, 12, 1, 0, 0, 0, TimeSpan.Zero));
 
-            CalendarPlanData afterPlan = Assert.Single(afterDeletion.Plans);
-            Assert.Equal(0, afterPlan.CompletedCount);
-            Assert.Equal(0, afterPlan.TotalCount);
-            Assert.Null(afterPlan.CompletionRate);
+            Assert.Empty(afterDeletion.Plans);
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            if (Directory.Exists(testRoot))
+            {
+                Directory.Delete(testRoot, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task EmptyClosedPlanIsOmittedUnlessItHasReviewText()
+    {
+        string testRoot = Path.Combine(Path.GetTempPath(), "TimTicker.Tests", Guid.NewGuid().ToString("N"));
+        string databasePath = Path.Combine(testRoot, "timticker.db");
+        Directory.CreateDirectory(testRoot);
+        FixedTimeProvider clock = new(new DateTimeOffset(2026, 11, 2, 12, 0, 0, TimeSpan.Zero));
+
+        try
+        {
+            await using ServiceProvider provider = CreateProvider(databasePath, clock);
+            await provider.GetRequiredService<IAppDatabaseInitializer>().InitializeAsync();
+            IDailyPlanRepository plans = provider.GetRequiredService<IDailyPlanRepository>();
+
+            TimTicker.Domain.Planning.DailyPlan emptyPlan = await plans.GetOrCreateAsync(
+                new DateOnly(2026, 11, 2),
+                clock.GetUtcNow());
+            emptyPlan.Close(null, new HashSet<Guid>(), clock.GetUtcNow().AddMinutes(1));
+            await plans.UpdateAsync(emptyPlan);
+
+            TimTicker.Domain.Planning.DailyPlan reviewedPlan = await plans.GetOrCreateAsync(
+                new DateOnly(2026, 11, 3),
+                clock.GetUtcNow());
+            reviewedPlan.Close("A written review", new HashSet<Guid>(), clock.GetUtcNow().AddMinutes(2));
+            await plans.UpdateAsync(reviewedPlan);
+
+            CalendarRangeData result = await provider.GetRequiredService<ICalendarReadRepository>().ReadRangeAsync(
+                new DateOnly(2026, 11, 1),
+                new DateOnly(2026, 12, 1),
+                new DateTimeOffset(2026, 11, 1, 0, 0, 0, TimeSpan.Zero),
+                new DateTimeOffset(2026, 12, 1, 0, 0, 0, TimeSpan.Zero));
+
+            CalendarPlanData retainedPlan = Assert.Single(result.Plans);
+            Assert.Equal(new DateOnly(2026, 11, 3), retainedPlan.Date);
+            Assert.True(retainedPlan.IsClosed);
+            Assert.Equal(0, retainedPlan.TotalCount);
         }
         finally
         {

@@ -39,7 +39,7 @@ public sealed partial class CalendarViewModel(
     private string _completionPercentageText = string.Empty;
 
     [ObservableProperty]
-    private string _completionCountText = "未制定计划";
+    private string _completionCountText = "0/0";
 
     [ObservableProperty]
     private string _timelineSummaryText = "无时间记录";
@@ -240,7 +240,7 @@ public sealed partial class CalendarViewModel(
             ? $"{Math.Round(rate * 100, MidpointRounding.AwayFromZero):0}%"
             : string.Empty;
         CompletionCountText = details.Plan is null || details.Plan.TotalCount == 0
-            ? "未制定计划"
+            ? "0/0"
             : $"已完成 {details.Plan.CompletedCount} / {details.Plan.TotalCount} 项";
 
         TimelineItems.Clear();
@@ -295,11 +295,9 @@ public sealed partial class CalendarDayViewModel : ObservableObject
         HasPlan = day.HasPlan;
         IsClosed = day.IsClosed;
         HasTimelineEntries = day.HasTimelineEntries;
-        CompletionText = day.HasPlan
-            ? day.TotalCount == 0
-                ? "未制定计划"
-                : $"{Math.Round((day.CompletionRate ?? 0) * 100, MidpointRounding.AwayFromZero):0}% · {day.CompletedCount}/{day.TotalCount}"
-            : string.Empty;
+        CompletionText = day.TotalCount > 0
+            ? $"{Math.Round((day.CompletionRate ?? 0) * 100, MidpointRounding.AwayFromZero):0}% · {day.CompletedCount}/{day.TotalCount}"
+            : day.HasTimelineEntries ? "0/0" : string.Empty;
         AutomationText = $"{day.Date:yyyy年M月d日}，{(day.HasData ? IsClosed ? "已结束" : "有数据" : "无数据")}";
     }
 

@@ -99,17 +99,17 @@
 
             <Grid>
                 <StackPanel>
-                    <TextBlock Style="{StaticResource PageTitleStyle}" Text="今天" />
+                    <TextBlock Style="{StaticResource PageTitleStyle}" Text="{Binding HeaderTitleText}" />
                     <TextBlock Margin="0,4,0,0"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                Text="{Binding DateText}" />
                 </StackPanel>
                 <StackPanel HorizontalAlignment="Right" VerticalAlignment="Top" Orientation="Horizontal">
                     <Border Margin="0,0,10,0" Padding="10,6" VerticalAlignment="Center" Background="{DynamicResource AccentSoftBrush}" CornerRadius="8" Visibility="{Binding IsDayClosed, Converter={StaticResource BooleanToVisibilityConverter}}">
-                        <TextBlock Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold" Text="今日已结束" />
+                        <TextBlock Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold" Text="{Binding ClosedStatusText}" />
                     </Border>
                     <Button Click="EndDayButton_Click"
-                            Content="结束今天"
+                            Content="{Binding EndDayActionText}"
                             IsEnabled="{Binding CanEndDay}">
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
@@ -122,7 +122,7 @@
                             </Style>
                         </Button.Style>
                     </Button>
-                    <Button Click="ReopenDayButton_Click" Content="重新打开今天">
+                    <Button Click="ReopenDayButton_Click" Content="{Binding ReopenDayActionText}">
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
                                 <Setter Property="Visibility" Value="Collapsed" />
@@ -155,7 +155,7 @@
                         </Grid.RowDefinitions>
                         <Grid>
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock VerticalAlignment="Center" Style="{StaticResource SectionTitleStyle}" Text="今日计划" />
+                                <TextBlock VerticalAlignment="Center" Style="{StaticResource SectionTitleStyle}" Text="{Binding PlanSectionTitleText}" />
                                 <TextBlock Margin="10,2,0,0"
                                            VerticalAlignment="Center"
                                            Foreground="{DynamicResource TextTertiaryBrush}"
@@ -203,11 +203,11 @@
                             <TextBlock Margin="0,16,0,0"
                                        HorizontalAlignment="Center"
                                        FontWeight="SemiBold"
-                                       Text="今天还没有计划" />
+                                       Text="{Binding EmptyPlanTitleText}" />
                             <TextBlock Margin="0,6,0,0"
                                        HorizontalAlignment="Center"
                                        Foreground="{DynamicResource TextSecondaryBrush}"
-                                       Text="从任务池多选今天要完成的事情，或在上方新建任务并直接加入。"
+                                       Text="{Binding EmptyPlanDescriptionText}"
                                        TextAlignment="Center" />
                         </StackPanel>
 
@@ -426,7 +426,7 @@
                         <Border Margin="0,16,0,0" Padding="12,9" Background="{DynamicResource SurfaceSecondaryBrush}" CornerRadius="8">
                             <TextBlock MaxHeight="52" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding ReviewSummaryText}" TextTrimming="CharacterEllipsis" TextWrapping="Wrap" />
                         </Border>
-                        <Button Margin="0,12,0,0" Click="ViewDaySummaryButton_Click" Content="查看今日总结" Style="{StaticResource SecondaryButtonStyle}" Visibility="{Binding IsDayClosed, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                        <Button Margin="0,12,0,0" Click="ViewDaySummaryButton_Click" Content="{Binding DaySummaryActionText}" Style="{StaticResource SecondaryButtonStyle}" Visibility="{Binding IsDayClosed, Converter={StaticResource BooleanToVisibilityConverter}}" />
                     </StackPanel>
                 </Border>
             </Grid>
@@ -442,7 +442,7 @@
                     </Grid.RowDefinitions>
                     <Grid>
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock VerticalAlignment="Center" Style="{StaticResource SectionTitleStyle}" Text="今日时间轴" />
+                            <TextBlock VerticalAlignment="Center" Style="{StaticResource SectionTitleStyle}" Text="{Binding TimelineSectionTitleText}" />
                             <TextBlock Margin="12,2,0,0"
                                        VerticalAlignment="Center"
                                        Foreground="{DynamicResource TextTertiaryBrush}"
@@ -452,7 +452,7 @@
                             <Button Margin="0,0,8,0"
                                     Click="StartTimelineEntryButton_Click"
                                     Content="开始记录"
-                                    IsEnabled="{Binding CanEndDay}"
+                                    IsEnabled="{Binding CanStartTimeline}"
                                     Style="{StaticResource PrimaryButtonStyle}" />
                             <Button Click="AddTimelineEntryButton_Click"
                                     Content="手动录入"

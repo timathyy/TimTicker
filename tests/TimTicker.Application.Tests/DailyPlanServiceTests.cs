@@ -196,6 +196,38 @@ public sealed class DailyPlanServiceTests
         Assert.Equal("Review text", reopened.ReviewText);
     }
 
+    [Fact]
+    public async Task SelectedHistoricalDateSupportsFullPlanEditingWithoutChangingToday()
+    {
+        InMemoryDailyPlanRepository plans = new();
+        InMemoryTaskRepository tasks = new();
+        MutableTimeProvider clock = new(new DateTimeOffset(2026, 11, 3, 8, 0, 0, TimeSpan.Zero));
+        DailyPlanService service = CreateService(plans, tasks, clock);
+        DateOnly historicalDate = new(2026, 11, 2);
+        TaskItem existingTask = AddPendingTask(tasks, "Existing", clock.GetUtcNow());
+
+        await service.AddTasksAsync(historicalDate, [existingTask.Id]);
+        DailyPlanSummary withCreatedTask = await service.CreateTaskAndAddAsync(
+            historicalDate,
+            new CreateTaskRequest("Created for history", null, historicalDate, null, TaskPriority.Medium));
+        Guid createdTaskId = withCreatedTask.Items.Single(item => item.TaskId != existingTask.Id).TaskId;
+        DailyPlanSummary moved = await service.MoveTaskAsync(historicalDate, createdTaskId, PlanMoveDirection.Up);
+        DailyPlanSummary removed = await service.RemoveTaskAsync(historicalDate, existingTask.Id);
+        DailyPlanSummary closed = await service.CloseAsync(historicalDate, "Historical review");
+        DailyPlanSummary reopened = await service.ReopenAsync(historicalDate);
+        IReadOnlyList<DailyPlanTaskCandidate> candidates = await service.ListCandidatesAsync(historicalDate);
+
+        Assert.Equal(createdTaskId, moved.Items[0].TaskId);
+        Assert.Equal(createdTaskId, Assert.Single(removed.Items).TaskId);
+        Assert.True(closed.IsClosed);
+        Assert.Equal("Historical review", closed.ReviewText);
+        Assert.False(reopened.IsClosed);
+        Assert.Contains(candidates, candidate => candidate.Task.Id == existingTask.Id);
+        Assert.DoesNotContain(candidates, candidate => candidate.Task.Id == createdTaskId);
+        Assert.Single(plans.Plans);
+        Assert.True(plans.Plans.ContainsKey(historicalDate));
+    }
+
     private static DailyPlanService CreateService(
         InMemoryDailyPlanRepository plans,
         InMemoryTaskRepository tasks,

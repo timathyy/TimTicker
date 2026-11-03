@@ -144,17 +144,31 @@ public sealed class CalendarServiceTests
 
         public Task<DailyPlanSummary> GetTodayAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
+        public Task<DailyPlanSummary> GetOrCreateForDateAsync(DateOnly planDate, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
         public Task<IReadOnlyList<DailyPlanTaskCandidate>> ListTodayCandidatesAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public Task<IReadOnlyList<DailyPlanTaskCandidate>> ListCandidatesAsync(DateOnly planDate, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
         public Task<DailyPlanSummary> AddTasksToTodayAsync(IEnumerable<Guid> taskIds, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
+        public Task<DailyPlanSummary> AddTasksAsync(DateOnly planDate, IEnumerable<Guid> taskIds, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
         public Task<DailyPlanSummary> CreateTaskAndAddToTodayAsync(CreateTaskRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public Task<DailyPlanSummary> CreateTaskAndAddAsync(DateOnly planDate, CreateTaskRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
         public Task<DailyPlanSummary> RemoveTaskFromTodayAsync(Guid taskId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
+        public Task<DailyPlanSummary> RemoveTaskAsync(DateOnly planDate, Guid taskId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
         public Task<DailyPlanSummary> MoveTodayTaskAsync(Guid taskId, PlanMoveDirection direction, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
+        public Task<DailyPlanSummary> MoveTaskAsync(DateOnly planDate, Guid taskId, PlanMoveDirection direction, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
         public Task<DailyPlanSummary> CloseTodayAsync(string? reviewText, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public Task<DailyPlanSummary> CloseAsync(DateOnly planDate, string? reviewText, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
         public Task<DailyPlanSummary> ReopenAsync(DateOnly planDate, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     }

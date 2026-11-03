@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TimTicker.Application.Calendar;
 using TimTicker.Application.Settings;
+using TimTicker.App.Services;
 using TimTicker.Domain.Tasks;
 using DomainTaskStatus = TimTicker.Domain.Tasks.TaskStatus;
 
@@ -12,7 +13,8 @@ namespace TimTicker.App.ViewModels;
 public sealed partial class CalendarViewModel(
     ICalendarService calendarService,
     IDayBoundarySettings dayBoundarySettings,
-    TimeProvider timeProvider) : ViewModelBase
+    TimeProvider timeProvider,
+    IDayEditorService dayEditorService) : ViewModelBase
 {
     private static readonly CultureInfo ChineseCulture = CultureInfo.GetCultureInfo("zh-CN");
     private DateOnly _monthStart;
@@ -68,6 +70,20 @@ public sealed partial class CalendarViewModel(
 
     public DateOnly SelectedDate { get; private set; }
 
+    public bool IsSelectedDateToday => SelectedDate != default && SelectedDate == GetBusinessToday();
+
+    public async Task EditSelectedDayAsync(System.Windows.Window? owner)
+    {
+        if (SelectedDate == default || IsSelectedDateToday)
+        {
+            return;
+        }
+
+        DateOnly selectedDate = SelectedDate;
+        dayEditorService.Show(selectedDate, owner);
+        await LoadMonthAsync(new DateOnly(selectedDate.Year, selectedDate.Month, 1), selectedDate);
+    }
+
     [RelayCommand]
     private async Task LoadCalendarAsync()
     {
@@ -95,6 +111,12 @@ public sealed partial class CalendarViewModel(
     {
         if (day is null || IsLoading)
         {
+            return;
+        }
+
+        if (day.IsOutsideMonth)
+        {
+            await LoadMonthAsync(new DateOnly(day.Date.Year, day.Date.Month, 1), day.Date);
             return;
         }
 

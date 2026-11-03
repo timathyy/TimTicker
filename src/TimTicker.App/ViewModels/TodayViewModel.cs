@@ -13,19 +13,89 @@ using DomainTaskStatus = TimTicker.Domain.Tasks.TaskStatus;
 
 namespace TimTicker.App.ViewModels;
 
-public sealed partial class TodayViewModel(
-    IDailyPlanService planService,
-    ITaskService taskService,
-    ITimelineService timelineService,
-    IDetailNavigationService detailNavigationService,
-    IDayBoundarySettings dayBoundarySettings) : ViewModelBase
+public sealed partial class TodayViewModel : ViewModelBase
 {
+    private readonly IDailyPlanService _planService;
+    private readonly ITaskService _taskService;
+    private readonly ITimelineService _timelineService;
+    private readonly IDetailNavigationService _detailNavigationService;
+    private readonly IDayBoundarySettings _dayBoundarySettings;
+    private readonly DateOnly? _requestedDate;
+
+    public TodayViewModel(
+        IDailyPlanService planService,
+        ITaskService taskService,
+        ITimelineService timelineService,
+        IDetailNavigationService detailNavigationService,
+        IDayBoundarySettings dayBoundarySettings)
+    {
+        _planService = planService;
+        _taskService = taskService;
+        _timelineService = timelineService;
+        _detailNavigationService = detailNavigationService;
+        _dayBoundarySettings = dayBoundarySettings;
+    }
+
+    internal TodayViewModel(
+        IDailyPlanService planService,
+        ITaskService taskService,
+        ITimelineService timelineService,
+        IDetailNavigationService detailNavigationService,
+        IDayBoundarySettings dayBoundarySettings,
+        DateOnly requestedDate)
+        : this(planService, taskService, timelineService, detailNavigationService, dayBoundarySettings)
+    {
+        if (requestedDate == default)
+        {
+            throw new ArgumentException("The requested date must not be empty.", nameof(requestedDate));
+        }
+
+        _requestedDate = requestedDate;
+        IsHistoricalEditor = true;
+        HeaderTitleText = requestedDate.ToString("yyyy年M月d日", CultureInfo.GetCultureInfo("zh-CN"));
+        ClosedStatusText = "当日已结束";
+        EndDayActionText = "结束当日";
+        ReopenDayActionText = "重新打开当日";
+        PlanSectionTitleText = "当日计划";
+        EmptyPlanTitleText = "当日还没有计划";
+        EmptyPlanDescriptionText = "从任务池多选当日要完成的事情，或在上方新建任务并直接加入。";
+        DaySummaryActionText = "查看当日总结";
+        TimelineSectionTitleText = "当日时间轴";
+    }
+
     public ObservableCollection<TodayPlanItemViewModel> PlanItems { get; } = [];
 
     public ObservableCollection<TodayTimelineItemViewModel> TimelineItems { get; } = [];
 
     [ObservableProperty]
     private string _dateText = string.Empty;
+
+    [ObservableProperty]
+    private string _headerTitleText = "今天";
+
+    [ObservableProperty]
+    private string _closedStatusText = "今日已结束";
+
+    [ObservableProperty]
+    private string _endDayActionText = "结束今天";
+
+    [ObservableProperty]
+    private string _reopenDayActionText = "重新打开今天";
+
+    [ObservableProperty]
+    private string _planSectionTitleText = "今日计划";
+
+    [ObservableProperty]
+    private string _emptyPlanTitleText = "今天还没有计划";
+
+    [ObservableProperty]
+    private string _emptyPlanDescriptionText = "从任务池多选今天要完成的事情，或在上方新建任务并直接加入。";
+
+    [ObservableProperty]
+    private string _daySummaryActionText = "查看今日总结";
+
+    [ObservableProperty]
+    private string _timelineSectionTitleText = "今日时间轴";
 
     [ObservableProperty]
     private bool _hasPlanItems;
@@ -60,6 +130,9 @@ public sealed partial class TodayViewModel(
     private bool _canEndDay = true;
 
     [ObservableProperty]
+    private bool _canStartTimeline = true;
+
+    [ObservableProperty]
     private string _completionPercentageText = string.Empty;
 
     [ObservableProperty]
@@ -82,84 +155,95 @@ public sealed partial class TodayViewModel(
 
     public DateOnly CurrentDate { get; private set; }
 
+    public bool IsHistoricalEditor { get; }
+
     public string? CurrentReviewText { get; private set; }
 
-    public DayEndTime CurrentDayEndTime => dayBoundarySettings.CurrentDayEndTime;
+    public DayEndTime CurrentDayEndTime => _dayBoundarySettings.CurrentDayEndTime;
 
     public async Task<IReadOnlyList<DailyPlanTaskCandidate>> GetTaskCandidatesAsync() =>
-        await planService.ListTodayCandidatesAsync();
+        await _planService.ListCandidatesAsync(CurrentDate);
 
     public Task<IReadOnlyList<TimelineTaskOption>> GetTimelineTaskOptionsAsync() =>
-        timelineService.ListTaskOptionsAsync(CurrentDate);
+        _timelineService.ListTaskOptionsAsync(CurrentDate);
 
     [RelayCommand]
     public async Task LoadTodayAsync()
     {
-        DailyPlanSummary plan = await planService.GetTodayAsync();
+        DailyPlanSummary plan = _requestedDate.HasValue
+            ? await _planService.GetOrCreateForDateAsync(_requestedDate.Value)
+            : await _planService.GetTodayAsync();
         CurrentDate = plan.Date;
-        DateText = plan.Date.ToDateTime(TimeOnly.MinValue).ToString("M月d日，dddd", CultureInfo.GetCultureInfo("zh-CN"));
+        DateText = plan.Date.ToDateTime(TimeOnly.MinValue).ToString(
+            IsHistoricalEditor ? "dddd" : "M月d日，dddd",
+            CultureInfo.GetCultureInfo("zh-CN"));
         ApplyPlan(plan);
-        ApplyTimeline(await timelineService.GetTodayAsync());
+        ApplyTimeline(await _timelineService.GetForDateAsync(CurrentDate));
     }
 
     public async Task AddSelectedTasksAsync(IEnumerable<Guid> taskIds) =>
-        ApplyPlan(await planService.AddTasksToTodayAsync(taskIds));
+        ApplyPlan(await _planService.AddTasksAsync(CurrentDate, taskIds));
 
     public async Task CreateTaskAndAddAsync(CreateTaskRequest request) =>
-        ApplyPlan(await planService.CreateTaskAndAddToTodayAsync(request));
+        ApplyPlan(await _planService.CreateTaskAndAddAsync(CurrentDate, request));
 
     public async Task StartTimelineEntryAsync(StartTimelineEntryRequest request)
     {
-        await timelineService.StartAsync(request);
+        if (IsHistoricalEditor)
+        {
+            throw new InvalidOperationException("Live timers can only be started for today.");
+        }
+
+        await _timelineService.StartAsync(request);
         TimelineErrorMessage = string.Empty;
-        ApplyTimeline(await timelineService.GetTodayAsync());
+        ApplyTimeline(await _timelineService.GetForDateAsync(CurrentDate));
     }
 
     public async Task CreateTimelineEntryAsync(CreateTimelineEntryRequest request)
     {
-        await timelineService.CreateAsync(request);
-        ApplyTimeline(await timelineService.GetTodayAsync());
+        await _timelineService.CreateAsync(request);
+        ApplyTimeline(await _timelineService.GetForDateAsync(CurrentDate));
     }
 
     public async Task UpdateTimelineEntryAsync(UpdateTimelineEntryRequest request)
     {
-        await timelineService.UpdateAsync(request);
-        ApplyTimeline(await timelineService.GetTodayAsync());
+        await _timelineService.UpdateAsync(request);
+        ApplyTimeline(await _timelineService.GetForDateAsync(CurrentDate));
     }
 
     public async Task DeleteTimelineEntryAsync(Guid id)
     {
-        await timelineService.DeleteAsync(id);
-        ApplyTimeline(await timelineService.GetTodayAsync());
+        await _timelineService.DeleteAsync(id);
+        ApplyTimeline(await _timelineService.GetForDateAsync(CurrentDate));
     }
 
     public async Task CloseTodayAsync(string? reviewText)
     {
-        ApplyPlan(await planService.CloseTodayAsync(reviewText));
-        ApplyTimeline(await timelineService.GetTodayAsync());
+        ApplyPlan(await _planService.CloseAsync(CurrentDate, reviewText));
+        ApplyTimeline(await _timelineService.GetForDateAsync(CurrentDate));
     }
 
     public async Task ReopenTodayAsync()
     {
-        ApplyPlan(await planService.ReopenAsync(CurrentDate));
-        ApplyTimeline(await timelineService.GetTodayAsync());
+        ApplyPlan(await _planService.ReopenAsync(CurrentDate));
+        ApplyTimeline(await _timelineService.GetForDateAsync(CurrentDate));
     }
 
     public async Task ShowTaskDetailsAsync(Guid taskId, System.Windows.Window? owner)
     {
-        if (await detailNavigationService.ShowTaskAsync(taskId, owner))
+        if (await _detailNavigationService.ShowTaskAsync(taskId, owner))
         {
-            ApplyPlan(await planService.GetTodayAsync());
-            ApplyTimeline(await timelineService.GetTodayAsync());
+            ApplyPlan(await _planService.GetOrCreateForDateAsync(CurrentDate));
+            ApplyTimeline(await _timelineService.GetForDateAsync(CurrentDate));
         }
     }
 
     public async Task ShowTimelineEntryDetailsAsync(Guid entryId, System.Windows.Window? owner)
     {
-        if (await detailNavigationService.ShowTimelineEntryAsync(entryId, owner))
+        if (await _detailNavigationService.ShowTimelineEntryAsync(entryId, owner))
         {
-            ApplyPlan(await planService.GetTodayAsync());
-            ApplyTimeline(await timelineService.GetTodayAsync());
+            ApplyPlan(await _planService.GetOrCreateForDateAsync(CurrentDate));
+            ApplyTimeline(await _timelineService.GetForDateAsync(CurrentDate));
         }
     }
 
@@ -171,9 +255,9 @@ public sealed partial class TodayViewModel(
             return;
         }
 
-        await taskService.CompleteAsync(item.TaskId);
-        ApplyPlan(await planService.GetTodayAsync());
-        ApplyTimeline(await timelineService.GetTodayAsync());
+        await _taskService.CompleteAsync(item.TaskId);
+        ApplyPlan(await _planService.GetOrCreateForDateAsync(CurrentDate));
+        ApplyTimeline(await _timelineService.GetForDateAsync(CurrentDate));
     }
 
     [RelayCommand]
@@ -184,8 +268,8 @@ public sealed partial class TodayViewModel(
             return;
         }
 
-        await timelineService.RemoveTaskAsync(item.TimelineEntryId, item.TaskId);
-        ApplyTimeline(await timelineService.GetTodayAsync());
+        await _timelineService.RemoveTaskAsync(item.TimelineEntryId, item.TaskId);
+        ApplyTimeline(await _timelineService.GetForDateAsync(CurrentDate));
     }
 
     [RelayCommand]
@@ -193,8 +277,8 @@ public sealed partial class TodayViewModel(
     {
         if (IsDayOpen && item?.Status == DomainTaskStatus.Pending)
         {
-            await taskService.CompleteAsync(item.TaskId);
-            ApplyPlan(await planService.GetTodayAsync());
+            await _taskService.CompleteAsync(item.TaskId);
+            ApplyPlan(await _planService.GetOrCreateForDateAsync(CurrentDate));
         }
     }
 
@@ -203,8 +287,8 @@ public sealed partial class TodayViewModel(
     {
         if (IsDayOpen && item?.Status == DomainTaskStatus.Completed)
         {
-            await taskService.ReopenAsync(item.TaskId);
-            ApplyPlan(await planService.GetTodayAsync());
+            await _taskService.ReopenAsync(item.TaskId);
+            ApplyPlan(await _planService.GetOrCreateForDateAsync(CurrentDate));
         }
     }
 
@@ -213,7 +297,7 @@ public sealed partial class TodayViewModel(
     {
         if (IsDayOpen && item?.CanMoveUp == true)
         {
-            ApplyPlan(await planService.MoveTodayTaskAsync(item.TaskId, PlanMoveDirection.Up));
+            ApplyPlan(await _planService.MoveTaskAsync(CurrentDate, item.TaskId, PlanMoveDirection.Up));
         }
     }
 
@@ -222,7 +306,7 @@ public sealed partial class TodayViewModel(
     {
         if (IsDayOpen && item?.CanMoveDown == true)
         {
-            ApplyPlan(await planService.MoveTodayTaskAsync(item.TaskId, PlanMoveDirection.Down));
+            ApplyPlan(await _planService.MoveTaskAsync(CurrentDate, item.TaskId, PlanMoveDirection.Down));
         }
     }
 
@@ -231,7 +315,7 @@ public sealed partial class TodayViewModel(
     {
         if (IsDayOpen && item is not null)
         {
-            ApplyPlan(await planService.RemoveTaskFromTodayAsync(item.TaskId));
+            ApplyPlan(await _planService.RemoveTaskAsync(CurrentDate, item.TaskId));
         }
     }
 
@@ -240,9 +324,9 @@ public sealed partial class TodayViewModel(
     {
         try
         {
-            await timelineService.StopCurrentAsync();
+            await _timelineService.StopCurrentAsync();
             TimelineErrorMessage = string.Empty;
-            ApplyTimeline(await timelineService.GetTodayAsync());
+            ApplyTimeline(await _timelineService.GetForDateAsync(CurrentDate));
         }
         catch (TimelineOverlapException)
         {
@@ -274,11 +358,11 @@ public sealed partial class TodayViewModel(
         CompletionCountText = plan.TotalCount == 0
             ? "未制定计划"
             : $"已完成 {plan.CompletedCount} / {plan.TotalCount} 项";
-        CompletionStateText = plan.IsClosed ? "今日已结束" : "实时完成度";
+        CompletionStateText = plan.IsClosed ? ClosedStatusText : "实时完成度";
         CurrentReviewText = plan.ReviewText;
         ReviewSummaryText = plan.IsClosed
-            ? string.IsNullOrWhiteSpace(plan.ReviewText) ? "今日未填写复盘。" : plan.ReviewText
-            : "结束今天时可以填写每日复盘。";
+            ? string.IsNullOrWhiteSpace(plan.ReviewText) ? IsHistoricalEditor ? "当日未填写复盘。" : "今日未填写复盘。" : plan.ReviewText
+            : IsHistoricalEditor ? "结束当日时可以填写每日复盘。" : "结束今天时可以填写每日复盘。";
         UpdateDayActions();
     }
 
@@ -299,9 +383,13 @@ public sealed partial class TodayViewModel(
         UpdateDayActions();
     }
 
-    private bool CanStopTimeline() => IsDayOpen && HasRunningTimeline;
+    private bool CanStopTimeline() => !IsHistoricalEditor && IsDayOpen && HasRunningTimeline;
 
-    private void UpdateDayActions() => CanEndDay = IsDayOpen && !HasRunningTimeline;
+    private void UpdateDayActions()
+    {
+        CanEndDay = IsDayOpen && !HasRunningTimeline;
+        CanStartTimeline = !IsHistoricalEditor && CanEndDay;
+    }
 
     private static string FormatDuration(TimeSpan duration)
     {

@@ -225,6 +225,7 @@ public sealed partial class TasksViewModel(
     public void SelectFolder(TaskFolderNode folder)
     {
         ArgumentNullException.ThrowIfNull(folder);
+        folder.IsExpanded = true;
         if (_synchronizingTreeSelection || SelectedFolder.FolderId == folder.Id)
         {
             return;

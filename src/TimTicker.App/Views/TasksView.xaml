@@ -3,123 +3,106 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:application="clr-namespace:TimTicker.Application.Tasks;assembly=TimTicker.Application"
              xmlns:domain="clr-namespace:TimTicker.Domain.Tasks;assembly=TimTicker.Domain"
+             xmlns:viewModels="clr-namespace:TimTicker.App.ViewModels"
              Background="{DynamicResource WindowBackgroundBrush}"
              Loaded="TasksView_Loaded"
              PreviewKeyDown="TasksView_PreviewKeyDown">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <Style x:Key="StretchListItemStyle" TargetType="ListBoxItem">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Padding" Value="8,7" />
+            <Setter Property="Margin" Value="0,1" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
         <Style x:Key="TaskListItemStyle" TargetType="ListBoxItem">
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Focusable" Value="False" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ListBoxItem">
-                        <ContentPresenter HorizontalAlignment="Stretch" />
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
         </Style>
-        <Style x:Key="TaskIconButtonStyle" TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
-            <Setter Property="Width" Value="40" />
-            <Setter Property="Height" Value="40" />
-            <Setter Property="MinHeight" Value="40" />
-            <Setter Property="Padding" Value="0" />
+        <Style x:Key="FolderTreeItemStyle" TargetType="TreeViewItem">
+            <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+            <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
+            <Setter Property="Padding" Value="3" />
         </Style>
-        <Style x:Key="TaskAccentIconButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
-            <Setter Property="Width" Value="40" />
-            <Setter Property="Height" Value="40" />
-            <Setter Property="MinHeight" Value="40" />
-            <Setter Property="Padding" Value="0" />
-        </Style>
-        <Style x:Key="TaskScrollThumbStyle" TargetType="Thumb">
-            <Setter Property="MinHeight" Value="28" />
-            <Setter Property="Background" Value="{DynamicResource TextTertiaryBrush}" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Thumb">
-                        <Border x:Name="ThumbBorder"
-                                Margin="1,0"
-                                Background="{TemplateBinding Background}"
-                                CornerRadius="3"
-                                Opacity="0.55" />
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="ThumbBorder" Property="Background" Value="{DynamicResource AccentBrush}" />
-                                <Setter TargetName="ThumbBorder" Property="Opacity" Value="0.8" />
-                            </Trigger>
-                            <Trigger Property="IsDragging" Value="True">
-                                <Setter TargetName="ThumbBorder" Property="Background" Value="{DynamicResource AccentBrush}" />
-                                <Setter TargetName="ThumbBorder" Property="Opacity" Value="1" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-        <Style x:Key="TaskScrollBarStyle" TargetType="ScrollBar">
-            <Setter Property="Width" Value="8" />
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ScrollBar">
-                        <Grid Width="8" Background="Transparent">
-                            <Track x:Name="PART_Track" Margin="0,2" IsDirectionReversed="True">
-                                <Track.DecreaseRepeatButton>
-                                    <RepeatButton Command="{x:Static ScrollBar.PageUpCommand}" Focusable="False">
-                                        <RepeatButton.Template>
-                                            <ControlTemplate TargetType="RepeatButton">
-                                                <Border Background="Transparent" />
-                                            </ControlTemplate>
-                                        </RepeatButton.Template>
-                                    </RepeatButton>
-                                </Track.DecreaseRepeatButton>
-                                <Track.Thumb>
-                                    <Thumb Style="{StaticResource TaskScrollThumbStyle}" />
-                                </Track.Thumb>
-                                <Track.IncreaseRepeatButton>
-                                    <RepeatButton Command="{x:Static ScrollBar.PageDownCommand}" Focusable="False">
-                                        <RepeatButton.Template>
-                                            <ControlTemplate TargetType="RepeatButton">
-                                                <Border Background="Transparent" />
-                                            </ControlTemplate>
-                                        </RepeatButton.Template>
-                                    </RepeatButton>
-                                </Track.IncreaseRepeatButton>
-                            </Track>
-                        </Grid>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+        <HierarchicalDataTemplate DataType="{x:Type viewModels:TaskFolderNode}"
+                                  ItemsSource="{Binding Children}"
+                                  ItemContainerStyle="{StaticResource FolderTreeItemStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Width="22"
+                           VerticalAlignment="Center"
+                           FontFamily="Segoe Fluent Icons"
+                           Text="{Binding IconGlyph}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsTemplateFolder}" Value="True">
+                                    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <TextBlock MaxWidth="128"
+                           VerticalAlignment="Center"
+                           Text="{Binding Name}"
+                           TextTrimming="CharacterEllipsis" />
+                <Border Margin="6,0,0,0"
+                        Padding="5,1"
+                        Background="{DynamicResource SurfaceSecondaryBrush}"
+                        CornerRadius="5">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsTemplateFolder}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <TextBlock FontSize="10" Foreground="{DynamicResource AccentBrush}" Text="自动" />
+                </Border>
+            </StackPanel>
+        </HierarchicalDataTemplate>
     </UserControl.Resources>
-    <Grid Margin="42,34,42,42">
+    <Grid Margin="36,30,36,36">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="24" />
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="18" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="10" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="14" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
+
         <Grid>
             <StackPanel>
-                <TextBlock Style="{StaticResource PageTitleStyle}" Text="任务" />
-                <TextBlock Margin="0,4,0,0" Foreground="{DynamicResource TextSecondaryBrush}" Text="收集、整理并完成所有待办事项" />
+                <TextBlock Style="{StaticResource PageTitleStyle}" Text="任务管理器" />
+                <TextBlock Margin="0,4,0,0"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           Text="像文件资源管理器一样分层整理任务，自动任务文件夹会按规则生成内容" />
             </StackPanel>
-            <Button HorizontalAlignment="Right"
-                    VerticalAlignment="Top"
-                    Click="NewTaskButton_Click"
-                    Content="＋ 新建任务"
-                    Style="{StaticResource PrimaryButtonStyle}"
-                    ToolTip="Ctrl+N" />
+            <StackPanel HorizontalAlignment="Right" VerticalAlignment="Top" Orientation="Horizontal">
+                <Button Click="NewFolderButton_Click" Content="＋ 文件夹" Style="{StaticResource SecondaryButtonStyle}" />
+                <Button Margin="8,0,0,0" Click="NewTemplateButton_Click" Content="＋ 自动任务文件夹" Style="{StaticResource SecondaryButtonStyle}" />
+                <Button Margin="8,0,0,0"
+                        Click="NewTaskButton_Click"
+                        Content="＋ 新建任务"
+                        Style="{StaticResource PrimaryButtonStyle}"
+                        ToolTip="Ctrl+N" />
+            </StackPanel>
         </Grid>
+
         <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="2*" />
-                <ColumnDefinition Width="14" />
+                <ColumnDefinition Width="12" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="10" />
                 <ColumnDefinition Width="*" />
@@ -144,194 +127,200 @@
                 <ComboBoxItem Tag="{x:Static application:TaskSortOrder.PriorityAscending}">优先级↓</ComboBoxItem>
             </ComboBox>
         </Grid>
-        <Grid Grid.Row="4">
-            <Border Style="{StaticResource CardStyle}" Visibility="{Binding HasTasks, Converter={StaticResource BooleanToVisibilityConverter}}">
-                <ListBox ItemsSource="{Binding Tasks}"
-                         ItemContainerStyle="{StaticResource TaskListItemStyle}"
-                         Background="Transparent"
-                         BorderThickness="0"
-                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                         ScrollViewer.VerticalScrollBarVisibility="Auto">
-                    <ListBox.Resources>
-                        <Style TargetType="ScrollBar" BasedOn="{StaticResource TaskScrollBarStyle}" />
-                    </ListBox.Resources>
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <Border Padding="4,14" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel VerticalAlignment="Center">
-                                        <TextBlock FontSize="16" FontWeight="SemiBold" Text="{Binding Title}" />
-                                        <TextBlock Margin="0,5,0,0"
-                                                   Foreground="{DynamicResource TextSecondaryBrush}"
-                                                   Text="{Binding Description}"
-                                                   TextTrimming="CharacterEllipsis" />
-                                        <StackPanel Margin="0,9,0,0" Orientation="Horizontal">
-                                            <TextBlock Foreground="{DynamicResource TextTertiaryBrush}" Text="{Binding Priority, StringFormat=优先级：{0}}" />
-                                            <TextBlock Margin="14,0,0,0"
-                                                       Foreground="{DynamicResource TextTertiaryBrush}"
-                                                       Text="{Binding CreatedDate, StringFormat=创建日期：{0:yyyy-MM-dd}}" />
-                                            <TextBlock Margin="14,0,0,0"
-                                                       Foreground="{DynamicResource TextTertiaryBrush}"
-                                                       Text="{Binding DueDate, StringFormat=截止日期：{0:yyyy-MM-dd}}">
-                                                <TextBlock.Style>
-                                                    <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding DueDate}" Value="{x:Null}">
-                                                                <Setter Property="Visibility" Value="Collapsed" />
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </TextBlock.Style>
-                                            </TextBlock>
-                                            <TextBlock Margin="14,0,0,0"
-                                                       Foreground="{DynamicResource TextTertiaryBrush}"
-                                                       Text="{Binding CompletedDate, StringFormat=完成日期：{0:yyyy-MM-dd}}">
-                                                <TextBlock.Style>
-                                                    <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding CompletedDate}" Value="{x:Null}">
-                                                                <Setter Property="Visibility" Value="Collapsed" />
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </TextBlock.Style>
-                                            </TextBlock>
+
+        <TextBlock Grid.Row="4"
+                   Foreground="{DynamicResource SuccessBrush}"
+                   Text="{Binding StatusMessage}" />
+
+        <Grid Grid.Row="6">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="238" />
+                <ColumnDefinition Width="16" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Padding="14" Style="{StaticResource CardStyle}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="12" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <TextBlock FontWeight="SemiBold" Text="文件夹" />
+                    <StackPanel Grid.Row="1" Margin="0,8,0,0">
+                        <Button HorizontalContentAlignment="Left"
+                                Click="AllTasksButton_Click"
+                                Content="  &#xE8A5;  全部任务"
+                                FontFamily="Segoe UI, Segoe Fluent Icons"
+                                Style="{StaticResource SecondaryButtonStyle}" />
+                        <Button Margin="0,6,0,0"
+                                HorizontalContentAlignment="Left"
+                                Click="RootFolderButton_Click"
+                                Content="  &#xE8B7;  根目录"
+                                FontFamily="Segoe UI, Segoe Fluent Icons"
+                                Style="{StaticResource SecondaryButtonStyle}" />
+                    </StackPanel>
+                    <TreeView x:Name="FolderTree"
+                              Grid.Row="3"
+                              ItemsSource="{Binding RootFolders}"
+                              Background="Transparent"
+                              BorderThickness="0"
+                              ItemContainerStyle="{StaticResource FolderTreeItemStyle}"
+                              SelectedItemChanged="FolderTree_SelectedItemChanged"
+                              ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                              ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                    <StackPanel Grid.Row="4" Margin="0,10,0,0">
+                        <Separator Margin="0,0,0,8" />
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Foreground="{DynamicResource AccentBrush}" FontFamily="Segoe Fluent Icons" Text="&#xE8F1;" />
+                            <TextBlock Margin="7,0,0,0"
+                                       Foreground="{DynamicResource TextTertiaryBrush}"
+                                       FontSize="11"
+                                       Text="带自动生成规则的文件夹" />
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="10" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Grid>
+                    <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                        <Button Width="36"
+                                Height="34"
+                                Padding="0"
+                                Click="NavigateUpButton_Click"
+                                Content="↑"
+                                IsEnabled="{Binding CanNavigateUp}"
+                                Style="{StaticResource SecondaryButtonStyle}"
+                                ToolTip="返回上一级" />
+                        <TextBlock Margin="10,0,0,0"
+                                   VerticalAlignment="Center"
+                                   FontSize="14"
+                                   FontWeight="SemiBold"
+                                   Text="{Binding CurrentLocationText}" />
+                    </StackPanel>
+                    <Button HorizontalAlignment="Right"
+                            Click="GenerateSelectedTemplateButton_Click"
+                            Content="立即生成一项任务"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Visibility="{Binding IsTemplateFolderSelected, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                </Grid>
+                <Border Grid.Row="2"
+                        Style="{StaticResource CardStyle}"
+                        Visibility="{Binding HasTasks, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <ListBox ItemsSource="{Binding Tasks}"
+                             ItemContainerStyle="{StaticResource TaskListItemStyle}"
+                             Background="Transparent"
+                             BorderThickness="0"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Padding="16,14" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock FontSize="15" FontWeight="SemiBold" Text="{Binding Title}" />
+                                                <Border Margin="9,0,0,0" Padding="6,2" Background="{DynamicResource SurfaceSecondaryBrush}" CornerRadius="6">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="Visibility" Value="Visible" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding TemplateId}" Value="{x:Null}">
+                                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
+                                                    <TextBlock FontSize="11" Foreground="{DynamicResource AccentBrush}" Text="{Binding TemplateSequenceNumber, StringFormat=系列 #{0}}" />
+                                                </Border>
+                                            </StackPanel>
+                                            <TextBlock Margin="0,5,0,0"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       Text="{Binding Description}"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <StackPanel Margin="0,8,0,0" Orientation="Horizontal">
+                                                <TextBlock Foreground="{DynamicResource TextTertiaryBrush}" Text="{Binding Priority, StringFormat=优先级：{0}}" />
+                                                <TextBlock Margin="14,0,0,0"
+                                                           Foreground="{DynamicResource TextTertiaryBrush}"
+                                                           Text="{Binding CreatedDate, StringFormat=日期：{0:yyyy-MM-dd}}" />
+                                            </StackPanel>
                                         </StackPanel>
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="1" Margin="18,0,0,0" VerticalAlignment="Center" Orientation="Horizontal">
-                                        <Button Margin="0,0,8,0"
-                                                AutomationProperties.Name="查看任务详情"
-                                                Click="TaskDetailButton_Click"
-                                                Style="{StaticResource TaskIconButtonStyle}"
-                                                ToolTip="查看详情">
-                                            <Viewbox Width="18" Height="18">
-                                                <Canvas Width="18" Height="18">
-                                                    <Path Data="M 9 1.5 A 7.5 7.5 0 1 1 8.99 1.5 M 9 8 L 9 13 M 9 5 L 9 5.1"
-                                                          Fill="Transparent"
-                                                          Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                                                          StrokeEndLineCap="Round"
-                                                          StrokeThickness="1.7" />
-                                                </Canvas>
-                                            </Viewbox>
-                                        </Button>
-                                        <Button Margin="0,0,8,0"
-                                                Command="{Binding DataContext.CompleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                CommandParameter="{Binding}"
-                                                ToolTip="完成任务">
-                                            <Button.Style>
-                                                <Style TargetType="Button" BasedOn="{StaticResource TaskAccentIconButtonStyle}">
-                                                    <Setter Property="Visibility" Value="Collapsed" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding Status}" Value="{x:Static domain:TaskStatus.Pending}">
-                                                            <Setter Property="Visibility" Value="Visible" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Button.Style>
-                                            <Viewbox Width="18" Height="18">
-                                                <Canvas Width="18" Height="18">
-                                                    <Path Data="M 3 9 L 7 13 L 15 5"
-                                                          Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                                                          StrokeEndLineCap="Round"
-                                                          StrokeLineJoin="Round"
-                                                          StrokeStartLineCap="Round"
-                                                          StrokeThickness="2" />
-                                                </Canvas>
-                                            </Viewbox>
-                                        </Button>
-                                        <Button Margin="0,0,8,0"
-                                                Command="{Binding DataContext.ReopenCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                CommandParameter="{Binding}"
-                                                ToolTip="重新打开任务">
-                                            <Button.Style>
-                                                <Style TargetType="Button" BasedOn="{StaticResource TaskIconButtonStyle}">
-                                                    <Setter Property="Visibility" Value="Collapsed" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding Status}" Value="{x:Static domain:TaskStatus.Completed}">
-                                                            <Setter Property="Visibility" Value="Visible" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Button.Style>
-                                            <Viewbox Width="18" Height="18">
-                                                <Canvas Width="18" Height="18">
-                                                    <Path Data="M 14.5 6 A 6 6 0 1 0 15 11"
-                                                          Fill="Transparent"
-                                                          Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                                                          StrokeEndLineCap="Round"
-                                                          StrokeThickness="1.8" />
-                                                    <Path Data="M 11.5 3 L 14.8 6 L 15.5 1.8"
-                                                          Fill="Transparent"
-                                                          Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                                                          StrokeEndLineCap="Round"
-                                                          StrokeLineJoin="Round"
-                                                          StrokeThickness="1.8" />
-                                                </Canvas>
-                                            </Viewbox>
-                                        </Button>
-                                        <Button Margin="0,0,8,0"
-                                                AutomationProperties.Name="编辑任务"
-                                                Click="EditTaskButton_Click"
-                                                Style="{StaticResource TaskIconButtonStyle}"
-                                                ToolTip="编辑任务">
-                                            <Viewbox Width="18" Height="18">
-                                                <Canvas Width="18" Height="18">
-                                                    <Path Data="M 3 15 L 4 11 L 12 3 L 15 6 L 7 14 Z M 10.5 4.5 L 13.5 7.5"
-                                                          Fill="Transparent"
-                                                          Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                                                          StrokeEndLineCap="Round"
-                                                          StrokeLineJoin="Round"
-                                                          StrokeThickness="1.7" />
-                                                </Canvas>
-                                            </Viewbox>
-                                        </Button>
-                                        <Button AutomationProperties.Name="删除任务"
-                                                Click="DeleteTaskButton_Click"
-                                                Style="{StaticResource TaskIconButtonStyle}"
-                                                ToolTip="删除任务">
-                                            <Viewbox Width="18" Height="18">
-                                                <Canvas Width="18" Height="18">
-                                                    <Path Data="M 4 5 L 14 5 M 7 5 L 7 3 L 11 3 L 11 5 M 5.5 7 L 6.2 15 L 11.8 15 L 12.5 7 M 8 8.5 L 8 13 M 10 8.5 L 10 13"
-                                                          Fill="Transparent"
-                                                          Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                                                          StrokeEndLineCap="Round"
-                                                          StrokeLineJoin="Round"
-                                                          StrokeThickness="1.6" />
-                                                </Canvas>
-                                            </Viewbox>
-                                        </Button>
-                                    </StackPanel>
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-            </Border>
-            <Border>
-                <Border.Style>
-                    <Style TargetType="Border" BasedOn="{StaticResource CardStyle}">
-                        <Setter Property="Visibility" Value="Collapsed" />
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding HasTasks}" Value="False">
-                                <Setter Property="Visibility" Value="Visible" />
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </Border.Style>
-                <StackPanel MaxWidth="360" HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <TextBlock HorizontalAlignment="Center" FontSize="17" FontWeight="SemiBold" Text="{Binding EmptyStateTitle}" />
-                    <TextBlock Margin="0,7,0,0"
-                               HorizontalAlignment="Center"
-                               Foreground="{DynamicResource TextSecondaryBrush}"
-                               Text="{Binding EmptyStateDescription}"
-                               TextAlignment="Center" />
-                    <Button Margin="0,20,0,0" Click="NewTaskButton_Click" Content="新建任务" Style="{StaticResource PrimaryButtonStyle}" />
-                </StackPanel>
-            </Border>
+                                        <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" Orientation="Horizontal">
+                                            <Button Margin="0,0,6,0" Click="TaskDetailButton_Click" Content="详情" Style="{StaticResource SecondaryButtonStyle}" />
+                                            <Button Margin="0,0,6,0"
+                                                    Command="{Binding DataContext.CompleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}"
+                                                    Content="完成">
+                                                <Button.Style>
+                                                    <Style TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Status}" Value="{x:Static domain:TaskStatus.Pending}">
+                                                                <Setter Property="Visibility" Value="Visible" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                            </Button>
+                                            <Button Margin="0,0,6,0"
+                                                    Command="{Binding DataContext.ReopenCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}"
+                                                    Content="重开">
+                                                <Button.Style>
+                                                    <Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Status}" Value="{x:Static domain:TaskStatus.Completed}">
+                                                                <Setter Property="Visibility" Value="Visible" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                            </Button>
+                                            <Button Margin="0,0,6,0" Click="EditTaskButton_Click" Content="编辑" Style="{StaticResource SecondaryButtonStyle}" />
+                                            <Button Click="DeleteTaskButton_Click" Content="删除" Style="{StaticResource SecondaryButtonStyle}" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Border>
+                <Border Grid.Row="2">
+                    <Border.Style>
+                        <Style TargetType="Border" BasedOn="{StaticResource CardStyle}">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasTasks}" Value="False">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <StackPanel MaxWidth="380" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock HorizontalAlignment="Center" FontSize="17" FontWeight="SemiBold" Text="{Binding EmptyStateTitle}" />
+                        <TextBlock Margin="0,7,0,0"
+                                   HorizontalAlignment="Center"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Text="{Binding EmptyStateDescription}"
+                                   TextAlignment="Center"
+                                   TextWrapping="Wrap" />
+                        <Button Margin="0,20,0,0" Click="NewTaskButton_Click" Content="新建任务" Style="{StaticResource PrimaryButtonStyle}" />
+                    </StackPanel>
+                </Border>
+            </Grid>
         </Grid>
     </Grid>
 </UserControl>

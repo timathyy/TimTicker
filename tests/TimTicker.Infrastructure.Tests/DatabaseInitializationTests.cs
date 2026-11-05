@@ -43,7 +43,7 @@ public sealed class DatabaseInitializationTests
                         (await context.Database.GetPendingMigrationsAsync()).ToArray();
 
                     Assert.True(File.Exists(databasePath));
-                    Assert.Equal(10, appliedMigrations.Length);
+                    Assert.Equal(11, appliedMigrations.Length);
                     Assert.Contains(appliedMigrations, migration => migration.EndsWith("_InitialCreate", StringComparison.Ordinal));
                     Assert.Contains(appliedMigrations, migration => migration.EndsWith("_TaskPool", StringComparison.Ordinal));
                     Assert.Contains(appliedMigrations, migration => migration.EndsWith("_TaskDates", StringComparison.Ordinal));
@@ -54,6 +54,7 @@ public sealed class DatabaseInitializationTests
                     Assert.Contains(appliedMigrations, migration => migration.EndsWith("_TimelineEntryRecordDate", StringComparison.Ordinal));
                     Assert.Contains(appliedMigrations, migration => migration.EndsWith("_DailyPlanCompletionSnapshot", StringComparison.Ordinal));
                     Assert.Contains(appliedMigrations, migration => migration.EndsWith("_RemoveTimelineEntryCategory", StringComparison.Ordinal));
+                    Assert.Contains(appliedMigrations, migration => migration.EndsWith("_HierarchicalTaskFoldersAndTemplates", StringComparison.Ordinal));
                     Assert.Empty(pendingMigrations);
                 }
             }
@@ -91,16 +92,14 @@ public sealed class DatabaseInitializationTests
             await using (TimTickerDbContext oldContext = await contextFactory.CreateDbContextAsync())
             {
                 await oldContext.Database.MigrateAsync("20261102114842_TimelineEntries");
-                TaskItem task = new(
-                    taskId,
-                    "Existing linked task",
-                    null,
-                    new DateOnly(2026, 11, 2),
-                    null,
-                    TaskPriority.None,
-                    new DateTimeOffset(startTicks, TimeSpan.Zero));
-                oldContext.Tasks.Add(task);
-                await oldContext.SaveChangesAsync();
+                await oldContext.Database.ExecuteSqlInterpolatedAsync($"""
+                    INSERT INTO Tasks
+                        (Id, Title, Description, DueDate, Priority, Status, CreatedAtUtc, UpdatedAtUtc,
+                         CompletedAtUtc, IsDeleted, CompletedDate, CreatedDate)
+                    VALUES
+                        ({taskId}, {"Existing linked task"}, {null}, {null}, {(int)TaskPriority.None}, {0},
+                         {startTicks}, {startTicks}, {null}, {false}, {null}, {new DateOnly(2026, 11, 2)})
+                    """);
                 await oldContext.Database.ExecuteSqlInterpolatedAsync($"""
                     INSERT INTO TimelineEntries
                         (Id, Title, Description, Category, TaskItemId, StartAtUtc, EndAtUtc, CreatedAtUtc, UpdatedAtUtc, IsDeleted)
@@ -150,18 +149,24 @@ public sealed class DatabaseInitializationTests
             }
 
             Guid taskId = Guid.NewGuid();
-            await serviceProvider.GetRequiredService<ITaskItemRepository>().AddAsync(new TaskItem(
-                taskId,
-                "Keep during upgrade",
-                null,
-                new DateOnly(2026, 11, 1),
-                null,
-                TaskPriority.None,
-                new DateTimeOffset(2026, 11, 1, 8, 0, 0, TimeSpan.Zero)));
+            long createdAtTicks = new DateTimeOffset(2026, 11, 1, 8, 0, 0, TimeSpan.Zero).UtcTicks;
+            await using (TimTickerDbContext oldContext = await contextFactory.CreateDbContextAsync())
+            {
+                await oldContext.Database.ExecuteSqlInterpolatedAsync($"""
+                    INSERT INTO Tasks
+                        (Id, Title, Description, DueDate, Priority, Status, CreatedAtUtc, UpdatedAtUtc,
+                         CompletedAtUtc, IsDeleted, CompletedDate, CreatedDate)
+                    VALUES
+                        ({taskId}, {"Keep during upgrade"}, {null}, {null}, {(int)TaskPriority.None}, {0},
+                         {createdAtTicks}, {createdAtTicks}, {null}, {false}, {null}, {new DateOnly(2026, 11, 1)})
+                    """);
+            }
 
             await serviceProvider.GetRequiredService<IAppDatabaseInitializer>().InitializeAsync();
 
-            Assert.NotNull(await serviceProvider.GetRequiredService<ITaskItemRepository>().FindAsync(taskId));
+            TaskItem upgradedTask = Assert.IsType<TaskItem>(
+                await serviceProvider.GetRequiredService<ITaskItemRepository>().FindAsync(taskId));
+            Assert.Null(upgradedTask.FolderId);
             await using TimTickerDbContext upgradedContext = await contextFactory.CreateDbContextAsync();
             Assert.Empty(await upgradedContext.DailyPlans.ToListAsync());
             Assert.Empty(await upgradedContext.TimelineEntries.ToListAsync());

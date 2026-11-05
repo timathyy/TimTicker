@@ -17,3 +17,4 @@
 | [0002](0002-mvvm-layering.md) | 采用 MVVM 与分层依赖方向 | 已接受 |
 | [0003](0003-date-and-time.md) | 区分 UTC 时间点与本地自然日 | 已接受 |
 | [0004](0004-packaging-strategy.md) | Windows 打包策略 | 提议中 |
+| [0005](0005-task-folders-and-templates.md) | 任务文件夹与模板生成记录持久化 | 已接受 |

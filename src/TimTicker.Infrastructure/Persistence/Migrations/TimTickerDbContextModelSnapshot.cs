@@ -86,6 +86,48 @@ namespace TimTicker.Infrastructure.Persistence.Migrations
                     b.ToTable("DailyPlanItems", (string)null);
                 });
 
+            modelBuilder.Entity("TimTicker.Domain.Tasks.TaskFolder", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CreatedAtUtc")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT")
+                        .UseCollation("NOCASE");
+
+                    b.Property<Guid?>("ParentId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("UpdatedAtUtc")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasFilter("ParentId IS NULL AND IsDeleted = 0");
+
+                    b.HasIndex("ParentId", "Name")
+                        .IsUnique()
+                        .HasFilter("ParentId IS NOT NULL AND IsDeleted = 0");
+
+                    b.HasIndex("IsDeleted", "Kind", "Name");
+
+                    b.ToTable("TaskFolders", (string)null);
+                });
+
             modelBuilder.Entity("TimTicker.Domain.Tasks.TaskItem", b =>
                 {
                     b.Property<Guid>("Id")
@@ -111,6 +153,9 @@ namespace TimTicker.Infrastructure.Persistence.Migrations
                     b.Property<DateOnly?>("DueDate")
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid?>("FolderId")
+                        .HasColumnType("TEXT");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("INTEGER");
 
@@ -118,6 +163,15 @@ namespace TimTicker.Infrastructure.Persistence.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("Status")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid?>("TemplateId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly?>("TemplateOccurrenceDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("TemplateSequenceNumber")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Title")
@@ -132,9 +186,78 @@ namespace TimTicker.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("IsDeleted", "DueDate");
 
+                    b.HasIndex("TemplateId", "TemplateOccurrenceDate")
+                        .IsUnique();
+
+                    b.HasIndex("TemplateId", "TemplateSequenceNumber")
+                        .IsUnique();
+
+                    b.HasIndex("FolderId", "IsDeleted", "CreatedAtUtc");
+
                     b.HasIndex("IsDeleted", "Status", "CreatedAtUtc");
 
                     b.ToTable("Tasks", (string)null);
+                });
+
+            modelBuilder.Entity("TimTicker.Domain.Templates.TaskTemplate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CreatedAtUtc")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("FolderId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateOnly?>("LastGeneratedDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT")
+                        .UseCollation("NOCASE");
+
+                    b.Property<int>("NextSequenceNumber")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("RepeatInterval")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Schedule")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TitlePattern")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("UpdatedAtUtc")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FolderId")
+                        .IsUnique();
+
+                    b.HasIndex("Name");
+
+                    b.ToTable("TaskTemplates", (string)null);
                 });
 
             modelBuilder.Entity("TimTicker.Domain.Timeline.TimelineEntry", b =>
@@ -214,6 +337,36 @@ namespace TimTicker.Infrastructure.Persistence.Migrations
                     b.HasOne("TimTicker.Domain.Tasks.TaskItem", null)
                         .WithMany()
                         .HasForeignKey("TaskItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TimTicker.Domain.Tasks.TaskFolder", b =>
+                {
+                    b.HasOne("TimTicker.Domain.Tasks.TaskFolder", null)
+                        .WithMany()
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("TimTicker.Domain.Tasks.TaskItem", b =>
+                {
+                    b.HasOne("TimTicker.Domain.Tasks.TaskFolder", null)
+                        .WithMany()
+                        .HasForeignKey("FolderId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("TimTicker.Domain.Templates.TaskTemplate", null)
+                        .WithMany()
+                        .HasForeignKey("TemplateId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("TimTicker.Domain.Templates.TaskTemplate", b =>
+                {
+                    b.HasOne("TimTicker.Domain.Tasks.TaskFolder", null)
+                        .WithMany()
+                        .HasForeignKey("FolderId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

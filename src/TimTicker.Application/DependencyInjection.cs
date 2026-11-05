@@ -3,6 +3,7 @@ using TimTicker.Application.Calendar;
 using TimTicker.Application.Planning;
 using TimTicker.Application.Tasks;
 using TimTicker.Application.Timeline;
+using TimTicker.Application.Templates;
 
 namespace TimTicker.Application;
 
@@ -13,6 +14,8 @@ public static class DependencyInjection
         ArgumentNullException.ThrowIfNull(services);
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<ITaskService, TaskService>();
+        services.AddSingleton<ITaskFolderService, TaskFolderService>();
+        services.AddSingleton<ITaskTemplateService, TaskTemplateService>();
         services.AddSingleton<IDailyPlanService, DailyPlanService>();
         services.AddSingleton<ITimelineService, TimelineService>();
         services.AddSingleton<ICalendarService, CalendarService>();

@@ -5,7 +5,7 @@
         xmlns:domain="clr-namespace:TimTicker.Domain.Tasks;assembly=TimTicker.Domain"
         Title="任务详情"
         Width="560"
-        Height="720"
+        Height="780"
         AllowsTransparency="True"
         Background="Transparent"
         ResizeMode="NoResize"
@@ -87,6 +87,15 @@
                         <ComboBoxItem Tag="{x:Static domain:TaskPriority.Medium}">中优先级</ComboBoxItem>
                         <ComboBoxItem Tag="{x:Static domain:TaskPriority.High}">高优先级</ComboBoxItem>
                     </ComboBox>
+                    <TextBlock Margin="0,16,0,6" Text="任务文件夹" />
+                    <ComboBox x:Name="FolderComboBox"
+                              DisplayMemberPath="Name"
+                              SelectedValuePath="FolderId" />
+                    <TextBlock x:Name="GeneratedTaskHint"
+                               Margin="0,6,0,0"
+                               Foreground="{DynamicResource TextTertiaryBrush}"
+                               Text="自动生成的任务固定保存在其来源文件夹中。"
+                               Visibility="Collapsed" />
                     <TextBlock x:Name="ValidationMessage"
                                Margin="0,14,0,0"
                                Foreground="{DynamicResource DangerBrush}"

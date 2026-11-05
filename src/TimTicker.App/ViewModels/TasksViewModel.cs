@@ -79,6 +79,7 @@ public sealed partial class TasksViewModel(
     private Dictionary<Guid, TaskTemplateSummary> _templatesByFolder = [];
     private Dictionary<Guid, TaskFolderNode> _folderNodes = [];
     private bool _suppressSelectionLoad;
+    private bool _synchronizingTreeSelection;
     private int _taskLoadVersion;
 
     public ObservableCollection<TaskSummary> Tasks { get; } = [];
@@ -221,7 +222,16 @@ public sealed partial class TasksViewModel(
         ApplyFolderSelection(RootFolderFilter);
     }
 
-    public void SelectFolder(TaskFolderNode folder) => SelectFolder(folder.Id);
+    public void SelectFolder(TaskFolderNode folder)
+    {
+        ArgumentNullException.ThrowIfNull(folder);
+        if (_synchronizingTreeSelection || SelectedFolder.FolderId == folder.Id)
+        {
+            return;
+        }
+
+        SelectFolder(folder.Id);
+    }
 
     public void NavigateUp()
     {
@@ -408,18 +418,26 @@ public sealed partial class TasksViewModel(
 
     private void MarkNodeSelected(TaskFolderSummary folder)
     {
-        ClearNodeSelection();
-        if (!_folderNodes.TryGetValue(folder.Id, out TaskFolderNode? node))
+        _synchronizingTreeSelection = true;
+        try
         {
-            return;
-        }
+            ClearNodeSelection();
+            if (!_folderNodes.TryGetValue(folder.Id, out TaskFolderNode? node))
+            {
+                return;
+            }
 
-        node.IsSelected = true;
-        Guid? parentId = folder.ParentId;
-        while (parentId is Guid id && _folderNodes.TryGetValue(id, out TaskFolderNode? parent))
+            node.IsSelected = true;
+            Guid? parentId = folder.ParentId;
+            while (parentId is Guid id && _folderNodes.TryGetValue(id, out TaskFolderNode? parent))
+            {
+                parent.IsExpanded = true;
+                parentId = parent.ParentId;
+            }
+        }
+        finally
         {
-            parent.IsExpanded = true;
-            parentId = parent.ParentId;
+            _synchronizingTreeSelection = false;
         }
     }
 

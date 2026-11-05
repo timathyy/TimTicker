@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TimTicker.Domain.Planning;
 using TimTicker.Domain.Tasks;
 using TimTicker.Domain.Timeline;
+using TimTicker.Domain.Templates;
 
 namespace TimTicker.Infrastructure.Persistence;
 
@@ -17,6 +18,10 @@ public sealed class TimTickerDbContext(DbContextOptions<TimTickerDbContext> opti
         value => value.HasValue ? new DateTimeOffset(value.Value, TimeSpan.Zero) : null);
 
     public DbSet<TaskItem> Tasks => Set<TaskItem>();
+
+    public DbSet<TaskFolder> TaskFolders => Set<TaskFolder>();
+
+    public DbSet<TaskTemplate> TaskTemplates => Set<TaskTemplate>();
 
     public DbSet<DailyPlan> DailyPlans => Set<DailyPlan>();
 
@@ -41,6 +46,66 @@ public sealed class TimTickerDbContext(DbContextOptions<TimTickerDbContext> opti
             entity.Property(task => task.CompletedAtUtc).HasConversion(NullableUtcTicksConverter);
             entity.HasIndex(task => new { task.IsDeleted, task.Status, task.CreatedAtUtc });
             entity.HasIndex(task => new { task.IsDeleted, task.DueDate });
+            entity.HasIndex(task => new { task.FolderId, task.IsDeleted, task.CreatedAtUtc });
+            entity.HasIndex(task => new { task.TemplateId, task.TemplateSequenceNumber }).IsUnique();
+            entity.HasIndex(task => new { task.TemplateId, task.TemplateOccurrenceDate }).IsUnique();
+            entity.HasOne<TaskFolder>()
+                .WithMany()
+                .HasForeignKey(task => task.FolderId)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne<TaskTemplate>()
+                .WithMany()
+                .HasForeignKey(task => task.TemplateId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<TaskFolder>(entity =>
+        {
+            entity.ToTable("TaskFolders");
+            entity.HasKey(folder => folder.Id);
+            entity.Property(folder => folder.Name)
+                .UseCollation("NOCASE")
+                .HasMaxLength(TaskFolder.MaximumNameLength)
+                .IsRequired();
+            entity.Property(folder => folder.Kind).HasConversion<int>();
+            entity.Property(folder => folder.CreatedAtUtc).HasConversion(UtcTicksConverter);
+            entity.Property(folder => folder.UpdatedAtUtc).HasConversion(UtcTicksConverter);
+            entity.HasIndex(folder => folder.Name)
+                .IsUnique()
+                .HasFilter("ParentId IS NULL AND IsDeleted = 0");
+            entity.HasIndex(folder => new { folder.ParentId, folder.Name })
+                .IsUnique()
+                .HasFilter("ParentId IS NOT NULL AND IsDeleted = 0");
+            entity.HasIndex(folder => new { folder.IsDeleted, folder.Kind, folder.Name });
+            entity.HasOne<TaskFolder>()
+                .WithMany()
+                .HasForeignKey(folder => folder.ParentId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<TaskTemplate>(entity =>
+        {
+            entity.ToTable("TaskTemplates");
+            entity.HasKey(template => template.Id);
+            entity.Property(template => template.Name)
+                .UseCollation("NOCASE")
+                .HasMaxLength(TaskTemplate.MaximumNameLength)
+                .IsRequired();
+            entity.Property(template => template.TitlePattern)
+                .HasMaxLength(TaskTemplate.MaximumTitlePatternLength)
+                .IsRequired();
+            entity.Property(template => template.Description).HasMaxLength(TaskItem.MaximumDescriptionLength);
+            entity.Property(template => template.Priority).HasConversion<int>();
+            entity.Property(template => template.Schedule).HasConversion<int>();
+            entity.Property(template => template.CreatedAtUtc).HasConversion(UtcTicksConverter);
+            entity.Property(template => template.UpdatedAtUtc).HasConversion(UtcTicksConverter);
+            entity.HasIndex(template => template.Name);
+            entity.HasIndex(template => new { template.IsDeleted, template.Name });
+            entity.HasIndex(template => template.FolderId).IsUnique();
+            entity.HasOne<TaskFolder>()
+                .WithMany()
+                .HasForeignKey(template => template.FolderId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<DailyPlan>(entity =>

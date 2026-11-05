@@ -2,9 +2,9 @@
 
 [![Windows CI](https://github.com/timathyy/TimTicker/actions/workflows/windows-ci.yml/badge.svg)](https://github.com/timathyy/TimTicker/actions/workflows/windows-ci.yml)
 
-TimTicker 是一款面向个人的 Windows 本地日历与时间记录应用。项目当前已完成 `v0.4.0` 日历与历史回顾里程碑。
+TimTicker 是一款面向个人的 Windows 本地日历与时间记录应用。项目当前已完成 `v0.5.0` 任务分类与模板任务系统里程碑。
 
-当前界面提供“今天、任务、日历、设置”四个主入口，并内置浅色与深色主题。任务池支持快速添加、编辑、完成、重新打开和带确认的软删除，并可按状态、关键字及多种排序方式查看。今天页支持每日规划、完成度、时间轴记录和每日复盘。日历页支持按月切换、回到今天，并在日期格中区分无数据、未结束与已结束状态；选择日期后可回顾当日计划、完成快照、时间记录、累计时长和复盘。所有数据均按可配置的本地业务日边界展示并持久化到 SQLite 数据库。
+当前界面提供“今天、任务、日历、设置”四个主入口，并内置浅色与深色主题。任务管理器支持任意层级的文件夹树、路径浏览和任务移动；“自动任务文件夹”和普通文件夹混排，仅以强调图标和“自动”标记区分，可按天、周、月自动补齐文件夹内的周期任务，也可随时手动生成。生成标题支持 `%y`、`%m`、`%d`、`%n` 占位符。今天页支持每日规划、完成度、时间轴记录和每日复盘。日历页支持按月切换、回到今天，并在日期格中区分无数据、未结束与已结束状态。所有数据均按可配置的本地业务日边界展示并持久化到 SQLite 数据库。
 
 ## 开发环境
 
@@ -44,7 +44,7 @@ TimTicker 将运行时数据统一保存在 `%LocalAppData%\TimTicker`，不会�
 ```text
 %LocalAppData%\TimTicker\
 ├─ Data\
-│  └─ timticker.db       SQLite 数据库（后续里程碑创建）
+│  └─ timticker.db       SQLite 数据库
 └─ Logs\
    └─ timticker-*.log    JSON Lines 结构化滚动日志
 ```

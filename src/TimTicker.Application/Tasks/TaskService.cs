@@ -6,12 +6,22 @@ namespace TimTicker.Application.Tasks;
 public sealed class TaskService(
     ITaskItemRepository repository,
     IDayBoundarySettings dayBoundarySettings,
-    TimeProvider timeProvider) : ITaskService
+    TimeProvider timeProvider,
+    ITaskFolderRepository? folderRepository = null) : ITaskService
 {
     public async Task<TaskSummary> CreateAsync(CreateTaskRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        TaskItem task = new(Guid.NewGuid(), request.Title, request.Description, request.CreatedDate, request.DueDate, request.Priority, UtcNow());
+        await EnsureFolderExistsAsync(request.FolderId, cancellationToken).ConfigureAwait(false);
+        TaskItem task = new(
+            Guid.NewGuid(),
+            request.Title,
+            request.Description,
+            request.CreatedDate,
+            request.DueDate,
+            request.Priority,
+            UtcNow(),
+            request.FolderId);
         await repository.AddAsync(task, cancellationToken).ConfigureAwait(false);
         return ToSummary(task);
     }
@@ -20,6 +30,7 @@ public sealed class TaskService(
     {
         ArgumentNullException.ThrowIfNull(request);
         TaskItem task = await GetTaskAsync(request.Id, cancellationToken).ConfigureAwait(false);
+        await EnsureFolderExistsAsync(request.FolderId, cancellationToken).ConfigureAwait(false);
         task.Update(
             request.Title,
             request.Description,
@@ -28,6 +39,10 @@ public sealed class TaskService(
             request.Priority,
             request.CompletedDate,
             UtcNow());
+        if (task.FolderId != request.FolderId)
+        {
+            task.MoveToFolder(request.FolderId, UtcNow());
+        }
         await repository.UpdateAsync(task, cancellationToken).ConfigureAwait(false);
         return ToSummary(task);
     }
@@ -69,6 +84,19 @@ public sealed class TaskService(
 
     private DateTimeOffset UtcNow() => timeProvider.GetUtcNow();
 
+    private async Task EnsureFolderExistsAsync(Guid? folderId, CancellationToken cancellationToken)
+    {
+        if (!folderId.HasValue)
+        {
+            return;
+        }
+
+        if (folderRepository is null || !await folderRepository.ExistsAsync(folderId.Value, cancellationToken).ConfigureAwait(false))
+        {
+            throw new KeyNotFoundException("The selected task folder was not found.");
+        }
+    }
+
     private DateOnly LocalToday() => DayBoundary.GetBusinessDate(
         timeProvider.GetLocalNow().DateTime,
         dayBoundarySettings.CurrentDayEndTime);
@@ -84,5 +112,9 @@ public sealed class TaskService(
         task.CreatedAtUtc,
         task.UpdatedAtUtc,
         task.CompletedAtUtc,
-        task.CompletedDate);
+        task.CompletedDate,
+        task.FolderId,
+        task.TemplateId,
+        task.TemplateSequenceNumber,
+        task.TemplateOccurrenceDate);
 }

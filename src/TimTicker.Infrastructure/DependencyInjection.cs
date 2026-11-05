@@ -7,6 +7,7 @@ using TimTicker.Application.Planning;
 using TimTicker.Application.Settings;
 using TimTicker.Application.Tasks;
 using TimTicker.Application.Timeline;
+using TimTicker.Application.Templates;
 using TimTicker.Infrastructure.Persistence;
 using TimTicker.Infrastructure.Storage;
 
@@ -34,6 +35,8 @@ public static class DependencyInjection
             options.UseSqlite(connectionString.ConnectionString));
         services.AddSingleton<IAppDatabaseInitializer, AppDatabaseInitializer>();
         services.AddSingleton<ITaskItemRepository, TaskItemRepository>();
+        services.AddSingleton<ITaskFolderRepository, TaskFolderRepository>();
+        services.AddSingleton<ITaskTemplateRepository, TaskTemplateRepository>();
         services.AddSingleton<IDailyPlanRepository, DailyPlanRepository>();
         services.AddSingleton<ITimelineEntryRepository, TimelineEntryRepository>();
         services.AddSingleton<ICalendarReadRepository, CalendarReadRepository>();

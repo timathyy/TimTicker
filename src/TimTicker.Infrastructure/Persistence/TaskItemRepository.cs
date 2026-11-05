@@ -40,6 +40,15 @@ public sealed class TaskItemRepository(IDbContextFactory<TimTickerDbContext> con
                                         (task.Description != null && EF.Functions.Like(task.Description, $"%{searchText}%")));
         }
 
+        if (query.RootOnly)
+        {
+            tasks = tasks.Where(task => task.FolderId == null);
+        }
+        else if (query.FolderId is Guid folderId)
+        {
+            tasks = tasks.Where(task => task.FolderId == folderId);
+        }
+
         tasks = query.SortOrder switch
         {
             TaskSortOrder.CreatedAtDescending => tasks.OrderByDescending(task => task.CreatedAtUtc),

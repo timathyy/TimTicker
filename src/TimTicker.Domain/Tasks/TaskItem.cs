@@ -16,7 +16,11 @@ public sealed class TaskItem
         DateOnly createdDate,
         DateOnly? dueDate,
         TaskPriority priority,
-        DateTimeOffset createdAtUtc)
+        DateTimeOffset createdAtUtc,
+        Guid? folderId = null,
+        Guid? templateId = null,
+        int? templateSequenceNumber = null,
+        DateOnly? templateOccurrenceDate = null)
     {
         if (id == Guid.Empty)
         {
@@ -28,6 +32,27 @@ public sealed class TaskItem
         CreatedAtUtc = RequireUtc(createdAtUtc, nameof(createdAtUtc));
         UpdatedAtUtc = CreatedAtUtc;
         Status = TaskStatus.Pending;
+        FolderId = RequireOptionalIdentifier(folderId, nameof(folderId));
+        TemplateId = RequireOptionalIdentifier(templateId, nameof(templateId));
+        if (TemplateId.HasValue)
+        {
+            if (!FolderId.HasValue)
+            {
+                throw new ArgumentException("A generated task must belong to its template folder.", nameof(folderId));
+            }
+
+            if (templateSequenceNumber is null or <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(templateSequenceNumber));
+            }
+        }
+        else if (templateSequenceNumber.HasValue || templateOccurrenceDate.HasValue)
+        {
+            throw new ArgumentException("Template generation metadata requires a template identifier.", nameof(templateId));
+        }
+
+        TemplateSequenceNumber = templateSequenceNumber;
+        TemplateOccurrenceDate = templateOccurrenceDate;
     }
 
     public Guid Id { get; private set; }
@@ -53,6 +78,14 @@ public sealed class TaskItem
     public DateOnly? CompletedDate { get; private set; }
 
     public bool IsDeleted { get; private set; }
+
+    public Guid? FolderId { get; private set; }
+
+    public Guid? TemplateId { get; private set; }
+
+    public int? TemplateSequenceNumber { get; private set; }
+
+    public DateOnly? TemplateOccurrenceDate { get; private set; }
 
     public void Update(
         string title,
@@ -96,6 +129,18 @@ public sealed class TaskItem
         EnsureActive();
         UpdatedAtUtc = RequireUtc(deletedAtUtc, nameof(deletedAtUtc));
         IsDeleted = true;
+    }
+
+    public void MoveToFolder(Guid? folderId, DateTimeOffset updatedAtUtc)
+    {
+        EnsureActive();
+        if (TemplateId.HasValue && folderId != FolderId)
+        {
+            throw new InvalidOperationException("Tasks generated from a template must stay in the template folder.");
+        }
+
+        FolderId = RequireOptionalIdentifier(folderId, nameof(folderId));
+        UpdatedAtUtc = RequireUtc(updatedAtUtc, nameof(updatedAtUtc));
     }
 
     private void ApplyDetails(string title, string? description, DateOnly createdDate, DateOnly? dueDate, TaskPriority priority)
@@ -161,6 +206,16 @@ public sealed class TaskItem
         if (value == default)
         {
             throw new ArgumentException("The date must not be empty.", parameterName);
+        }
+
+        return value;
+    }
+
+    private static Guid? RequireOptionalIdentifier(Guid? value, string parameterName)
+    {
+        if (value == Guid.Empty)
+        {
+            throw new ArgumentException("The identifier must not be empty.", parameterName);
         }
 
         return value;

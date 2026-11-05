@@ -11,6 +11,7 @@ using TimTicker.App.ViewModels;
 using TimTicker.Infrastructure;
 using TimTicker.Infrastructure.Logging;
 using TimTicker.Infrastructure.Storage;
+using TimTicker.Application.Templates;
 
 namespace TimTicker.App;
 
@@ -31,6 +32,9 @@ public partial class App : System.Windows.Application
         await _host.Services
             .GetRequiredService<IAppDatabaseInitializer>()
             .InitializeAsync();
+        await _host.Services
+            .GetRequiredService<ITaskTemplateService>()
+            .GenerateDueAsync();
 
         ILogger<App> logger = _host.Services.GetRequiredService<ILogger<App>>();
         LogApplicationStarted(logger);

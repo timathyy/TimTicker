@@ -14,6 +14,7 @@ public sealed partial class SettingsViewModel : ViewModelBase, IDisposable
     private readonly IStorageLocationSettings _storageLocationSettings;
     private readonly IFolderPickerService _folderPickerService;
     private readonly string _activeStoragePath;
+    private readonly string _applicationVersionText;
 
     [ObservableProperty]
     private string _currentThemeName;
@@ -39,6 +40,7 @@ public sealed partial class SettingsViewModel : ViewModelBase, IDisposable
         _storageLocationSettings = storageLocationSettings;
         _folderPickerService = folderPickerService;
         _activeStoragePath = appPaths.RootDirectory;
+        _applicationVersionText = GetApplicationVersionText();
         _currentThemeName = GetThemeName();
         _currentDayEndTimeName = DayBoundary.ToDisplayText(dayBoundarySettings.CurrentDayEndTime);
         _localStoragePath = storageLocationSettings.RootDirectory;
@@ -54,6 +56,8 @@ public sealed partial class SettingsViewModel : ViewModelBase, IDisposable
     public AppTheme SelectedTheme => _themeService.CurrentTheme;
 
     public DayEndTime SelectedDayEndTime => _dayBoundarySettings.CurrentDayEndTime;
+
+    public string ApplicationVersionText => _applicationVersionText;
 
     [RelayCommand]
     private void UseSystemTheme()
@@ -143,5 +147,13 @@ public sealed partial class SettingsViewModel : ViewModelBase, IDisposable
         return StringComparer.OrdinalIgnoreCase.Equals(_activeStoragePath, _storageLocationSettings.RootDirectory)
             ? "当前数据库、设置和日志保存在此文件夹。"
             : "新位置将在重启后生效；现有数据不会自动移动。";
+    }
+
+    private static string GetApplicationVersionText()
+    {
+        Version? version = typeof(App).Assembly.GetName().Version;
+        return version is null
+            ? "TimTicker · 本地优先的日历与时间记录工具"
+            : $"TimTicker v{version.Major}.{version.Minor}.{version.Build} · 本地优先的日历与时间记录工具";
     }
 }

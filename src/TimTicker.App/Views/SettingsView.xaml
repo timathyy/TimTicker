@@ -82,6 +82,8 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="18" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="18" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
             <StackPanel>
@@ -239,6 +241,43 @@
             </Border>
 
             <Border Grid.Row="6" Style="{StaticResource CardStyle}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="18" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="10" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource SectionTitleStyle}" Text="本地存储位置" />
+                        <TextBlock Margin="0,5,0,0"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Text="选择 TimTicker 数据库、设置和日志的目标文件夹。" />
+                    </StackPanel>
+                    <Grid Grid.Row="2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox IsReadOnly="True"
+                                 Style="{StaticResource TextBoxStyle}"
+                                 Text="{Binding LocalStoragePath}" />
+                        <Button Grid.Column="2"
+                                MinWidth="86"
+                                Command="{Binding BrowseStorageLocationCommand}"
+                                Content="浏览"
+                                Style="{StaticResource SecondaryButtonStyle}" />
+                    </Grid>
+                    <TextBlock Grid.Row="4"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               Text="{Binding StorageLocationHint}"
+                               TextWrapping="Wrap" />
+                </Grid>
+            </Border>
+
+            <Border Grid.Row="8" Style="{StaticResource CardStyle}">
                 <Grid>
                     <StackPanel>
                         <TextBlock Style="{StaticResource SectionTitleStyle}" Text="关于" />

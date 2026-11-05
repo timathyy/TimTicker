@@ -1,6 +1,8 @@
+using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TimTicker.App.Services;
+using TimTicker.Application.Abstractions;
 using TimTicker.Application.Settings;
 
 namespace TimTicker.App.ViewModels;
@@ -9,6 +11,9 @@ public sealed partial class SettingsViewModel : ViewModelBase, IDisposable
 {
     private readonly IThemeService _themeService;
     private readonly IDayBoundarySettings _dayBoundarySettings;
+    private readonly IStorageLocationSettings _storageLocationSettings;
+    private readonly IFolderPickerService _folderPickerService;
+    private readonly string _activeStoragePath;
 
     [ObservableProperty]
     private string _currentThemeName;
@@ -16,14 +21,28 @@ public sealed partial class SettingsViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     private string _currentDayEndTimeName;
 
+    [ObservableProperty]
+    private string _localStoragePath;
+
+    [ObservableProperty]
+    private string _storageLocationHint;
+
     public SettingsViewModel(
         IThemeService themeService,
-        IDayBoundarySettings dayBoundarySettings)
+        IDayBoundarySettings dayBoundarySettings,
+        IStorageLocationSettings storageLocationSettings,
+        IFolderPickerService folderPickerService,
+        IAppPaths appPaths)
     {
         _themeService = themeService;
         _dayBoundarySettings = dayBoundarySettings;
+        _storageLocationSettings = storageLocationSettings;
+        _folderPickerService = folderPickerService;
+        _activeStoragePath = appPaths.RootDirectory;
         _currentThemeName = GetThemeName();
         _currentDayEndTimeName = DayBoundary.ToDisplayText(dayBoundarySettings.CurrentDayEndTime);
+        _localStoragePath = storageLocationSettings.RootDirectory;
+        _storageLocationHint = GetStorageLocationHint();
         _themeService.ThemeChanged += OnThemeChanged;
     }
 
@@ -66,6 +85,30 @@ public sealed partial class SettingsViewModel : ViewModelBase, IDisposable
     [RelayCommand]
     private void UseSixAmDayEnd() => SetDayEndTime(DayEndTime.SixAm);
 
+    [RelayCommand]
+    private void BrowseStorageLocation()
+    {
+        string? selectedDirectory = _folderPickerService.PickFolder(LocalStoragePath);
+        if (selectedDirectory is null)
+        {
+            return;
+        }
+
+        try
+        {
+            _storageLocationSettings.SetRootDirectory(selectedDirectory);
+            LocalStoragePath = _storageLocationSettings.RootDirectory;
+            StorageLocationHint = GetStorageLocationHint();
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or ArgumentException
+            or NotSupportedException)
+        {
+            StorageLocationHint = "无法保存该位置，请确认文件夹可写后重试。";
+        }
+    }
+
     private void OnThemeChanged(object? sender, EventArgs e)
     {
         CurrentThemeName = GetThemeName();
@@ -93,5 +136,12 @@ public sealed partial class SettingsViewModel : ViewModelBase, IDisposable
         _dayBoundarySettings.SetDayEndTime(value);
         CurrentDayEndTimeName = DayBoundary.ToDisplayText(value);
         OnPropertyChanged(nameof(SelectedDayEndTime));
+    }
+
+    private string GetStorageLocationHint()
+    {
+        return StringComparer.OrdinalIgnoreCase.Equals(_activeStoragePath, _storageLocationSettings.RootDirectory)
+            ? "当前数据库、设置和日志保存在此文件夹。"
+            : "新位置将在重启后生效；现有数据不会自动移动。";
     }
 }

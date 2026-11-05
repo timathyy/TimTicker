@@ -37,7 +37,7 @@ public sealed class AppPaths : IAppPaths
         Directory.CreateDirectory(LogsDirectory);
     }
 
-    private static string GetDefaultRootDirectory()
+    public static string GetDefaultRootDirectory()
     {
         string localApplicationData = Environment.GetFolderPath(
             Environment.SpecialFolder.LocalApplicationData,

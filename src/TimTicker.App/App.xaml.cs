@@ -12,6 +12,7 @@ using TimTicker.Infrastructure;
 using TimTicker.Infrastructure.Logging;
 using TimTicker.Infrastructure.Storage;
 using TimTicker.Application.Templates;
+using TimTicker.Application.Settings;
 
 namespace TimTicker.App;
 
@@ -69,7 +70,8 @@ public partial class App : System.Windows.Application
             {
                 ContentRootPath = AppContext.BaseDirectory,
             });
-        AppPaths appPaths = new();
+        JsonStorageLocationSettings storageLocationSettings = new();
+        AppPaths appPaths = new(storageLocationSettings.RootDirectory);
         appPaths.EnsureDirectoriesExist();
         RollingFileLoggerOptions fileLoggerOptions = CreateFileLoggerOptions(builder.Configuration);
 
@@ -78,9 +80,11 @@ public partial class App : System.Windows.Application
         builder.Logging.AddProvider(new RollingFileLoggerProvider(appPaths.LogsDirectory, fileLoggerOptions));
 
         builder.Services.AddSingleton<IAppPaths>(appPaths);
+        builder.Services.AddSingleton<IStorageLocationSettings>(storageLocationSettings);
         builder.Services.AddTimTickerApplication();
         builder.Services.AddTimTickerInfrastructure(appPaths.DatabasePath);
         builder.Services.AddSingleton<IThemeService, ThemeService>();
+        builder.Services.AddSingleton<IFolderPickerService, FolderPickerService>();
         builder.Services.AddSingleton<INavigationService, NavigationService>();
         builder.Services.AddSingleton<IDetailNavigationService, DetailNavigationService>();
         builder.Services.AddSingleton<IDayEditorService, DayEditorService>();

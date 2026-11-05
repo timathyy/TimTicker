@@ -39,10 +39,11 @@ dotnet run --project src/TimTicker.App/TimTicker.App.csproj
 
 ## 本地数据目录
 
-TimTicker 将运行时数据统一保存在 `%LocalAppData%\TimTicker`，不会写入仓库或程序安装目录：
+TimTicker 默认将运行时数据统一保存在 `%LocalAppData%\TimTicker`，不会写入仓库或程序安装目录。可在“设置 > 本地存储位置”中选择其他目标文件夹，新位置会在下次启动时生效；已有数据不会自动移动。
 
 ```text
 %LocalAppData%\TimTicker\
+├─ storage-location.json    本地存储位置配置
 ├─ Data\
 │  └─ timticker.db       SQLite 数据库
 └─ Logs\

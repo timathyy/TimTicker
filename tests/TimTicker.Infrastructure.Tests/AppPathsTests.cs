@@ -5,6 +5,16 @@ namespace TimTicker.Infrastructure.Tests;
 public sealed class AppPathsTests
 {
     [Fact]
+    public void DefaultRootDirectoryUsesLocalApplicationData()
+    {
+        string localApplicationData = Environment.GetFolderPath(
+            Environment.SpecialFolder.LocalApplicationData,
+            Environment.SpecialFolderOption.DoNotVerify);
+
+        Assert.Equal(Path.Combine(localApplicationData, "TimTicker"), AppPaths.GetDefaultRootDirectory());
+    }
+
+    [Fact]
     public void EnsureDirectoriesExistCreatesStableApplicationLayout()
     {
         string testRoot = Path.Combine(Path.GetTempPath(), "TimTicker.Tests", Guid.NewGuid().ToString("N"));

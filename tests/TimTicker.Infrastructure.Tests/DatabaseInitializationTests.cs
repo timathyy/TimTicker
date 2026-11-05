@@ -43,7 +43,7 @@ public sealed class DatabaseInitializationTests
                         (await context.Database.GetPendingMigrationsAsync()).ToArray();
 
                     Assert.True(File.Exists(databasePath));
-                    Assert.Equal(11, appliedMigrations.Length);
+                    Assert.Equal(12, appliedMigrations.Length);
                     Assert.Contains(appliedMigrations, migration => migration.EndsWith("_InitialCreate", StringComparison.Ordinal));
                     Assert.Contains(appliedMigrations, migration => migration.EndsWith("_TaskPool", StringComparison.Ordinal));
                     Assert.Contains(appliedMigrations, migration => migration.EndsWith("_TaskDates", StringComparison.Ordinal));
@@ -54,7 +54,8 @@ public sealed class DatabaseInitializationTests
                     Assert.Contains(appliedMigrations, migration => migration.EndsWith("_TimelineEntryRecordDate", StringComparison.Ordinal));
                     Assert.Contains(appliedMigrations, migration => migration.EndsWith("_DailyPlanCompletionSnapshot", StringComparison.Ordinal));
                     Assert.Contains(appliedMigrations, migration => migration.EndsWith("_RemoveTimelineEntryCategory", StringComparison.Ordinal));
-                    Assert.Contains(appliedMigrations, migration => migration.EndsWith("_HierarchicalTaskFoldersAndTemplates", StringComparison.Ordinal));
+                    Assert.Contains(appliedMigrations, migration => migration.EndsWith("_TaskFoldersAndTemplates", StringComparison.Ordinal));
+                    Assert.Contains(appliedMigrations, migration => migration.EndsWith("_HierarchicalTaskFolders", StringComparison.Ordinal));
                     Assert.Empty(pendingMigrations);
                 }
             }
@@ -115,6 +116,56 @@ public sealed class DatabaseInitializationTests
             Assert.Equal(entryId, entry.Id);
             Assert.Equal(TimelineEntrySource.Manual, entry.Source);
             Assert.Equal(taskId, Assert.Single(entry.ActiveTaskLinks).TaskItemId);
+            Assert.Empty(await upgradedContext.Database.GetPendingMigrationsAsync());
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            if (Directory.Exists(testRoot))
+            {
+                Directory.Delete(testRoot, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task InitializeAsyncUpgradesPreviouslyAppliedFlatFolderMigration()
+    {
+        string testRoot = Path.Combine(Path.GetTempPath(), "TimTicker.Tests", Guid.NewGuid().ToString("N"));
+        string databasePath = Path.Combine(testRoot, "Data", "timticker.db");
+        Directory.CreateDirectory(Path.GetDirectoryName(databasePath)!);
+
+        try
+        {
+            ServiceCollection services = new();
+            services.AddLogging();
+            services.AddTimTickerInfrastructure(databasePath);
+
+            await using ServiceProvider serviceProvider = services.BuildServiceProvider();
+            IDbContextFactory<TimTickerDbContext> contextFactory =
+                serviceProvider.GetRequiredService<IDbContextFactory<TimTickerDbContext>>();
+            Guid folderId = Guid.NewGuid();
+            long createdAtTicks = new DateTimeOffset(2026, 11, 4, 8, 0, 0, TimeSpan.Zero).UtcTicks;
+            await using (TimTickerDbContext oldContext = await contextFactory.CreateDbContextAsync())
+            {
+                await oldContext.Database.MigrateAsync("20261104045326_TaskFoldersAndTemplates");
+                await oldContext.Database.ExecuteSqlInterpolatedAsync($"""
+                    INSERT INTO TaskFolders
+                        (Id, Name, Kind, CreatedAtUtc, UpdatedAtUtc, IsDeleted)
+                    VALUES
+                        ({folderId}, {"旧版文件夹"}, {(int)TaskFolderKind.User}, {createdAtTicks}, {createdAtTicks}, {false})
+                    """);
+            }
+
+            await serviceProvider.GetRequiredService<IAppDatabaseInitializer>().InitializeAsync();
+
+            await using TimTickerDbContext upgradedContext = await contextFactory.CreateDbContextAsync();
+            TaskFolder folder = Assert.Single(await upgradedContext.TaskFolders.AsNoTracking().ToListAsync());
+            Assert.Equal(folderId, folder.Id);
+            Assert.Null(folder.ParentId);
+            string[] appliedMigrations = (await upgradedContext.Database.GetAppliedMigrationsAsync()).ToArray();
+            Assert.Contains("20261104045326_TaskFoldersAndTemplates", appliedMigrations);
+            Assert.Contains(appliedMigrations, migration => migration.EndsWith("_HierarchicalTaskFolders", StringComparison.Ordinal));
             Assert.Empty(await upgradedContext.Database.GetPendingMigrationsAsync());
         }
         finally

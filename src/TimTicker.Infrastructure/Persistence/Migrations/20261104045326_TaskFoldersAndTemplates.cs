@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace TimTicker.Infrastructure.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class HierarchicalTaskFoldersAndTemplates : Migration
+    public partial class TaskFoldersAndTemplates : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -41,7 +41,6 @@ namespace TimTicker.Infrastructure.Persistence.Migrations
                 {
                     Id = table.Column<Guid>(type: "TEXT", nullable: false),
                     Name = table.Column<string>(type: "TEXT", maxLength: 80, nullable: false, collation: "NOCASE"),
-                    ParentId = table.Column<Guid>(type: "TEXT", nullable: true),
                     Kind = table.Column<int>(type: "INTEGER", nullable: false),
                     CreatedAtUtc = table.Column<long>(type: "INTEGER", nullable: false),
                     UpdatedAtUtc = table.Column<long>(type: "INTEGER", nullable: false),
@@ -50,12 +49,6 @@ namespace TimTicker.Infrastructure.Persistence.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_TaskFolders", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_TaskFolders_TaskFolders_ParentId",
-                        column: x => x.ParentId,
-                        principalTable: "TaskFolders",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -114,15 +107,7 @@ namespace TimTicker.Infrastructure.Persistence.Migrations
                 name: "IX_TaskFolders_Name",
                 table: "TaskFolders",
                 column: "Name",
-                unique: true,
-                filter: "ParentId IS NULL AND IsDeleted = 0");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_TaskFolders_ParentId_Name",
-                table: "TaskFolders",
-                columns: new[] { "ParentId", "Name" },
-                unique: true,
-                filter: "ParentId IS NOT NULL AND IsDeleted = 0");
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_TaskTemplates_FolderId",
@@ -133,7 +118,8 @@ namespace TimTicker.Infrastructure.Persistence.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_TaskTemplates_Name",
                 table: "TaskTemplates",
-                column: "Name");
+                column: "Name",
+                unique: true);
 
             migrationBuilder.AddForeignKey(
                 name: "FK_Tasks_TaskFolders_FolderId",

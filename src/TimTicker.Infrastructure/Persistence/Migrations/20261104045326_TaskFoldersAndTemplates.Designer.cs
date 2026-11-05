@@ -11,8 +11,8 @@ using TimTicker.Infrastructure.Persistence;
 namespace TimTicker.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(TimTickerDbContext))]
-    [Migration("20261105084759_HierarchicalTaskFoldersAndTemplates")]
-    partial class HierarchicalTaskFoldersAndTemplates
+    [Migration("20261104045326_TaskFoldersAndTemplates")]
+    partial class TaskFoldersAndTemplates
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -110,21 +110,13 @@ namespace TimTicker.Infrastructure.Persistence.Migrations
                         .HasColumnType("TEXT")
                         .UseCollation("NOCASE");
 
-                    b.Property<Guid?>("ParentId")
-                        .HasColumnType("TEXT");
-
                     b.Property<long>("UpdatedAtUtc")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
                     b.HasIndex("Name")
-                        .IsUnique()
-                        .HasFilter("ParentId IS NULL AND IsDeleted = 0");
-
-                    b.HasIndex("ParentId", "Name")
-                        .IsUnique()
-                        .HasFilter("ParentId IS NOT NULL AND IsDeleted = 0");
+                        .IsUnique();
 
                     b.HasIndex("IsDeleted", "Kind", "Name");
 
@@ -258,7 +250,8 @@ namespace TimTicker.Infrastructure.Persistence.Migrations
                     b.HasIndex("FolderId")
                         .IsUnique();
 
-                    b.HasIndex("Name");
+                    b.HasIndex("Name")
+                        .IsUnique();
 
                     b.ToTable("TaskTemplates", (string)null);
                 });
@@ -342,14 +335,6 @@ namespace TimTicker.Infrastructure.Persistence.Migrations
                         .HasForeignKey("TaskItemId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("TimTicker.Domain.Tasks.TaskFolder", b =>
-                {
-                    b.HasOne("TimTicker.Domain.Tasks.TaskFolder", null)
-                        .WithMany()
-                        .HasForeignKey("ParentId")
-                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("TimTicker.Domain.Tasks.TaskItem", b =>

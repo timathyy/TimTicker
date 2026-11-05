@@ -45,6 +45,56 @@ public sealed class TaskFolderServiceTests
         await Assert.ThrowsAsync<KeyNotFoundException>(() => service.CreateAsync("孤立目录", Guid.NewGuid()));
     }
 
+    [Fact]
+    public async Task FolderCanBeRenamedAndMoved()
+    {
+        InMemoryFolderRepository repository = new();
+        TaskFolderService service = new(repository, new FixedTimeProvider(Now));
+        TaskFolderSummary firstParent = await service.CreateAsync("甲");
+        TaskFolderSummary secondParent = await service.CreateAsync("乙");
+        TaskFolderSummary folder = await service.CreateAsync("旧名称", firstParent.Id);
+
+        TaskFolderSummary renamed = await service.RenameAsync(folder.Id, "新名称");
+        TaskFolderSummary moved = await service.MoveAsync(folder.Id, secondParent.Id);
+
+        Assert.Equal("新名称", renamed.Name);
+        Assert.Equal(secondParent.Id, moved.ParentId);
+    }
+
+    [Fact]
+    public async Task FolderCannotBeMovedIntoItsDescendant()
+    {
+        InMemoryFolderRepository repository = new();
+        TaskFolderService service = new(repository, new FixedTimeProvider(Now));
+        TaskFolderSummary parent = await service.CreateAsync("父目录");
+        TaskFolderSummary child = await service.CreateAsync("子目录", parent.Id);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.MoveAsync(parent.Id, child.Id));
+    }
+
+    [Fact]
+    public async Task FolderWithChildrenCannotBeDeleted()
+    {
+        InMemoryFolderRepository repository = new();
+        TaskFolderService service = new(repository, new FixedTimeProvider(Now));
+        TaskFolderSummary parent = await service.CreateAsync("父目录");
+        await service.CreateAsync("子目录", parent.Id);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.DeleteAsync(parent.Id));
+    }
+
+    [Fact]
+    public async Task EmptyUserFolderCanBeDeleted()
+    {
+        InMemoryFolderRepository repository = new();
+        TaskFolderService service = new(repository, new FixedTimeProvider(Now));
+        TaskFolderSummary folder = await service.CreateAsync("待删除");
+
+        await service.DeleteAsync(folder.Id);
+
+        Assert.DoesNotContain(await service.ListAsync(), item => item.Id == folder.Id);
+    }
+
     private sealed class InMemoryFolderRepository : ITaskFolderRepository
     {
         private readonly List<TaskFolder> _folders = [];
@@ -55,6 +105,11 @@ public sealed class TaskFolderServiceTests
             return Task.CompletedTask;
         }
 
+        public Task SaveAsync(
+            TaskFolder folder,
+            bool moveTasksToRoot = false,
+            CancellationToken cancellationToken = default) => Task.CompletedTask;
+
         public Task<TaskFolder?> FindAsync(Guid id, CancellationToken cancellationToken = default) =>
             Task.FromResult(_folders.SingleOrDefault(folder => folder.Id == id && !folder.IsDeleted));
 
@@ -64,11 +119,19 @@ public sealed class TaskFolderServiceTests
         public Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default) =>
             Task.FromResult(_folders.Any(folder => folder.Id == id && !folder.IsDeleted));
 
-        public Task<bool> NameExistsAsync(Guid? parentId, string name, CancellationToken cancellationToken = default) =>
+        public Task<bool> NameExistsAsync(
+            Guid? parentId,
+            string name,
+            Guid? excludedFolderId = null,
+            CancellationToken cancellationToken = default) =>
             Task.FromResult(_folders.Any(folder =>
                 !folder.IsDeleted &&
                 folder.ParentId == parentId &&
+                folder.Id != excludedFolderId &&
                 string.Equals(folder.Name, name, StringComparison.OrdinalIgnoreCase)));
+
+        public Task<bool> HasChildrenAsync(Guid id, CancellationToken cancellationToken = default) =>
+            Task.FromResult(_folders.Any(folder => !folder.IsDeleted && folder.ParentId == id));
     }
 
     private sealed class FixedTimeProvider(DateTimeOffset utcNow) : TimeProvider

@@ -260,6 +260,68 @@ public sealed partial class TasksViewModel(
         SelectFolder(folder.Id);
     }
 
+    public IReadOnlyList<TaskFolderOption> GetMoveTargets(TaskFolderNode folder)
+    {
+        ArgumentNullException.ThrowIfNull(folder);
+        HashSet<Guid> excludedFolderIds = [folder.Id];
+        Queue<Guid> pendingFolderIds = new([folder.Id]);
+        while (pendingFolderIds.TryDequeue(out Guid currentId))
+        {
+            foreach (TaskFolderSummary child in _folderSummaries.Where(item => item.ParentId == currentId))
+            {
+                if (excludedFolderIds.Add(child.Id))
+                {
+                    pendingFolderIds.Enqueue(child.Id);
+                }
+            }
+        }
+
+        IReadOnlyDictionary<Guid, TaskFolderSummary> foldersById = _folderSummaries.ToDictionary(item => item.Id);
+        return
+        [
+            new("根目录", null),
+            .. _folderSummaries
+                .Where(item => !excludedFolderIds.Contains(item.Id))
+                .Select(item => new TaskFolderOption(BuildFolderPath(item, foldersById), item.Id))
+                .OrderBy(item => item.Name, StringComparer.CurrentCultureIgnoreCase),
+        ];
+    }
+
+    public async Task RenameFolderAsync(TaskFolderNode folder, string name)
+    {
+        ArgumentNullException.ThrowIfNull(folder);
+        await folderService.RenameAsync(folder.Id, name);
+        StatusMessage = $"已将文件夹重命名为“{name.Trim()}”。";
+        await LoadAsync();
+        SelectFolder(folder.Id);
+    }
+
+    public async Task MoveFolderAsync(TaskFolderNode folder, Guid? parentFolderId)
+    {
+        ArgumentNullException.ThrowIfNull(folder);
+        await folderService.MoveAsync(folder.Id, parentFolderId);
+        StatusMessage = $"已移动文件夹“{folder.Name}”。";
+        await LoadAsync();
+        SelectFolder(folder.Id);
+    }
+
+    public async Task DeleteFolderAsync(TaskFolderNode folder)
+    {
+        ArgumentNullException.ThrowIfNull(folder);
+        Guid? parentFolderId = folder.ParentId;
+        await folderService.DeleteAsync(folder.Id);
+        StatusMessage = $"已删除文件夹“{folder.Name}”，其中的任务已移到根目录。";
+        await LoadAsync();
+        if (parentFolderId is Guid parentId)
+        {
+            SelectFolder(parentId);
+        }
+        else
+        {
+            SelectRoot();
+        }
+    }
+
     public async Task CreateTemplateAsync(CreateTaskTemplateRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);

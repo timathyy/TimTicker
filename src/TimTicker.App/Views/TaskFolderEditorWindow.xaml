@@ -17,8 +17,9 @@
             CornerRadius="14">
         <Grid Margin="28">
             <StackPanel>
-                <TextBlock FontSize="18" FontWeight="SemiBold" Text="新建任务文件夹" />
-                <TextBlock Margin="0,8,0,18"
+                <TextBlock x:Name="HeadingText" FontSize="18" FontWeight="SemiBold" Text="新建任务文件夹" />
+                <TextBlock x:Name="DescriptionText"
+                           Margin="0,8,0,18"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            Text="文件夹用于归类和筛选普通任务。" />
                 <TextBox x:Name="NameTextBox"
@@ -30,7 +31,11 @@
                            Foreground="{DynamicResource DangerBrush}" />
                 <StackPanel Margin="0,22,0,0" HorizontalAlignment="Right" Orientation="Horizontal">
                     <Button Click="CancelButton_Click" Content="取消" Style="{StaticResource SecondaryButtonStyle}" />
-                    <Button Margin="10,0,0,0" Click="SaveButton_Click" Content="创建文件夹" Style="{StaticResource PrimaryButtonStyle}" />
+                    <Button x:Name="SaveButton"
+                            Margin="10,0,0,0"
+                            Click="SaveButton_Click"
+                            Content="创建文件夹"
+                            Style="{StaticResource PrimaryButtonStyle}" />
                 </StackPanel>
             </StackPanel>
         </Grid>

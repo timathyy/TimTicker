@@ -5,10 +5,23 @@ namespace TimTicker.App.Views;
 
 public partial class TaskFolderEditorWindow : Window
 {
-    public TaskFolderEditorWindow()
+    public TaskFolderEditorWindow(string? folderName = null)
     {
         InitializeComponent();
-        Loaded += (_, _) => NameTextBox.Focus();
+        if (!string.IsNullOrWhiteSpace(folderName))
+        {
+            Title = "重命名任务文件夹";
+            HeadingText.Text = "重命名任务文件夹";
+            DescriptionText.Text = "输入新的文件夹名称。";
+            SaveButton.Content = "保存名称";
+            NameTextBox.Text = folderName;
+        }
+
+        Loaded += (_, _) =>
+        {
+            NameTextBox.Focus();
+            NameTextBox.SelectAll();
+        };
     }
 
     public string? FolderName { get; private set; }

@@ -1,3 +1,4 @@
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using TimTicker.Application.Tasks;
@@ -105,6 +106,110 @@ public partial class TasksView : UserControl
         if (e.NewValue is TaskFolderNode folder && DataContext is TasksViewModel viewModel)
         {
             viewModel.SelectFolder(folder);
+        }
+    }
+
+    private void FolderHeader_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: TaskFolderNode folder } && DataContext is TasksViewModel viewModel)
+        {
+            viewModel.SelectFolder(folder);
+        }
+    }
+
+    private async void MoveFolderMenuItem_Click(object sender, System.Windows.RoutedEventArgs e)
+    {
+        if (sender is not MenuItem { DataContext: TaskFolderNode folder } || DataContext is not TasksViewModel viewModel)
+        {
+            return;
+        }
+
+        TaskFolderMoveWindow window = new(folder.Name, viewModel.GetMoveTargets(folder), folder.ParentId)
+        {
+            Owner = System.Windows.Window.GetWindow(this),
+        };
+        if (window.ShowDialog() != true)
+        {
+            return;
+        }
+
+        try
+        {
+            await viewModel.MoveFolderAsync(folder, window.ParentFolderId);
+        }
+        catch (InvalidOperationException)
+        {
+            System.Windows.MessageBox.Show(
+                window.Owner,
+                "目标位置中已经存在同名文件夹，无法移动。",
+                "无法移动文件夹",
+                System.Windows.MessageBoxButton.OK,
+                System.Windows.MessageBoxImage.Information);
+        }
+    }
+
+    private async void RenameFolderMenuItem_Click(object sender, System.Windows.RoutedEventArgs e)
+    {
+        if (sender is not MenuItem { DataContext: TaskFolderNode folder } || DataContext is not TasksViewModel viewModel)
+        {
+            return;
+        }
+
+        TaskFolderEditorWindow window = new(folder.Name) { Owner = System.Windows.Window.GetWindow(this) };
+        if (window.ShowDialog() != true || window.FolderName is not string name)
+        {
+            return;
+        }
+
+        try
+        {
+            await viewModel.RenameFolderAsync(folder, name);
+        }
+        catch (InvalidOperationException)
+        {
+            System.Windows.MessageBox.Show(
+                window.Owner,
+                "当前目录中已经存在同名文件夹。",
+                "无法重命名文件夹",
+                System.Windows.MessageBoxButton.OK,
+                System.Windows.MessageBoxImage.Information);
+        }
+    }
+
+    private async void DeleteFolderMenuItem_Click(object sender, System.Windows.RoutedEventArgs e)
+    {
+        if (sender is not MenuItem { DataContext: TaskFolderNode folder } || DataContext is not TasksViewModel viewModel)
+        {
+            return;
+        }
+
+        System.Windows.Window? owner = System.Windows.Window.GetWindow(this);
+        if (folder.IsTemplateFolder)
+        {
+            System.Windows.MessageBox.Show(
+                owner,
+                "自动任务文件夹与生成规则绑定，不能单独删除。",
+                "无法删除文件夹",
+                System.Windows.MessageBoxButton.OK,
+                System.Windows.MessageBoxImage.Information);
+            return;
+        }
+
+        if (folder.Children.Count > 0)
+        {
+            System.Windows.MessageBox.Show(
+                owner,
+                "请先移动或删除其中的子文件夹，再删除此文件夹。",
+                "无法删除文件夹",
+                System.Windows.MessageBoxButton.OK,
+                System.Windows.MessageBoxImage.Information);
+            return;
+        }
+
+        DeleteTaskFolderConfirmationWindow window = new(folder.Name) { Owner = owner };
+        if (window.ShowDialog() == true)
+        {
+            await viewModel.DeleteFolderAsync(folder);
         }
     }
 

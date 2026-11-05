@@ -16,6 +16,78 @@
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
         </Style>
+        <Style x:Key="TaskActionButtonStyle" TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+            <Setter Property="Width" Value="38" />
+            <Setter Property="Height" Value="36" />
+            <Setter Property="MinHeight" Value="36" />
+            <Setter Property="Padding" Value="0" />
+        </Style>
+        <Style x:Key="TaskPrimaryActionButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
+            <Setter Property="Width" Value="38" />
+            <Setter Property="Height" Value="36" />
+            <Setter Property="MinHeight" Value="36" />
+            <Setter Property="Padding" Value="0" />
+        </Style>
+        <Style x:Key="FolderContextMenuStyle" TargetType="ContextMenu">
+            <Setter Property="Padding" Value="5" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ContextMenu">
+                        <Border Padding="{TemplateBinding Padding}"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="9">
+                            <ItemsPresenter />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="FolderContextMenuItemStyle" TargetType="MenuItem">
+            <Setter Property="MinWidth" Value="128" />
+            <Setter Property="Padding" Value="12,8" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="MenuItem">
+                        <Border x:Name="MenuItemBorder"
+                                Padding="{TemplateBinding Padding}"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="7">
+                            <ContentPresenter VerticalAlignment="Center"
+                                              ContentSource="Header"
+                                              RecognizesAccessKey="True" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="MenuItemBorder" Property="Background" Value="{DynamicResource HoverBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="MenuItemBorder" Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="FolderContextMenuSeparatorStyle" TargetType="Separator">
+            <Setter Property="Height" Value="1" />
+            <Setter Property="Margin" Value="8,4" />
+            <Setter Property="Background" Value="{DynamicResource BorderBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Separator">
+                        <Border Height="1" Background="{TemplateBinding Background}" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <Style x:Key="TaskListItemStyle" TargetType="ListBoxItem">
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Setter Property="Padding" Value="0" />
@@ -69,7 +141,17 @@
                             <Border x:Name="HeaderBorder"
                                     Padding="{TemplateBinding Padding}"
                                     Background="{TemplateBinding Background}"
+                                    ContextMenuOpening="FolderHeader_ContextMenuOpening"
                                     CornerRadius="8">
+                                <Border.ContextMenu>
+                                    <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}"
+                                                 Style="{StaticResource FolderContextMenuStyle}">
+                                        <MenuItem Click="MoveFolderMenuItem_Click" Header="移动" Style="{StaticResource FolderContextMenuItemStyle}" />
+                                        <MenuItem Click="RenameFolderMenuItem_Click" Header="重命名" Style="{StaticResource FolderContextMenuItemStyle}" />
+                                        <Separator Style="{StaticResource FolderContextMenuSeparatorStyle}" />
+                                        <MenuItem Click="DeleteFolderMenuItem_Click" Header="删除" Style="{StaticResource FolderContextMenuItemStyle}" />
+                                    </ContextMenu>
+                                </Border.ContextMenu>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="18" />
@@ -377,13 +459,30 @@
                                             </StackPanel>
                                         </StackPanel>
                                         <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" Orientation="Horizontal">
-                                            <Button Margin="0,0,6,0" Click="TaskDetailButton_Click" Content="详情" Style="{StaticResource SecondaryButtonStyle}" />
                                             <Button Margin="0,0,6,0"
+                                                    AutomationProperties.Name="查看任务详情"
+                                                    Click="TaskDetailButton_Click"
+                                                    Style="{StaticResource TaskActionButtonStyle}"
+                                                    ToolTip="详情">
+                                                <Grid Width="18" Height="18">
+                                                    <Path Data="M 1 9 C 4 4, 14 4, 17 9 C 14 14, 4 14, 1 9 Z"
+                                                          Fill="Transparent"
+                                                          Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                          StrokeLineJoin="Round"
+                                                          StrokeThickness="1.5" />
+                                                    <Ellipse Width="5"
+                                                             Height="5"
+                                                             Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                             StrokeThickness="1.5" />
+                                                </Grid>
+                                            </Button>
+                                            <Button Margin="0,0,6,0"
+                                                    AutomationProperties.Name="完成任务"
                                                     Command="{Binding DataContext.CompleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}"
-                                                    Content="完成">
+                                                    ToolTip="完成">
                                                 <Button.Style>
-                                                    <Style TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
+                                                    <Style TargetType="Button" BasedOn="{StaticResource TaskPrimaryActionButtonStyle}">
                                                         <Setter Property="Visibility" Value="Collapsed" />
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding Status}" Value="{x:Static domain:TaskStatus.Pending}">
@@ -392,13 +491,23 @@
                                                         </Style.Triggers>
                                                     </Style>
                                                 </Button.Style>
+                                                <Viewbox Width="17" Height="17">
+                                                    <Canvas Width="18" Height="18">
+                                                        <Path Data="M 2.5 9.5 L 7 14 L 15.5 4"
+                                                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                              StrokeEndLineCap="Round"
+                                                              StrokeLineJoin="Round"
+                                                              StrokeThickness="2" />
+                                                    </Canvas>
+                                                </Viewbox>
                                             </Button>
                                             <Button Margin="0,0,6,0"
+                                                    AutomationProperties.Name="重新打开任务"
                                                     Command="{Binding DataContext.ReopenCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}"
-                                                    Content="重开">
+                                                    ToolTip="重开">
                                                 <Button.Style>
-                                                    <Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+                                                    <Style TargetType="Button" BasedOn="{StaticResource TaskActionButtonStyle}">
                                                         <Setter Property="Visibility" Value="Collapsed" />
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding Status}" Value="{x:Static domain:TaskStatus.Completed}">
@@ -407,9 +516,48 @@
                                                         </Style.Triggers>
                                                     </Style>
                                                 </Button.Style>
+                                                <Viewbox Width="17" Height="17">
+                                                    <Canvas Width="18" Height="18">
+                                                        <Path Data="M 15 7 A 6 6 0 1 0 15 12 M 15 7 L 11 7 M 15 7 L 15 3"
+                                                              Fill="Transparent"
+                                                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                              StrokeEndLineCap="Round"
+                                                              StrokeLineJoin="Round"
+                                                              StrokeThickness="1.7" />
+                                                    </Canvas>
+                                                </Viewbox>
                                             </Button>
-                                            <Button Margin="0,0,6,0" Click="EditTaskButton_Click" Content="编辑" Style="{StaticResource SecondaryButtonStyle}" />
-                                            <Button Click="DeleteTaskButton_Click" Content="删除" Style="{StaticResource SecondaryButtonStyle}" />
+                                            <Button Margin="0,0,6,0"
+                                                    AutomationProperties.Name="编辑任务"
+                                                    Click="EditTaskButton_Click"
+                                                    Style="{StaticResource TaskActionButtonStyle}"
+                                                    ToolTip="编辑">
+                                                <Viewbox Width="17" Height="17">
+                                                    <Canvas Width="18" Height="18">
+                                                        <Path Data="M 3 15 L 4 11 L 12 3 L 15 6 L 7 14 Z M 10.5 4.5 L 13.5 7.5"
+                                                              Fill="Transparent"
+                                                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                              StrokeEndLineCap="Round"
+                                                              StrokeLineJoin="Round"
+                                                              StrokeThickness="1.7" />
+                                                    </Canvas>
+                                                </Viewbox>
+                                            </Button>
+                                            <Button AutomationProperties.Name="删除任务"
+                                                    Click="DeleteTaskButton_Click"
+                                                    Style="{StaticResource TaskActionButtonStyle}"
+                                                    ToolTip="删除">
+                                                <Viewbox Width="17" Height="17">
+                                                    <Canvas Width="18" Height="18">
+                                                        <Path Data="M 3 5 L 15 5 M 7 2.5 L 11 2.5 M 5 5 L 6 15 L 12 15 L 13 5 M 8 8 L 8 12 M 10 8 L 10 12"
+                                                              Fill="Transparent"
+                                                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                              StrokeEndLineCap="Round"
+                                                              StrokeLineJoin="Round"
+                                                              StrokeThickness="1.5" />
+                                                    </Canvas>
+                                                </Viewbox>
+                                            </Button>
                                         </StackPanel>
                                     </Grid>
                                 </Border>

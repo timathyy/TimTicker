@@ -59,6 +59,19 @@ public sealed class TaskFolder
         UpdatedAtUtc = RequireUtc(updatedAtUtc, nameof(updatedAtUtc));
     }
 
+    public void MoveTo(Guid? parentId, DateTimeOffset updatedAtUtc)
+    {
+        EnsureActive();
+        Guid? normalizedParentId = RequireOptionalIdentifier(parentId, nameof(parentId));
+        if (normalizedParentId == Id)
+        {
+            throw new ArgumentException("A folder cannot be its own parent.", nameof(parentId));
+        }
+
+        ParentId = normalizedParentId;
+        UpdatedAtUtc = RequireUtc(updatedAtUtc, nameof(updatedAtUtc));
+    }
+
     public void Delete(DateTimeOffset deletedAtUtc)
     {
         EnsureActive();

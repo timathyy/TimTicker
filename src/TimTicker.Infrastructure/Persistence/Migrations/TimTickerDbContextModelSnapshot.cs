@@ -215,6 +215,9 @@ namespace TimTicker.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("FolderId")
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
                     b.Property<bool>("IsEnabled")
                         .HasColumnType("INTEGER");
 
@@ -256,6 +259,8 @@ namespace TimTicker.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.HasIndex("Name");
+
+                    b.HasIndex("IsDeleted", "Name");
 
                     b.ToTable("TaskTemplates", (string)null);
                 });

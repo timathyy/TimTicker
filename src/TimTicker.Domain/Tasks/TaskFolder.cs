@@ -75,11 +75,6 @@ public sealed class TaskFolder
     public void Delete(DateTimeOffset deletedAtUtc)
     {
         EnsureActive();
-        if (Kind == TaskFolderKind.Template)
-        {
-            throw new InvalidOperationException("A template folder cannot be deleted independently from its template.");
-        }
-
         IsDeleted = true;
         UpdatedAtUtc = RequireUtc(deletedAtUtc, nameof(deletedAtUtc));
     }

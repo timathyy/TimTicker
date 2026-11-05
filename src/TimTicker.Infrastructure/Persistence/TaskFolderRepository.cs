@@ -16,25 +16,12 @@ public sealed class TaskFolderRepository(IDbContextFactory<TimTickerDbContext> c
 
     public async Task SaveAsync(
         TaskFolder folder,
-        bool moveTasksToRoot = false,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(folder);
         await using TimTickerDbContext context = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         await using Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction =
             await context.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
-        if (moveTasksToRoot)
-        {
-            await context.Tasks
-                .Where(task => !task.IsDeleted && task.FolderId == folder.Id)
-                .ExecuteUpdateAsync(
-                    setters => setters
-                        .SetProperty(task => task.FolderId, (Guid?)null)
-                        .SetProperty(task => task.UpdatedAtUtc, folder.UpdatedAtUtc),
-                    cancellationToken)
-                .ConfigureAwait(false);
-        }
-
         if (folder.Kind == TaskFolderKind.Template)
         {
             await context.TaskTemplates
@@ -49,6 +36,49 @@ public sealed class TaskFolderRepository(IDbContextFactory<TimTickerDbContext> c
 
         context.TaskFolders.Update(folder);
         await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task DeleteTreeAsync(
+        IReadOnlyCollection<Guid> folderIds,
+        DateTimeOffset deletedAtUtc,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(folderIds);
+        if (folderIds.Count == 0)
+        {
+            return;
+        }
+
+        Guid[] ids = folderIds.Distinct().ToArray();
+        await using TimTickerDbContext context = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction =
+            await context.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        await context.Tasks
+            .Where(task => !task.IsDeleted && task.FolderId.HasValue && ids.Contains(task.FolderId.Value))
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(task => task.IsDeleted, true)
+                    .SetProperty(task => task.UpdatedAtUtc, deletedAtUtc),
+                cancellationToken)
+            .ConfigureAwait(false);
+        await context.TaskTemplates
+            .Where(template => !template.IsDeleted && ids.Contains(template.FolderId))
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(template => template.IsDeleted, true)
+                    .SetProperty(template => template.IsEnabled, false)
+                    .SetProperty(template => template.UpdatedAtUtc, deletedAtUtc),
+                cancellationToken)
+            .ConfigureAwait(false);
+        await context.TaskFolders
+            .Where(folder => !folder.IsDeleted && ids.Contains(folder.Id))
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(folder => folder.IsDeleted, true)
+                    .SetProperty(folder => folder.UpdatedAtUtc, deletedAtUtc),
+                cancellationToken)
+            .ConfigureAwait(false);
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
     }
 
@@ -93,11 +123,4 @@ public sealed class TaskFolderRepository(IDbContextFactory<TimTickerDbContext> c
             cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<bool> HasChildrenAsync(Guid id, CancellationToken cancellationToken = default)
-    {
-        await using TimTickerDbContext context = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
-        return await context.TaskFolders.AnyAsync(
-            folder => !folder.IsDeleted && folder.ParentId == id,
-            cancellationToken).ConfigureAwait(false);
-    }
 }

@@ -73,14 +73,16 @@ public sealed class TaskFolderServiceTests
     }
 
     [Fact]
-    public async Task FolderWithChildrenCannotBeDeleted()
+    public async Task FolderTreeCanBeDeletedRecursively()
     {
         InMemoryFolderRepository repository = new();
         TaskFolderService service = new(repository, new FixedTimeProvider(Now));
         TaskFolderSummary parent = await service.CreateAsync("父目录");
         await service.CreateAsync("子目录", parent.Id);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.DeleteAsync(parent.Id));
+        await service.DeleteAsync(parent.Id);
+
+        Assert.Empty(await service.ListAsync());
     }
 
     [Fact]
@@ -107,8 +109,20 @@ public sealed class TaskFolderServiceTests
 
         public Task SaveAsync(
             TaskFolder folder,
-            bool moveTasksToRoot = false,
             CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+        public Task DeleteTreeAsync(
+            IReadOnlyCollection<Guid> folderIds,
+            DateTimeOffset deletedAtUtc,
+            CancellationToken cancellationToken = default)
+        {
+            foreach (TaskFolder folder in _folders.Where(folder => folderIds.Contains(folder.Id) && !folder.IsDeleted))
+            {
+                folder.Delete(deletedAtUtc);
+            }
+
+            return Task.CompletedTask;
+        }
 
         public Task<TaskFolder?> FindAsync(Guid id, CancellationToken cancellationToken = default) =>
             Task.FromResult(_folders.SingleOrDefault(folder => folder.Id == id && !folder.IsDeleted));
@@ -130,8 +144,6 @@ public sealed class TaskFolderServiceTests
                 folder.Id != excludedFolderId &&
                 string.Equals(folder.Name, name, StringComparison.OrdinalIgnoreCase)));
 
-        public Task<bool> HasChildrenAsync(Guid id, CancellationToken cancellationToken = default) =>
-            Task.FromResult(_folders.Any(folder => !folder.IsDeleted && folder.ParentId == id));
     }
 
     private sealed class FixedTimeProvider(DateTimeOffset utcNow) : TimeProvider

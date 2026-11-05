@@ -310,7 +310,7 @@ public sealed partial class TasksViewModel(
         ArgumentNullException.ThrowIfNull(folder);
         Guid? parentFolderId = folder.ParentId;
         await folderService.DeleteAsync(folder.Id);
-        StatusMessage = $"已删除文件夹“{folder.Name}”，其中的任务已移到根目录。";
+        StatusMessage = $"已删除文件夹“{folder.Name}”及其中的所有内容。";
         await LoadAsync();
         if (parentFolderId is Guid parentId)
         {

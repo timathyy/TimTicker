@@ -164,6 +164,60 @@ public sealed class TaskTemplatePersistenceTests
         }
     }
 
+    [Fact]
+    public async Task DeletingFolderTreeDeletesDescendantsTasksAndTemplates()
+    {
+        string testRoot = Path.Combine(Path.GetTempPath(), "TimTicker.Tests", Guid.NewGuid().ToString("N"));
+        string databasePath = Path.Combine(testRoot, "timticker.db");
+        Directory.CreateDirectory(testRoot);
+
+        try
+        {
+            await using ServiceProvider provider = CreateProvider(databasePath);
+            await provider.GetRequiredService<IAppDatabaseInitializer>().InitializeAsync();
+            ITaskFolderService folders = provider.GetRequiredService<ITaskFolderService>();
+            ITaskService tasks = provider.GetRequiredService<ITaskService>();
+            ITaskTemplateService templates = provider.GetRequiredService<ITaskTemplateService>();
+            TaskFolderSummary root = await folders.CreateAsync("项目");
+            TaskFolderSummary child = await folders.CreateAsync("子目录", root.Id);
+            await tasks.CreateAsync(new CreateTaskRequest(
+                "普通任务",
+                null,
+                new DateOnly(2026, 11, 5),
+                null,
+                TaskPriority.None,
+                child.Id));
+            TaskTemplateSummary template = await templates.CreateAsync(new CreateTaskTemplateRequest(
+                "自动目录",
+                "自动任务-%n",
+                null,
+                TaskPriority.None,
+                TaskTemplateSchedule.Manual,
+                1,
+                new DateOnly(2026, 11, 5),
+                false,
+                child.Id));
+            await templates.GenerateManualAsync(template.Id);
+
+            await folders.DeleteAsync(root.Id);
+
+            Assert.Empty(await folders.ListAsync());
+            Assert.Empty(await templates.ListAsync());
+            Assert.Empty(await tasks.ListAsync(new TaskQuery(
+                null,
+                null,
+                TaskSortOrder.CreatedAtDescending)));
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            if (Directory.Exists(testRoot))
+            {
+                Directory.Delete(testRoot, recursive: true);
+            }
+        }
+    }
+
     private static ServiceProvider CreateProvider(string databasePath)
     {
         ServiceCollection services = new();

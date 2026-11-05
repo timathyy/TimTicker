@@ -23,13 +23,16 @@ public sealed class TaskTemplateRepository(IDbContextFactory<TimTickerDbContext>
     public async Task<TaskTemplate?> FindAsync(Guid id, CancellationToken cancellationToken = default)
     {
         await using TimTickerDbContext context = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
-        return await context.TaskTemplates.AsNoTracking().SingleOrDefaultAsync(template => template.Id == id, cancellationToken).ConfigureAwait(false);
+        return await context.TaskTemplates.AsNoTracking()
+            .SingleOrDefaultAsync(template => template.Id == id && !template.IsDeleted, cancellationToken)
+            .ConfigureAwait(false);
     }
 
     public async Task<IReadOnlyList<TaskTemplate>> ListAsync(CancellationToken cancellationToken = default)
     {
         await using TimTickerDbContext context = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         return await context.TaskTemplates.AsNoTracking()
+            .Where(template => !template.IsDeleted)
             .OrderBy(template => template.Name)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);

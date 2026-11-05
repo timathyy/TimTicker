@@ -84,19 +84,22 @@ public sealed class TaskFolderService(ITaskFolderRepository repository, TimeProv
 
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        TaskFolder folder = await GetAsync(id, cancellationToken).ConfigureAwait(false);
-        if (folder.Kind == TaskFolderKind.Template)
+        _ = await GetAsync(id, cancellationToken).ConfigureAwait(false);
+        IReadOnlyList<TaskFolder> folders = await repository.ListAsync(cancellationToken).ConfigureAwait(false);
+        HashSet<Guid> folderIds = [id];
+        Queue<Guid> pendingFolderIds = new([id]);
+        while (pendingFolderIds.TryDequeue(out Guid currentId))
         {
-            throw new InvalidOperationException("An automatic task folder cannot be deleted independently from its rule.");
+            foreach (TaskFolder child in folders.Where(folder => folder.ParentId == currentId))
+            {
+                if (folderIds.Add(child.Id))
+                {
+                    pendingFolderIds.Enqueue(child.Id);
+                }
+            }
         }
 
-        if (await repository.HasChildrenAsync(id, cancellationToken).ConfigureAwait(false))
-        {
-            throw new InvalidOperationException("A folder containing subfolders cannot be deleted.");
-        }
-
-        folder.Delete(timeProvider.GetUtcNow());
-        await repository.SaveAsync(folder, moveTasksToRoot: true, cancellationToken: cancellationToken).ConfigureAwait(false);
+        await repository.DeleteTreeAsync(folderIds, timeProvider.GetUtcNow(), cancellationToken).ConfigureAwait(false);
     }
 
     internal static TaskFolderSummary ToSummary(TaskFolder folder) => new(

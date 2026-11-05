@@ -184,28 +184,6 @@ public partial class TasksView : UserControl
         }
 
         System.Windows.Window? owner = System.Windows.Window.GetWindow(this);
-        if (folder.IsTemplateFolder)
-        {
-            System.Windows.MessageBox.Show(
-                owner,
-                "自动任务文件夹与生成规则绑定，不能单独删除。",
-                "无法删除文件夹",
-                System.Windows.MessageBoxButton.OK,
-                System.Windows.MessageBoxImage.Information);
-            return;
-        }
-
-        if (folder.Children.Count > 0)
-        {
-            System.Windows.MessageBox.Show(
-                owner,
-                "请先移动或删除其中的子文件夹，再删除此文件夹。",
-                "无法删除文件夹",
-                System.Windows.MessageBoxButton.OK,
-                System.Windows.MessageBoxImage.Information);
-            return;
-        }
-
         DeleteTaskFolderConfirmationWindow window = new(folder.Name) { Owner = owner };
         if (window.ShowDialog() == true)
         {

@@ -16,11 +16,13 @@ public sealed class TaskFolderTests
     }
 
     [Fact]
-    public void TemplateFolderCannotBeDeletedIndependently()
+    public void TemplateFolderCanBeMarkedDeletedAsPartOfFolderTree()
     {
         TaskFolder folder = new(Guid.NewGuid(), "每日复盘", TaskFolderKind.Template, CreatedAt);
 
-        Assert.Throws<InvalidOperationException>(() => folder.Delete(CreatedAt.AddMinutes(1)));
+        folder.Delete(CreatedAt.AddMinutes(1));
+
+        Assert.True(folder.IsDeleted);
     }
 
     [Fact]

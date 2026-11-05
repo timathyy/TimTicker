@@ -70,6 +70,20 @@ public sealed class TaskTemplate
 
     public DateTimeOffset UpdatedAtUtc { get; private set; }
 
+    public bool IsDeleted { get; private set; }
+
+    public void Delete(DateTimeOffset deletedAtUtc)
+    {
+        if (IsDeleted)
+        {
+            throw new InvalidOperationException("A deleted template cannot be changed.");
+        }
+
+        IsDeleted = true;
+        IsEnabled = false;
+        UpdatedAtUtc = RequireUtc(deletedAtUtc, nameof(deletedAtUtc));
+    }
+
     public TaskItem GenerateManual(DateOnly generationDate, DateTimeOffset generatedAtUtc) =>
         Generate(generationDate, null, generatedAtUtc);
 

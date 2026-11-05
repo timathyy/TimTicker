@@ -6,7 +6,12 @@ public interface ITaskFolderRepository
 {
     Task AddAsync(TaskFolder folder, CancellationToken cancellationToken = default);
 
-    Task SaveAsync(TaskFolder folder, bool moveTasksToRoot = false, CancellationToken cancellationToken = default);
+    Task SaveAsync(TaskFolder folder, CancellationToken cancellationToken = default);
+
+    Task DeleteTreeAsync(
+        IReadOnlyCollection<Guid> folderIds,
+        DateTimeOffset deletedAtUtc,
+        CancellationToken cancellationToken = default);
 
     Task<TaskFolder?> FindAsync(Guid id, CancellationToken cancellationToken = default);
 
@@ -20,5 +25,4 @@ public interface ITaskFolderRepository
         Guid? excludedFolderId = null,
         CancellationToken cancellationToken = default);
 
-    Task<bool> HasChildrenAsync(Guid id, CancellationToken cancellationToken = default);
 }

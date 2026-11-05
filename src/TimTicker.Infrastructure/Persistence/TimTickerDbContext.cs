@@ -100,6 +100,7 @@ public sealed class TimTickerDbContext(DbContextOptions<TimTickerDbContext> opti
             entity.Property(template => template.CreatedAtUtc).HasConversion(UtcTicksConverter);
             entity.Property(template => template.UpdatedAtUtc).HasConversion(UtcTicksConverter);
             entity.HasIndex(template => template.Name);
+            entity.HasIndex(template => new { template.IsDeleted, template.Name });
             entity.HasIndex(template => template.FolderId).IsUnique();
             entity.HasOne<TaskFolder>()
                 .WithMany()

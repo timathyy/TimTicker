@@ -29,7 +29,8 @@
                            TextWrapping="Wrap" />
                 <TextBlock Margin="0,10,0,0"
                            Foreground="{DynamicResource TextSecondaryBrush}"
-                           Text="文件夹中的任务会移动到根目录；包含子文件夹时不能删除。此操作无法撤销。"
+                           FontSize="12"
+                           Text="删除该文件夹将同时删除该文件夹下的所有子文件夹和任务。此操作无法撤销。"
                            TextWrapping="Wrap" />
             </StackPanel>
             <StackPanel Grid.Row="1" Margin="0,22,0,0" HorizontalAlignment="Right" Orientation="Horizontal">
